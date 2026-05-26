@@ -988,8 +988,6 @@ function DCPostIt({ children, top, left, right, bottom, rotate = -2, width = 180
 Object.assign(window, { DesignCanvas, DCSection, DCArtboard, DCPostIt });
 
 
-  </script>
-  <script type="text/babel" data-presets="react">
 // Shared data definitions + Excel parsing helpers.
 // The app loads data.xlsx from the server on first run and uses that as its
 // source of truth. CRUD changes made in the UI are saved to localStorage so
@@ -1190,8 +1188,6 @@ Object.assign(window, {
   parseWorkbook, parseExcelBuffer,
 });
 
-  </script>
-  <script type="text/babel" data-presets="react">
 // Shared chrome: tokens, primitive controls, status pill, CRUD drawer.
 // All three variations import these so the visual language is consistent
 // across the canvas. Names are prefixed `Ui*` to dodge global collisions.
@@ -1516,8 +1512,6 @@ Object.assign(window, {
   UiSegmented, uiInputStyle,
 });
 
-  </script>
-  <script type="text/babel" data-presets="react">
 // Roadmap + Tech Filter view.
 // Data source priority on startup:
 //   1. localStorage (preserves CRUD edits across reloads)
@@ -1704,22 +1698,16 @@ function RoadmapTechView() {
       });
   };
 
-  // Show loading screen while we wait for the initial async load.
-  if (!store) return <LoadingScreen message="Loading data…" />;
-
   const today = new Date(2026, 4, 26);
-  const techById = _byId(store.technologies);
-  const platById = _byId(store.platforms);
-  const buById   = _byId(store.businessUnits);
 
-  // ── Filters ───────────────────────────────────────────────────────────────
+  // ── Filters (all hooks declared unconditionally — no early return yet) ────
   const owners = React.useMemo(
-    () => [...new Set(store.initiatives.map((i) => i.owner).filter(Boolean))].sort(),
-    [store.initiatives]
+    () => store ? [...new Set(store.initiatives.map((i) => i.owner).filter(Boolean))].sort() : [],
+    [store]
   );
   const passesBaseFilter = (i) =>
     (!statusFilter || i.status === statusFilter) && (!ownerFilter || i.owner === ownerFilter);
-  const filteredInits = store.initiatives.filter(passesBaseFilter);
+  const filteredInits = store ? store.initiatives.filter(passesBaseFilter) : [];
 
   const isMatched = (init) => {
     if (selectedTechs.size === 0) return true;
@@ -1740,6 +1728,7 @@ function RoadmapTechView() {
 
   // ── Time window ───────────────────────────────────────────────────────────
   const range = React.useMemo(() => {
+    if (!store) return { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31) };
     const dates = store.initiatives.flatMap((i) => [parseISO(i.start), parseISO(i.end)]);
     if (!dates.length) return { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31) };
     let lo = dates.reduce((a, b) => a < b ? a : b);
@@ -1793,8 +1782,9 @@ function RoadmapTechView() {
 
   // ── Layout ────────────────────────────────────────────────────────────────
   const LANE_HEADER = 38, ROW_H = 44, LANE_GAP = 6;
-  const visiblePlatforms = store.platforms.filter((p) => !buFilter || p.businessUnitId === buFilter);
+  const visiblePlatforms = store ? store.platforms.filter((p) => !buFilter || p.businessUnitId === buFilter) : [];
   const layout = React.useMemo(() => {
+    if (!store) return { rows: [], totalH: 0 };
     const rows = []; let y = 0;
     for (const p of visiblePlatforms) {
       const items = store.initiatives.filter((i) => i.platformId === p.id).filter(passesBaseFilter);
@@ -1833,6 +1823,31 @@ function RoadmapTechView() {
         y: r.y + r.h / 2, platform: r.platform,
       }));
   }, [litTechId, layout, timelineW]);
+
+  const scrollerRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const onWheel = (e) => { e.stopPropagation(); };
+    el.addEventListener('wheel', onWheel, { passive: true });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  // All hooks have been called — safe to return early for loading state.
+  if (!store) return <LoadingScreen message="Loading data…" />;
+
+  const techById = _byId(store.technologies);
+  const buById   = _byId(store.businessUnits);
+
+  const scrollTo = (date) => {
+    if (!scrollerRef.current) return;
+    scrollerRef.current.scrollTo({ left: Math.max(0, dateToX(date) + labelW - 80), behavior: 'smooth' });
+  };
+  const scrollByMonths = (delta) => {
+    if (!scrollerRef.current) return;
+    scrollerRef.current.scrollBy({ left: delta * monthW, behavior: 'smooth' });
+  };
 
   // ── Drag-to-reschedule / resize ───────────────────────────────────────────
   const startBarDrag = (e, init, mode) => {
@@ -1875,24 +1890,6 @@ function RoadmapTechView() {
     document.addEventListener('pointerup', onUp);
   };
   const onBarClick = (init) => { if (dragSuppressRef.current === init.id) return; setDrawer({ ...init }); };
-
-  const scrollerRef = React.useRef(null);
-  const scrollTo = (date) => {
-    if (!scrollerRef.current) return;
-    scrollerRef.current.scrollTo({ left: Math.max(0, dateToX(date) + labelW - 80), behavior: 'smooth' });
-  };
-  const scrollByMonths = (delta) => {
-    if (!scrollerRef.current) return;
-    scrollerRef.current.scrollBy({ left: delta * monthW, behavior: 'smooth' });
-  };
-
-  React.useEffect(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const onWheel = (e) => { e.stopPropagation(); };
-    el.addEventListener('wheel', onWheel, { passive: true });
-    return () => el.removeEventListener('wheel', onWheel);
-  }, []);
 
   const cats = [...new Set(store.technologies.map((t) => t.category))];
 
@@ -2473,24 +2470,22 @@ function RoadmapTechView() {
 
 window.RoadmapTechView = RoadmapTechView;
 
-  </script>
 
-  <script type="text/babel" data-presets="react">
-    function App() {
-      return (
-        <DesignCanvas>
-          <DCSection id="primary"
-            title="AI Board"
-            subtitle="Coordinate initiatives, technologies and deadlines across platforms.">
-            <DCArtboard id="roadmap-tech" label="Roadmap" width={1500} height={1180}>
-              <RoadmapTechView />
-            </DCArtboard>
-          </DCSection>
-        </DesignCanvas>
-      );
-    }
+function App() {
+  return (
+    <DesignCanvas>
+      <DCSection id="primary"
+        title="AI Board"
+        subtitle="Coordinate initiatives, technologies and deadlines across platforms.">
+        <DCArtboard id="roadmap-tech" label="Roadmap" width={1500} height={1180}>
+          <RoadmapTechView />
+        </DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>
 </html>

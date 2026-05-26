@@ -184,22 +184,16 @@ function RoadmapTechView() {
       });
   };
 
-  // Show loading screen while we wait for the initial async load.
-  if (!store) return <LoadingScreen message="Loading data…" />;
-
   const today = new Date(2026, 4, 26);
-  const techById = _byId(store.technologies);
-  const platById = _byId(store.platforms);
-  const buById   = _byId(store.businessUnits);
 
-  // ── Filters ───────────────────────────────────────────────────────────────
+  // ── Filters (all hooks declared unconditionally — no early return yet) ────
   const owners = React.useMemo(
-    () => [...new Set(store.initiatives.map((i) => i.owner).filter(Boolean))].sort(),
-    [store.initiatives]
+    () => store ? [...new Set(store.initiatives.map((i) => i.owner).filter(Boolean))].sort() : [],
+    [store]
   );
   const passesBaseFilter = (i) =>
     (!statusFilter || i.status === statusFilter) && (!ownerFilter || i.owner === ownerFilter);
-  const filteredInits = store.initiatives.filter(passesBaseFilter);
+  const filteredInits = store ? store.initiatives.filter(passesBaseFilter) : [];
 
   const isMatched = (init) => {
     if (selectedTechs.size === 0) return true;
@@ -220,6 +214,7 @@ function RoadmapTechView() {
 
   // ── Time window ───────────────────────────────────────────────────────────
   const range = React.useMemo(() => {
+    if (!store) return { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31) };
     const dates = store.initiatives.flatMap((i) => [parseISO(i.start), parseISO(i.end)]);
     if (!dates.length) return { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31) };
     let lo = dates.reduce((a, b) => a < b ? a : b);
@@ -273,8 +268,9 @@ function RoadmapTechView() {
 
   // ── Layout ────────────────────────────────────────────────────────────────
   const LANE_HEADER = 38, ROW_H = 44, LANE_GAP = 6;
-  const visiblePlatforms = store.platforms.filter((p) => !buFilter || p.businessUnitId === buFilter);
+  const visiblePlatforms = store ? store.platforms.filter((p) => !buFilter || p.businessUnitId === buFilter) : [];
   const layout = React.useMemo(() => {
+    if (!store) return { rows: [], totalH: 0 };
     const rows = []; let y = 0;
     for (const p of visiblePlatforms) {
       const items = store.initiatives.filter((i) => i.platformId === p.id).filter(passesBaseFilter);
@@ -313,6 +309,31 @@ function RoadmapTechView() {
         y: r.y + r.h / 2, platform: r.platform,
       }));
   }, [litTechId, layout, timelineW]);
+
+  const scrollerRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const onWheel = (e) => { e.stopPropagation(); };
+    el.addEventListener('wheel', onWheel, { passive: true });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  // All hooks have been called — safe to return early for loading state.
+  if (!store) return <LoadingScreen message="Loading data…" />;
+
+  const techById = _byId(store.technologies);
+  const buById   = _byId(store.businessUnits);
+
+  const scrollTo = (date) => {
+    if (!scrollerRef.current) return;
+    scrollerRef.current.scrollTo({ left: Math.max(0, dateToX(date) + labelW - 80), behavior: 'smooth' });
+  };
+  const scrollByMonths = (delta) => {
+    if (!scrollerRef.current) return;
+    scrollerRef.current.scrollBy({ left: delta * monthW, behavior: 'smooth' });
+  };
 
   // ── Drag-to-reschedule / resize ───────────────────────────────────────────
   const startBarDrag = (e, init, mode) => {
@@ -355,24 +376,6 @@ function RoadmapTechView() {
     document.addEventListener('pointerup', onUp);
   };
   const onBarClick = (init) => { if (dragSuppressRef.current === init.id) return; setDrawer({ ...init }); };
-
-  const scrollerRef = React.useRef(null);
-  const scrollTo = (date) => {
-    if (!scrollerRef.current) return;
-    scrollerRef.current.scrollTo({ left: Math.max(0, dateToX(date) + labelW - 80), behavior: 'smooth' });
-  };
-  const scrollByMonths = (delta) => {
-    if (!scrollerRef.current) return;
-    scrollerRef.current.scrollBy({ left: delta * monthW, behavior: 'smooth' });
-  };
-
-  React.useEffect(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const onWheel = (e) => { e.stopPropagation(); };
-    el.addEventListener('wheel', onWheel, { passive: true });
-    return () => el.removeEventListener('wheel', onWheel);
-  }, []);
 
   const cats = [...new Set(store.technologies.map((t) => t.category))];
 
