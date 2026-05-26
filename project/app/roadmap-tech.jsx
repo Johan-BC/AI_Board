@@ -333,8 +333,8 @@ function RoadmapTechView() {
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: UI.panel }}>
 
-        {/* ─── ROADMAP (top, sized to content but capped by available space) ─── */}
-        <div ref={scrollerRef} className="roadmap-scroller" style={{ flex: '0 1 auto', overflow: 'auto', background: UI.panel, position: 'relative', minWidth: 0, minHeight: 0 }}>
+        {/* ─── ROADMAP (fills remaining space, scrolls within it) ─── */}
+        <div ref={scrollerRef} className="roadmap-scroller" style={{ flex: 1, overflow: 'auto', background: UI.panel, position: 'relative', minWidth: 0, minHeight: 0 }}>
           <div style={{ display: 'flex', minWidth: labelW + timelineW, position: 'relative' }}>
 
             {/* sticky labels column */}
