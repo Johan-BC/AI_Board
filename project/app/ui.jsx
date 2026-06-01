@@ -1,42 +1,40 @@
-// Shared chrome: tokens, primitive controls, status pill, CRUD drawer.
-// All three variations import these so the visual language is consistent
-// across the canvas. Names are prefixed `Ui*` to dodge global collisions.
+// Shared design tokens + UI primitives for AI Board Alt.
+// Prefixed Ui* to avoid global collisions.
 
 const UI = {
-  bg:        'oklch(0.985 0.004 80)',
-  panel:     '#ffffff',
-  panelSoft: 'oklch(0.975 0.005 80)',
-  border:    'oklch(0.93 0.006 80)',
+  bg:           'oklch(0.985 0.004 80)',
+  panel:        '#ffffff',
+  panelSoft:    'oklch(0.975 0.005 80)',
+  border:       'oklch(0.93 0.006 80)',
   borderStrong: 'oklch(0.86 0.008 80)',
-  ink:       'oklch(0.22 0.008 80)',
-  inkMuted:  'oklch(0.48 0.006 80)',
-  inkFaint:  'oklch(0.65 0.006 80)',
-  accent:    'oklch(0.55 0.13 250)',
-  shadow:    '0 1px 2px rgba(20,16,12,.04), 0 1px 0 rgba(20,16,12,.02)',
-  shadowMd:  '0 2px 6px rgba(20,16,12,.05), 0 12px 32px rgba(20,16,12,.06)',
-  sans:      "'Geist', 'Söhne', ui-sans-serif, system-ui, sans-serif",
-  mono:      "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+  ink:          'oklch(0.22 0.008 80)',
+  inkMuted:     'oklch(0.48 0.006 80)',
+  inkFaint:     'oklch(0.65 0.006 80)',
+  accent:       'oklch(0.55 0.13 250)',
+  shadow:       '0 1px 2px rgba(20,16,12,.04), 0 1px 0 rgba(20,16,12,.02)',
+  shadowMd:     '0 2px 6px rgba(20,16,12,.05), 0 12px 32px rgba(20,16,12,.06)',
+  sans:         "'Geist', 'Söhne', ui-sans-serif, system-ui, sans-serif",
+  mono:         "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
 };
 
-// Section/page chrome the three views all share at the top of their artboard.
 function UiTopBar({ title, subtitle, right, kicker }) {
   return (
     <div style={{
-      padding: '20px 28px 16px',
+      padding: '18px 24px 14px',
       borderBottom: `1px solid ${UI.border}`,
       display: 'flex', alignItems: 'flex-end', gap: 18,
-      background: UI.panel,
+      background: UI.panel, flex: '0 0 auto',
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         {kicker && (
           <div style={{
             fontFamily: UI.mono, fontSize: 10, letterSpacing: 1.2, textTransform: 'uppercase',
-            color: UI.inkFaint, marginBottom: 6,
+            color: UI.inkFaint, marginBottom: 5,
           }}>{kicker}</div>
         )}
-        <div style={{ fontSize: 22, fontWeight: 600, letterSpacing: -0.5, color: UI.ink }}>{title}</div>
+        <div style={{ fontSize: 21, fontWeight: 600, letterSpacing: -0.5, color: UI.ink }}>{title}</div>
         {subtitle && (
-          <div style={{ fontSize: 13, color: UI.inkMuted, marginTop: 4 }}>{subtitle}</div>
+          <div style={{ fontSize: 12.5, color: UI.inkMuted, marginTop: 3 }}>{subtitle}</div>
         )}
       </div>
       {right && <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8 }}>{right}</div>}
@@ -74,7 +72,7 @@ function UiStatusPill({ status, size = 'md' }) {
   const isLive = status === 'live';
   return (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6,
+      display: 'inline-flex', alignItems: 'center', gap: 5,
       fontFamily: UI.sans, fontWeight: 500, fontSize: size === 'sm' ? 10 : 11,
       letterSpacing: 0.2, color: s.color,
       padding: size === 'sm' ? '2px 7px 2px 6px' : '3px 9px 3px 8px',
@@ -84,53 +82,12 @@ function UiStatusPill({ status, size = 'md' }) {
     }}>
       <span style={{
         width: 5, height: 5, borderRadius: 99,
-        background: s.color, boxShadow: isLive ? `0 0 0 3px color-mix(in oklch, ${s.color} 20%, transparent)` : 'none',
+        background: s.color,
+        boxShadow: isLive ? `0 0 0 3px color-mix(in oklch, ${s.color} 20%, transparent)` : 'none',
       }} />
       {s.label}
     </span>
   );
-}
-
-function UiTechChip({ tech, dim, hot, onClick, size = 'md' }) {
-  return (
-    <button onClick={onClick}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 5,
-        fontFamily: UI.mono, fontSize: size === 'sm' ? 10 : 11, lineHeight: 1,
-        padding: size === 'sm' ? '3px 7px' : '4px 9px',
-        borderRadius: 4, cursor: 'pointer',
-        background: hot ? UI.ink : (dim ? 'transparent' : UI.panelSoft),
-        color: hot ? '#fff' : (dim ? UI.inkFaint : UI.ink),
-        border: `1px solid ${hot ? UI.ink : UI.border}`,
-        opacity: dim ? 0.4 : 1,
-        transition: 'background .12s, color .12s, opacity .12s',
-        fontWeight: 500,
-      }}>
-      <span style={{
-        width: 4, height: 4, borderRadius: 99,
-        background: hot ? '#fff' : UI.inkFaint, opacity: hot ? 0.9 : 0.7,
-      }} />
-      {tech.name}
-    </button>
-  );
-}
-
-function UiCategoryDot({ category }) {
-  // Stable hue per category — lets matrix/legend show grouping at a glance.
-  const hues = { 'Speech': 30, 'Agent tooling': 250, 'Assistant': 150,
-    'LLM': 250, 'Vector DB': 290, 'Framework': 200, 'Image gen': 0, 'ML model': 150, 'Data': 80, 'Observability': 320 };
-  const h = hues[category] ?? 250;
-  return <span title={category} style={{
-    width: 7, height: 7, borderRadius: 99, display: 'inline-block',
-    background: `oklch(0.62 0.12 ${h})`,
-  }} />;
-}
-
-function UiPlatformDot({ platform, size = 8 }) {
-  return <span style={{
-    width: size, height: size, borderRadius: 99, display: 'inline-block',
-    background: platform.accent, flex: '0 0 auto',
-  }} />;
 }
 
 function UiToggle({ checked, onChange, label }) {
@@ -155,108 +112,23 @@ function UiToggle({ checked, onChange, label }) {
   );
 }
 
-// Side drawer that slides in from the right — used for edit/create in
-// every view. Pass `mode` of 'edit'|'create', and onSave/onDelete handlers.
-function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
-  const [d, setD] = React.useState(draft);
-  React.useEffect(() => setD(draft), [draft?.id, draft?._new]);
-  if (!d) return null;
-  const platform = store.platforms.find((p) => p.id === d.platformId) || store.platforms[0];
-  const techCats = [...new Set(store.technologies.map((t) => t.category))];
-
-  const patch = (k, v) => setD({ ...d, [k]: v });
-  const toggleTech = (id) => {
-    const next = d.techIds.includes(id) ? d.techIds.filter((x) => x !== id) : [...d.techIds, id];
-    setD({ ...d, techIds: next });
+function UiCategoryDot({ category }) {
+  const hues = {
+    'LLM': 250, 'Speech': 30, 'Agent tooling': 200, 'Assistant': 150,
+    'Vector DB': 290, 'Framework': 120, 'Image gen': 0, 'Data': 80, 'Observability': 320,
   };
+  const h = hues[category] ?? 250;
+  return <span title={category} style={{
+    width: 7, height: 7, borderRadius: 99, display: 'inline-block',
+    background: `oklch(0.62 0.12 ${h})`,
+  }} />;
+}
 
-  return (
-    <div style={{
-      position: 'absolute', top: 0, right: 0, bottom: 0, width: 380,
-      background: UI.panel, borderLeft: `1px solid ${UI.border}`,
-      boxShadow: '-10px 0 30px rgba(20,16,12,.08)',
-      display: 'flex', flexDirection: 'column', zIndex: 30,
-      fontFamily: UI.sans,
-    }}>
-      <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: `1px solid ${UI.border}` }}>
-        <UiPlatformDot platform={platform} />
-        <div style={{ flex: 1, fontFamily: UI.mono, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: UI.inkFaint }}>
-          {d._new ? 'New initiative' : 'Edit initiative'}
-        </div>
-        <button onClick={onClose} style={{
-          border: 'none', background: 'transparent', color: UI.inkMuted,
-          cursor: 'pointer', width: 24, height: 24, borderRadius: 4, fontSize: 18, lineHeight: 1,
-        }}>×</button>
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <UiFieldRow label="Name">
-          <input value={d.name} onChange={(e) => patch('name', e.target.value)} style={uiInputStyle} />
-        </UiFieldRow>
-
-        <UiFieldRow label="Platform">
-          <UiSegmented value={d.platformId} options={store.platforms.map((p) => ({ value: p.id, label: p.name }))} onChange={(v) => patch('platformId', v)} />
-        </UiFieldRow>
-
-        <UiFieldRow label="Status">
-          <UiSegmented value={d.status} options={store.statuses.map((s) => ({ value: s.id, label: s.label }))} onChange={(v) => patch('status', v)} />
-        </UiFieldRow>
-
-        <UiFieldRow label="Owner">
-          <input value={d.owner} onChange={(e) => patch('owner', e.target.value)} style={uiInputStyle} />
-        </UiFieldRow>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <UiFieldRow label="Start">
-            <input type="date" value={d.start || ''} onChange={(e) => patch('start', e.target.value)} style={uiInputStyle} />
-          </UiFieldRow>
-          <UiFieldRow label="End">
-            <input type="date" value={d.end || ''} onChange={(e) => patch('end', e.target.value)} style={uiInputStyle} />
-          </UiFieldRow>
-        </div>
-
-        <UiFieldRow label="Description">
-          <textarea value={d.description} onChange={(e) => patch('description', e.target.value)}
-            style={{ ...uiInputStyle, height: 70, resize: 'none', lineHeight: 1.45 }} />
-        </UiFieldRow>
-
-        <UiFieldRow label="Tags" hint="comma-separated">
-          <input value={d.tags.join(', ')} onChange={(e) => patch('tags', e.target.value.split(',').map((x) => x.trim()).filter(Boolean))} style={uiInputStyle} />
-        </UiFieldRow>
-
-        <UiFieldRow label="Technologies" hint={`${d.techIds.length} selected`}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
-            {techCats.map((cat) => (
-              <div key={cat}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                  <UiCategoryDot category={cat} />
-                  <div style={{ fontFamily: UI.mono, fontSize: 10, letterSpacing: 0.8, textTransform: 'uppercase', color: UI.inkFaint }}>{cat}</div>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                  {store.technologies.filter((t) => t.category === cat).map((t) => (
-                    <UiTechChip key={t.id} tech={t} hot={d.techIds.includes(t.id)} onClick={() => toggleTech(t.id)} size="sm" />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </UiFieldRow>
-      </div>
-
-      <div style={{
-        padding: '12px 20px', borderTop: `1px solid ${UI.border}`,
-        display: 'flex', alignItems: 'center', gap: 8,
-      }}>
-        {!d._new && (
-          <UiButton variant="bare" onClick={() => onDelete(d.id)}
-            style={{ color: 'oklch(0.55 0.18 25)', marginRight: 'auto' }}>Delete</UiButton>
-        )}
-        {d._new && <div style={{ marginRight: 'auto' }} />}
-        <UiButton variant="ghost" onClick={onClose}>Cancel</UiButton>
-        <UiButton variant="primary" onClick={() => onSave(d)}>{d._new ? 'Create' : 'Save'}</UiButton>
-      </div>
-    </div>
-  );
+function UiBuDot({ bu, size = 8 }) {
+  return <span title={bu.name} style={{
+    width: size, height: size, borderRadius: 99, display: 'inline-block',
+    background: bu.accent, flex: '0 0 auto',
+  }} />;
 }
 
 const uiInputStyle = {
@@ -298,7 +170,216 @@ function UiSegmented({ value, options, onChange }) {
   );
 }
 
-// Global one-time styles + Google Fonts import.
+// Initiative create/edit drawer — slides in from right.
+function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
+  const [d, setD] = React.useState(draft);
+  React.useEffect(() => setD(draft), [draft?.id, draft?._new]);
+  if (!d) return null;
+  const bu = store.businessUnits.find((b) => b.id === d.buId) || store.businessUnits[0];
+  const techCats = [...new Set(store.technologies.map((t) => t.category))];
+
+  const patch = (k, v) => setD({ ...d, [k]: v });
+  const toggleTech = (id) => {
+    const next = d.techIds.includes(id) ? d.techIds.filter((x) => x !== id) : [...d.techIds, id];
+    setD({ ...d, techIds: next });
+  };
+
+  return (
+    <div style={{
+      position: 'absolute', top: 0, right: 0, bottom: 0, width: 380,
+      background: UI.panel, borderLeft: `1px solid ${UI.border}`,
+      boxShadow: '-10px 0 30px rgba(20,16,12,.08)',
+      display: 'flex', flexDirection: 'column', zIndex: 30,
+      fontFamily: UI.sans,
+    }}>
+      <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: `1px solid ${UI.border}` }}>
+        <UiBuDot bu={bu} />
+        <div style={{ flex: 1, fontFamily: UI.mono, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: UI.inkFaint }}>
+          {d._new ? 'New initiative' : 'Edit initiative'}
+        </div>
+        <button onClick={onClose} style={{
+          border: 'none', background: 'transparent', color: UI.inkMuted,
+          cursor: 'pointer', width: 24, height: 24, borderRadius: 4, fontSize: 18, lineHeight: 1,
+        }}>×</button>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <UiFieldRow label="Name">
+          <input value={d.name} onChange={(e) => patch('name', e.target.value)} style={uiInputStyle} />
+        </UiFieldRow>
+
+        <UiFieldRow label="Business Unit">
+          <UiSegmented value={d.buId} options={store.businessUnits.map((b) => ({ value: b.id, label: b.name }))} onChange={(v) => { patch('buId', v); patch('platformId', null); }} />
+        </UiFieldRow>
+
+        {(() => {
+          const buPlatforms = (store.platforms || []).filter((p) => p.buId === d.buId);
+          if (buPlatforms.length === 0) return null;
+          return (
+            <UiFieldRow label="Platform">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                <button onClick={() => patch('platformId', null)} style={{
+                  fontFamily: UI.mono, fontSize: 10.5, padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
+                  background: !d.platformId ? UI.ink : UI.panelSoft,
+                  color: !d.platformId ? '#fff' : UI.inkMuted,
+                  border: `1px solid ${!d.platformId ? UI.ink : UI.border}`,
+                }}>None</button>
+                {buPlatforms.map((p) => {
+                  const hot = d.platformId === p.id;
+                  return (
+                    <button key={p.id} onClick={() => patch('platformId', p.id)} style={{
+                      fontFamily: UI.mono, fontSize: 10.5, padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
+                      background: hot ? UI.ink : UI.panelSoft,
+                      color: hot ? '#fff' : UI.ink,
+                      border: `1px solid ${hot ? UI.ink : UI.border}`,
+                      fontWeight: 500,
+                    }}>{p.name}</button>
+                  );
+                })}
+              </div>
+            </UiFieldRow>
+          );
+        })()}
+
+        <UiFieldRow label="Status">
+          <UiSegmented value={d.status} options={store.statuses.map((s) => ({ value: s.id, label: s.label }))} onChange={(v) => patch('status', v)} />
+        </UiFieldRow>
+
+        <UiFieldRow label="Owner">
+          <input value={d.owner} onChange={(e) => patch('owner', e.target.value)} style={uiInputStyle} />
+        </UiFieldRow>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <UiFieldRow label="Start">
+            <input type="date" value={d.start || ''} onChange={(e) => patch('start', e.target.value)} style={uiInputStyle} />
+          </UiFieldRow>
+          <UiFieldRow label="End">
+            <input type="date" value={d.end || ''} onChange={(e) => patch('end', e.target.value)} style={uiInputStyle} />
+          </UiFieldRow>
+        </div>
+
+        <UiFieldRow label="Description">
+          <textarea value={d.description} onChange={(e) => patch('description', e.target.value)}
+            style={{ ...uiInputStyle, height: 65, resize: 'none', lineHeight: 1.45 }} />
+        </UiFieldRow>
+
+        <UiFieldRow label="Tags" hint="comma-separated">
+          <input value={(d.tags || []).join(', ')}
+            onChange={(e) => patch('tags', e.target.value.split(',').map((x) => x.trim()).filter(Boolean))}
+            style={uiInputStyle} />
+        </UiFieldRow>
+
+        <UiFieldRow label="Technologies" hint={`${d.techIds.length} selected`}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+            {techCats.map((cat) => (
+              <div key={cat}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                  <UiCategoryDot category={cat} />
+                  <div style={{ fontFamily: UI.mono, fontSize: 9.5, letterSpacing: 0.8, textTransform: 'uppercase', color: UI.inkFaint }}>{cat}</div>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                  {store.technologies.filter((t) => t.category === cat).map((t) => {
+                    const hot = d.techIds.includes(t.id);
+                    return (
+                      <button key={t.id} onClick={() => toggleTech(t.id)} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        fontFamily: UI.mono, fontSize: 10.5, lineHeight: 1,
+                        padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
+                        background: hot ? UI.ink : UI.panelSoft,
+                        color: hot ? '#fff' : UI.ink,
+                        border: `1px solid ${hot ? UI.ink : UI.border}`,
+                        fontWeight: 500,
+                      }}>{t.name}</button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </UiFieldRow>
+
+        <UiFieldRow label="Blockers" hint={`${(d.blockerIds || []).length} selected`}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+            {[...new Set((store.blockers || []).map((b) => b.category))].map((cat) => (
+              <div key={cat}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 99, display: 'inline-block', background: 'oklch(0.62 0.18 15)' }} />
+                  <div style={{ fontFamily: UI.mono, fontSize: 9.5, letterSpacing: 0.8, textTransform: 'uppercase', color: UI.inkFaint }}>{cat}</div>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                  {(store.blockers || []).filter((b) => b.category === cat).map((b) => {
+                    const hot = (d.blockerIds || []).includes(b.id);
+                    return (
+                      <button key={b.id} onClick={() => {
+                        const next = hot
+                          ? (d.blockerIds || []).filter((x) => x !== b.id)
+                          : [...(d.blockerIds || []), b.id];
+                        patch('blockerIds', next);
+                      }} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        fontFamily: UI.mono, fontSize: 10.5, lineHeight: 1,
+                        padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
+                        background: hot ? 'oklch(0.45 0.18 15)' : UI.panelSoft,
+                        color: hot ? '#fff' : UI.ink,
+                        border: `1px solid ${hot ? 'oklch(0.45 0.18 15)' : UI.border}`,
+                        fontWeight: 500,
+                      }}>⚠ {b.name}</button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </UiFieldRow>
+
+        <UiFieldRow label="Milepæle" hint={`${(d.milestones || []).length} defineret`}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 4 }}>
+            {(d.milestones || []).map((m, idx) => (
+              <div key={idx} style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                <input type="date" value={m.date || ''} onChange={(e) => {
+                  const next = [...d.milestones];
+                  next[idx] = { ...m, date: e.target.value };
+                  patch('milestones', next);
+                }} style={{ ...uiInputStyle, width: 136, flex: '0 0 auto', fontSize: 12 }} />
+                <input value={m.label || ''} onChange={(e) => {
+                  const next = [...d.milestones];
+                  next[idx] = { ...m, label: e.target.value };
+                  patch('milestones', next);
+                }} placeholder="Label…" style={{ ...uiInputStyle, flex: 1, fontSize: 12 }} />
+                <button onClick={() => patch('milestones', d.milestones.filter((_, i) => i !== idx))}
+                  style={{ border: 'none', background: 'transparent', color: UI.inkFaint, cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: '2px 4px', borderRadius: 4, flexShrink: 0 }}
+                  title="Fjern milepæl">×</button>
+              </div>
+            ))}
+            <button onClick={() => patch('milestones', [...(d.milestones || []), { date: d.start || '', label: '' }])}
+              style={{
+                alignSelf: 'flex-start', marginTop: 2,
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '4px 10px', fontSize: 11, fontWeight: 500, cursor: 'pointer',
+                borderRadius: 5, border: `1px dashed ${UI.border}`,
+                background: 'transparent', color: UI.inkMuted, fontFamily: UI.sans, lineHeight: 1,
+              }}>+ Tilføj milepæl</button>
+          </div>
+        </UiFieldRow>
+      </div>
+
+      <div style={{
+        padding: '12px 18px', borderTop: `1px solid ${UI.border}`,
+        display: 'flex', alignItems: 'center', gap: 8,
+      }}>
+        {!d._new && (
+          <UiButton variant="bare" onClick={() => onDelete(d.id)}
+            style={{ color: 'oklch(0.55 0.18 25)', marginRight: 'auto' }}>Delete</UiButton>
+        )}
+        {d._new && <div style={{ marginRight: 'auto' }} />}
+        <UiButton variant="ghost" onClick={onClose}>Cancel</UiButton>
+        <UiButton variant="primary" onClick={() => onSave(d)}>{d._new ? 'Create' : 'Save'}</UiButton>
+      </div>
+    </div>
+  );
+}
+
+// Global fonts + base styles.
 if (typeof document !== 'undefined' && !document.getElementById('ui-base-styles')) {
   const link = document.createElement('link');
   link.rel = 'stylesheet';
@@ -312,12 +393,17 @@ if (typeof document !== 'undefined' && !document.getElementById('ui-base-styles'
     .ai-board input:focus, .ai-board textarea:focus { border-color: ${UI.ink}; box-shadow: 0 0 0 3px color-mix(in oklch, ${UI.ink} 10%, transparent); }
     .ai-board button:focus-visible { outline: 2px solid ${UI.accent}; outline-offset: 2px; }
     .ai-board ::selection { background: color-mix(in oklch, ${UI.accent} 25%, transparent); }
+    .board-scroller { scrollbar-width: thin !important; }
+    .board-scroller::-webkit-scrollbar { display: block !important; height: 10px; width: 10px; }
+    .board-scroller::-webkit-scrollbar-thumb { background: oklch(0.85 0.005 80); border-radius: 5px; }
+    .board-scroller::-webkit-scrollbar-track { background: transparent; }
+    .board-scroller::-webkit-scrollbar-thumb:hover { background: oklch(0.7 0.008 80); }
   `;
   document.head.appendChild(s);
 }
 
 Object.assign(window, {
-  UI, UiTopBar, UiButton, UiStatusPill, UiTechChip, UiToggle,
-  UiCategoryDot, UiPlatformDot, UiInitiativeDrawer, UiFieldRow,
+  UI, UiTopBar, UiButton, UiStatusPill, UiToggle,
+  UiCategoryDot, UiBuDot, UiInitiativeDrawer, UiFieldRow,
   UiSegmented, uiInputStyle,
 });
