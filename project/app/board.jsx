@@ -817,10 +817,14 @@ function BoardView() {
     const hasBlockers = (init.blockerIds || []).length > 0;
     const inBlockerMatch = selectedBlockers.size > 0 && blockerMatchedSet.has(init.id);
     const inTechMatch    = selectedTechs.size    > 0 && matchedSet.has(init.id);
+    const inOutcomeMatch = selectedOutcomes.size > 0 && outcomeMatchedSet.has(init.id);
     let dim = false, isHot = false, borderLeftColor = status.color, bgOverride = null, glowColor = null;
     if (selectedBlockers.size > 0) {
       dim = !inBlockerMatch; isHot = inBlockerMatch;
       if (isHot) { borderLeftColor = BLOCKER_RED; glowColor = BLOCKER_RED; }
+    } else if (selectedOutcomes.size > 0) {
+      dim = !inOutcomeMatch; isHot = inOutcomeMatch;
+      if (isHot) { borderLeftColor = OUTCOME_TEAL; glowColor = OUTCOME_TEAL; }
     } else if (selectedTechs.size > 0) {
       dim = !inTechMatch; isHot = inTechMatch;
       if (isHot) glowColor = bu.accent;
