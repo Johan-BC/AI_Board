@@ -33,7 +33,8 @@ const BLOCKER_RED    = 'oklch(0.52 0.2 15)';
 const BLOCKER_RED_BG = 'oklch(0.97 0.04 15)';
 
 // ── Persistence ───────────────────────────────────────────────────────────────
-const STORE_KEY = 'aiboard-alt:store:v2';
+const STORE_KEY = 'aiboard:store:v4';
+const PAT_KEY   = 'aiboard:github-pat';
 
 function readLocalStore() {
   try {
@@ -45,6 +46,63 @@ function readLocalStore() {
   return null;
 }
 
+// ── GitHub sync ───────────────────────────────────────────────────────────────
+const GITHUB_REPO   = 'Johan-BC/AI_Board';
+const GITHUB_FILE   = 'data.json';
+const GITHUB_BRANCH = 'main';
+
+function ghHeaders(pat) {
+  return { Authorization: `token ${pat}`, Accept: 'application/vnd.github.v3+json' };
+}
+
+// UTF-8 safe base64 encode/decode
+function b64Encode(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = ''; bytes.forEach((b) => { bin += String.fromCharCode(b); });
+  return btoa(bin);
+}
+function b64Decode(b64) {
+  const bin = atob(b64.replace(/\n/g, ''));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+async function readFromGitHub(pat) {
+  const res = await fetch(
+    `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}?ref=${GITHUB_BRANCH}&t=${Date.now()}`,
+    { headers: ghHeaders(pat) }
+  );
+  if (!res.ok) {
+    const err = Object.assign(new Error(`GitHub ${res.status}`), { status: res.status });
+    throw err;
+  }
+  const { content, sha } = await res.json();
+  return { store: parseJSON(b64Decode(content)), sha };
+}
+
+async function writeToGitHub(pat, store, sha) {
+  const body = {
+    message: `board: save ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`,
+    content: b64Encode(JSON.stringify(store, null, 2)),
+    branch: GITHUB_BRANCH,
+  };
+  if (sha) body.sha = sha;
+  const res = await fetch(
+    `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`,
+    {
+      method: 'PUT',
+      headers: { ...ghHeaders(pat), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }
+  );
+  if (res.status === 409) throw Object.assign(new Error('SHA conflict'), { code: 'conflict' });
+  if (!res.ok) throw new Error(`GitHub write ${res.status}`);
+  const data = await res.json();
+  return data.content.sha;
+}
+
+// ── Loading screen ────────────────────────────────────────────────────────────
 function LoadingScreen({ message }) {
   return (
     <div style={{
@@ -63,6 +121,85 @@ function LoadingScreen({ message }) {
   );
 }
 
+// ── PAT setup overlay ─────────────────────────────────────────────────────────
+function PatSetupOverlay({ onConnect, onSkip }) {
+  const [val, setVal]     = React.useState('');
+  const [phase, setPhase] = React.useState('idle'); // idle | busy | err
+
+  const connect = async () => {
+    const pat = val.trim();
+    if (!pat) return;
+    setPhase('busy');
+    try {
+      const result = await readFromGitHub(pat);
+      localStorage.setItem(PAT_KEY, pat);
+      onConnect(pat, result.store, result.sha);
+    } catch (e) {
+      setPhase('err');
+    }
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      background: 'rgba(20,16,12,0.55)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{
+        background: UI.bg, borderRadius: 14, padding: '32px 36px', width: 440, maxWidth: '90vw',
+        boxShadow: '0 24px 64px rgba(20,16,12,.25)', fontFamily: UI.sans,
+        border: `1px solid ${UI.border}`,
+      }}>
+        <div style={{ fontFamily: UI.mono, fontSize: 10, color: UI.inkFaint, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>Opsætning</div>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: UI.ink, marginBottom: 10, margin: '0 0 10px' }}>Forbind til GitHub</h2>
+        <p style={{ fontSize: 13, color: UI.inkMuted, lineHeight: 1.65, margin: '0 0 24px' }}>
+          Board-data gemmes i{' '}
+          <code style={{ fontFamily: UI.mono, fontSize: 12, background: UI.panelSoft, padding: '1px 6px', borderRadius: 3, border: `1px solid ${UI.border}` }}>data.json</code>{' '}
+          i <strong>Johan-BC/AI_Board</strong>. Opret et{' '}
+          <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener"
+            style={{ color: UI.accent, textDecoration: 'none', borderBottom: `1px solid ${UI.accent}` }}>
+            Fine-grained PAT
+          </a>{' '}
+          med <em>Contents: Read &amp; Write</em>-adgang til dette repo.
+        </p>
+        <input
+          autoFocus
+          type="password"
+          value={val}
+          onChange={(e) => { setVal(e.target.value); setPhase('idle'); }}
+          onKeyDown={(e) => e.key === 'Enter' && connect()}
+          placeholder="github_pat_…"
+          style={{
+            width: '100%', padding: '9px 12px', borderRadius: 7, boxSizing: 'border-box',
+            border: `1.5px solid ${phase === 'err' ? BLOCKER_RED : UI.border}`,
+            fontFamily: UI.mono, fontSize: 13, color: UI.ink, background: UI.panel,
+            outline: 'none', marginBottom: phase === 'err' ? 6 : 0,
+          }}
+        />
+        {phase === 'err' && (
+          <p style={{ fontSize: 12, color: BLOCKER_RED, margin: '0 0 0' }}>
+            Kunne ikke forbinde — kontrollér at tokenet har Contents Read &amp; Write adgang til dette repo.
+          </p>
+        )}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+          <button onClick={onSkip} style={{
+            padding: '8px 18px', borderRadius: 7, border: `1px solid ${UI.border}`,
+            background: 'transparent', color: UI.inkMuted, cursor: 'pointer',
+            fontSize: 13, fontFamily: UI.sans,
+          }}>Brug lokalt</button>
+          <button onClick={connect} disabled={!val.trim() || phase === 'busy'} style={{
+            padding: '8px 18px', borderRadius: 7, border: 'none',
+            background: UI.ink, color: '#fff',
+            cursor: val.trim() && phase !== 'busy' ? 'pointer' : 'not-allowed',
+            fontSize: 13, fontWeight: 600, fontFamily: UI.sans,
+            opacity: val.trim() && phase !== 'busy' ? 1 : 0.45,
+          }}>{phase === 'busy' ? 'Forbinder…' : 'Forbind'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Filter strip — multi-row, no scrollbar, no category labels ───────────────
 function FilterStrip({
   store, selectedTechs, selectedBlockers, toggleTech, toggleBlocker,
@@ -74,11 +211,9 @@ function FilterStrip({
   const hasBlocker = selectedBlockers.size > 0;
   const totalBlocked = store.initiatives.filter((i) => (i.blockerIds || []).length > 0).length;
 
-  // Chip factory — shared style, no category labels, no badges
   const makeChip = ({ id, name, selected, hue, isBlocker, onToggle, buSize }) => {
     const accentColor = isBlocker ? BLOCKER_RED : `oklch(0.5 0.15 ${hue})`;
     const accentGlow  = isBlocker ? BLOCKER_RED_BG : `oklch(0.5 0.15 ${hue} / 0.22)`;
-    // Subtle cross-BU dot shown on unselected chips with 2+ BU synergy
     const showDot = !selected && buSize >= 2;
     return (
       <button key={id} onClick={onToggle}
@@ -158,8 +293,6 @@ function FilterStrip({
       flex: '0 0 auto', borderBottom: `1px solid ${UI.border}`,
       background: UI.panelSoft, display: 'flex', alignItems: 'stretch',
     }}>
-
-      {/* ── Tech section ──────────────────────────────────────────────────── */}
       <div style={{ flex: 1, padding: '8px 12px', borderRight: `1px solid ${UI.border}` }}>
         <SectionHeader
           label="Teknologier" color={UI.accent}
@@ -169,12 +302,8 @@ function FilterStrip({
           showMatchToggle={selectedTechs.size > 1}
           onClear={onClearTechs}
         />
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-          {techChips}
-        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>{techChips}</div>
       </div>
-
-      {/* ── Blocker section ───────────────────────────────────────────────── */}
       <div style={{ flex: 1, padding: '8px 12px', borderRight: `1px solid ${UI.border}` }}>
         <SectionHeader
           label="⚠ Blockers" color={BLOCKER_RED}
@@ -182,12 +311,8 @@ function FilterStrip({
           matchCount={blockerMatchedSet.size} totalCount={filteredInits.length}
           onClear={onClearBlockers}
         />
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-          {blockerChips}
-        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>{blockerChips}</div>
       </div>
-
-      {/* ── Mode toggle ───────────────────────────────────────────────────── */}
       <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'flex-start', padding: '8px 12px', paddingTop: 28 }}>
         <button onClick={() => setBlockerMode(!blockerMode)} style={{
           display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -210,91 +335,151 @@ function FilterStrip({
 
 // ── Main board component ──────────────────────────────────────────────────────
 function BoardView() {
-  const [store, setStore]           = React.useState(null);
-  const [dataSource, setDataSource] = React.useState('loading');
-  const [statusFilter, setStatusFilter] = React.useState(null);
-  const [buFilter, setBuFilter]     = React.useState(null);
+  const [store, setStore]                       = React.useState(null);
+  const [syncStatus, setSyncStatus]             = React.useState('loading');
+  const [showPatSetup, setShowPatSetup]         = React.useState(false);
+  const [statusFilter, setStatusFilter]         = React.useState(null);
+  const [buFilter, setBuFilter]                 = React.useState(null);
   const [selectedTechs, setSelectedTechs]       = React.useState(() => new Set());
   const [selectedBlockers, setSelectedBlockers] = React.useState(() => new Set());
-  const [matchMode, setMatchMode]   = React.useState('any');
-  const [drawer, setDrawer]         = React.useState(null);
-  const [zoom, setZoom]             = React.useState(1);
-  const [blockerMode, setBlockerMode] = React.useState(false);
-  const [catalogue, setCatalogue]     = React.useState(false);
+  const [matchMode, setMatchMode]               = React.useState('any');
+  const [drawer, setDrawer]                     = React.useState(null);
+  const [zoom, setZoom]                         = React.useState(1);
+  const [blockerMode, setBlockerMode]           = React.useState(false);
+  const [catalogue, setCatalogue]               = React.useState(false);
+
+  const shaRef      = React.useRef(null);   // current SHA of data.json on GitHub
+  const ghTimerRef  = React.useRef(null);   // debounce timer for GitHub writes
   const dragSuppressRef = React.useRef(null);
-  const fileInputRef    = React.useRef(null);
   const scrollerRef     = React.useRef(null);
 
-  const applyStore = (s, source) => {
-    setStore(s); setDataSource(source);
+  const applyStore = (s) => {
+    setStore(s);
     setSelectedTechs(new Set()); setSelectedBlockers(new Set());
     setStatusFilter(null); setBuFilter(null); setDrawer(null);
     setBlockerMode(false);
   };
 
+  // ── Initial load ────────────────────────────────────────────────────────────
   React.useEffect(() => {
-    const saved = readLocalStore();
-    if (saved) { applyStore(saved, 'session'); return; }
-    // Try ./data.xlsx first (works from root index.html),
-    // then ../data.xlsx (works from project/board.html subfolder).
-    const tryFetch = (urls) => {
-      const [url, ...rest] = urls;
-      if (!url) return Promise.reject(new Error('not found'));
-      return fetch(url, { cache: 'no-store' }).then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.arrayBuffer().then((buf) => ({ buf, name: url.split('/').pop() }));
-      }).catch(() => tryFetch(rest));
+    const pat = localStorage.getItem(PAT_KEY);
+
+    const loadFromStaticJson = () => {
+      const tryFetch = (urls) => {
+        const [url, ...rest] = urls;
+        if (!url) return Promise.reject(new Error('not found'));
+        return fetch(url).then((r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.text();
+        }).catch(() => tryFetch(rest));
+      };
+      tryFetch(['./data.json', '../data.json'])
+        .then((text) => {
+          const s = parseJSON(text);
+          applyStore(s);
+          try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (_) {}
+        })
+        .catch(() => applyStore(makeStore()));
     };
-    tryFetch(['./data.xlsx', '../data.xlsx'])
-      .then(({ buf, name }) => {
-        const parsed = parseExcelBuffer(buf);
-        applyStore(parsed, name);
-        try { localStorage.setItem(STORE_KEY, JSON.stringify(parsed)); } catch (e) {}
-      })
-      .catch(() => applyStore(makeStore(), 'built-in seed'));
+
+    if (pat) {
+      setSyncStatus('loading');
+      readFromGitHub(pat)
+        .then(({ store: s, sha }) => {
+          shaRef.current = sha;
+          applyStore(s);
+          setSyncStatus('idle');
+          try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (_) {}
+        })
+        .catch((err) => {
+          // 404 = data.json doesn't exist yet; create it from local cache or seed
+          if (err.status === 404) {
+            const seed = readLocalStore() || makeStore();
+            writeToGitHub(pat, seed, null)
+              .then((sha) => {
+                shaRef.current = sha;
+                applyStore(seed);
+                setSyncStatus('idle');
+                try { localStorage.setItem(STORE_KEY, JSON.stringify(seed)); } catch (_) {}
+              })
+              .catch(() => { applyStore(readLocalStore() || makeStore()); setSyncStatus('error'); });
+            return;
+          }
+          // Other error — use local cache
+          const saved = readLocalStore();
+          if (saved) { applyStore(saved); setSyncStatus('error'); return; }
+          loadFromStaticJson();
+          setSyncStatus('error');
+        });
+    } else {
+      setSyncStatus('no-pat');
+      setShowPatSetup(true);
+      const saved = readLocalStore();
+      if (saved) { applyStore(saved); return; }
+      loadFromStaticJson();
+    }
   }, []);
 
+  // ── Auto-save: localStorage (200 ms) + GitHub (3 s debounce) ───────────────
   React.useEffect(() => {
     if (!store) return;
-    const t = setTimeout(() => {
-      try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
+
+    // Always persist locally
+    const lsTimer = setTimeout(() => {
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (_) {}
     }, 200);
-    return () => clearTimeout(t);
+
+    // GitHub save if PAT + SHA available
+    const pat = localStorage.getItem(PAT_KEY);
+    if (!pat || !shaRef.current) return () => clearTimeout(lsTimer);
+
+    setSyncStatus('saving');
+    clearTimeout(ghTimerRef.current);
+    ghTimerRef.current = setTimeout(() => {
+      writeToGitHub(pat, store, shaRef.current)
+        .then((newSha) => {
+          shaRef.current = newSha;
+          setSyncStatus('saved');
+          setTimeout(() => setSyncStatus((s) => s === 'saved' ? 'idle' : s), 2500);
+        })
+        .catch((err) => {
+          if (err.code === 'conflict') {
+            // Re-fetch latest SHA and retry once
+            readFromGitHub(pat)
+              .then(({ sha }) => {
+                shaRef.current = sha;
+                return writeToGitHub(pat, store, sha);
+              })
+              .then((newSha) => {
+                shaRef.current = newSha;
+                setSyncStatus('saved');
+                setTimeout(() => setSyncStatus((s) => s === 'saved' ? 'idle' : s), 2500);
+              })
+              .catch(() => setSyncStatus('error'));
+          } else {
+            setSyncStatus('error');
+          }
+        });
+    }, 3000);
+
+    return () => clearTimeout(lsTimer);
   }, [store]);
 
-  const onFileChange = (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    e.target.value = '';
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const parsed = parseExcelBuffer(ev.target.result);
-        applyStore(parsed, file.name);
-        try { localStorage.setItem(STORE_KEY, JSON.stringify(parsed)); } catch (err) {}
-      } catch (err) { alert('Could not read the Excel file: ' + err.message); }
-    };
-    reader.readAsArrayBuffer(file);
-  };
-
-  const reloadExcel = () => {
-    if (!confirm('Reload data.xlsx? All unsaved edits will be lost.')) return;
-    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
-    setStore(null); setDataSource('loading');
-    fetch('./data.xlsx')
-      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.arrayBuffer(); })
-      .then((buf) => {
-        const parsed = parseExcelBuffer(buf);
-        applyStore(parsed, 'data.xlsx');
-        try { localStorage.setItem(STORE_KEY, JSON.stringify(parsed)); } catch (e) {}
-      })
-      .catch((err) => { alert('Could not load data.xlsx: ' + err.message); applyStore(makeStore(), 'built-in seed'); });
+  // ── PAT connect callback (from overlay) ────────────────────────────────────
+  const onPatConnect = (pat, ghStore, sha) => {
+    shaRef.current = sha;
+    setShowPatSetup(false);
+    applyStore(ghStore);
+    setSyncStatus('idle');
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(ghStore)); } catch (_) {}
   };
 
   const resetToSeed = () => {
-    if (!confirm('Reset to built-in seed data? All edits will be lost.')) return;
-    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
-    applyStore(makeStore(), 'built-in seed');
+    if (!confirm('Nulstil til seed-data? Alle ændringer mistes — også på GitHub.')) return;
+    try { localStorage.removeItem(STORE_KEY); } catch (_) {}
+    shaRef.current = null; // forces a SHA re-fetch before next GitHub write
+    applyStore(makeStore());
+    setSyncStatus(localStorage.getItem(PAT_KEY) ? 'saving' : 'no-pat');
   };
 
   const today = new Date();
@@ -330,9 +515,9 @@ function BoardView() {
   const toggleBlocker = (id) => setSelectedBlockers((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const range = React.useMemo(() => {
-    if (!store) return { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31) };
+    if (!store) return { start: new Date(today.getFullYear(), today.getMonth() - 2, 1), end: new Date(today.getFullYear(), today.getMonth() + 10, 0) };
     const dates = store.initiatives.flatMap((i) => [parseISO(i.start), parseISO(i.end)]);
-    if (!dates.length) return { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31) };
+    if (!dates.length) return { start: new Date(today.getFullYear(), today.getMonth() - 2, 1), end: new Date(today.getFullYear(), today.getMonth() + 10, 0) };
     let lo = dates.reduce((a, b) => a < b ? a : b);
     let hi = dates.reduce((a, b) => a > b ? a : b);
     lo = startOfMonth(new Date(lo.getFullYear(), lo.getMonth() - 3, 1));
@@ -363,12 +548,10 @@ function BoardView() {
       const items = filteredInits.filter((i) => i.buId === bu.id);
       rows.push({ kind: 'bu', bu, y, h: BU_H, count: items.length });
       y += BU_H;
-      // Ungrouped initiatives (no platformId)
       for (const init of items.filter((i) => !i.platformId)) {
         rows.push({ kind: 'init', init, bu, platform: null, y, h: ROW_H });
         y += ROW_H;
       }
-      // Platform groups
       for (const platform of platforms.filter((p) => p.buId === bu.id)) {
         const platItems = items.filter((i) => i.platformId === platform.id);
         if (platItems.length === 0) continue;
@@ -483,8 +666,8 @@ function BoardView() {
     return {
       ...s,
       businessUnits: remaining,
-      platforms:  (s.platforms  || []).filter((p) => p.buId !== id),
-      initiatives: s.initiatives.map((i) => i.buId === id ? { ...i, buId: fallback, platformId: null } : i),
+      platforms:    (s.platforms  || []).filter((p) => p.buId !== id),
+      initiatives:  s.initiatives.map((i) => i.buId === id ? { ...i, buId: fallback, platformId: null } : i),
     };
   });
 
@@ -527,11 +710,10 @@ function BoardView() {
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
 
-  if (!store) return <LoadingScreen message="Loading data…" />;
+  if (!store) return <LoadingScreen message="Henter data…" />;
 
   const techById = _byId(store.technologies);
   const buById   = _byId(store.businessUnits);
-  const totalBlocked = store.initiatives.filter((i) => (i.blockerIds || []).length > 0).length;
 
   const scrollTo = (date) => {
     if (!scrollerRef.current) return;
@@ -605,9 +787,50 @@ function BoardView() {
     return { status, hasBlockers, dim, isHot, borderLeftColor, bgOverride, boxShadow };
   };
 
-  const isExcel  = dataSource !== 'built-in seed' && dataSource !== 'session' && dataSource !== 'loading';
-  const srcColor = isExcel ? 'oklch(0.52 0.13 150)' : dataSource === 'session' ? UI.inkMuted : UI.inkFaint;
-  const CAL_H    = 56;
+  // ── Sync status indicator ─────────────────────────────────────────────────
+  const SyncIndicator = () => {
+    const dot = (color) => <span style={{ width: 6, height: 6, borderRadius: 99, background: color, flex: '0 0 auto' }} />;
+    const wrap = (color, label, onClick) => (
+      <span onClick={onClick} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        fontFamily: UI.mono, fontSize: 10, color,
+        cursor: onClick ? 'pointer' : 'default',
+        userSelect: 'none',
+      }} title={onClick ? 'Klik for at afbryde GitHub-forbindelsen' : undefined}>
+        {dot(color)}{label}
+      </span>
+    );
+
+    const disconnect = () => {
+      if (!confirm('Afbryd GitHub-forbindelsen? Data gemmes kun lokalt fremover.')) return;
+      localStorage.removeItem(PAT_KEY);
+      shaRef.current = null;
+      setSyncStatus('no-pat');
+    };
+
+    if (syncStatus === 'loading') return wrap(UI.inkFaint, 'Henter…');
+    if (syncStatus === 'saving')  return wrap('oklch(0.62 0.14 70)',  'Gemmer…');
+    if (syncStatus === 'saved')   return wrap('oklch(0.52 0.13 150)', 'Gemt ✓', disconnect);
+    if (syncStatus === 'idle')    return wrap(UI.inkFaint,            'GitHub',  disconnect);
+    if (syncStatus === 'error')   return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: UI.mono, fontSize: 10 }}>
+        {dot(BLOCKER_RED)}
+        <span style={{ color: BLOCKER_RED }}>Sync-fejl</span>
+        <button onClick={() => { setSyncStatus('loading'); const pat = localStorage.getItem(PAT_KEY); if (!pat) return; readFromGitHub(pat).then(({ store: s, sha }) => { shaRef.current = sha; applyStore(s); setSyncStatus('idle'); }).catch(() => setSyncStatus('error')); }} style={{ border: `1px solid ${BLOCKER_RED}`, background: 'transparent', color: BLOCKER_RED, borderRadius: 4, cursor: 'pointer', padding: '1px 6px', fontSize: 9.5, fontFamily: UI.mono }}>↺ Prøv igen</button>
+      </span>
+    );
+    if (syncStatus === 'no-pat') return (
+      <button onClick={() => setShowPatSetup(true)} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        padding: '4px 9px', borderRadius: 5, cursor: 'pointer',
+        border: `1px solid ${UI.border}`, background: 'transparent',
+        color: UI.inkMuted, fontFamily: UI.mono, fontSize: 10,
+      }}>⚡ Forbind GitHub</button>
+    );
+    return null;
+  };
+
+  const CAL_H = 56;
 
   return (
     <div className="ai-board" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: UI.bg, position: 'relative' }}>
@@ -650,23 +873,9 @@ function BoardView() {
           </div>
           <UiButton variant="primary" onClick={() => newInit()} icon={<span style={{ fontSize: 14, lineHeight: 0 }}>+</span>}>Ny</UiButton>
           <div style={{ width: 1, height: 22, background: UI.border, margin: '0 2px' }} />
-          <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={onFileChange} style={{ display: 'none' }} />
-          <button onClick={() => fileInputRef.current && fileInputRef.current.click()} title="Import Excel-fil" style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            padding: '5px 10px', fontSize: 11, fontWeight: 500, cursor: 'pointer',
-            borderRadius: 6, border: `1px solid ${UI.border}`,
-            background: UI.panelSoft, color: UI.ink, fontFamily: UI.sans, lineHeight: 1,
-          }}>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 8V2M3 5l3-3 3 3"/><path d="M2 9h8"/>
-            </svg>Import
-          </button>
-          <button onClick={reloadExcel} style={{ border: 'none', background: 'transparent', color: UI.inkFaint, cursor: 'pointer', padding: '5px 6px', fontSize: 13, fontFamily: UI.mono, lineHeight: 1 }}>↺</button>
           <button onClick={resetToSeed} style={{ border: 'none', background: 'transparent', color: UI.inkFaint, cursor: 'pointer', padding: '5px 6px', fontSize: 10, fontFamily: UI.mono, letterSpacing: 0.5, lineHeight: 1, textTransform: 'uppercase' }}>Reset</button>
           <UiButton size="sm" variant="soft" onClick={() => { setCatalogue(true); setDrawer(null); }} icon={<span style={{ fontSize: 13, lineHeight: 0 }}>⊞</span>}>Catalogue</UiButton>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: UI.mono, fontSize: 9.5, color: srcColor, maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            <span style={{ width: 5, height: 5, borderRadius: 99, background: srcColor, flex: '0 0 auto' }} />{dataSource}
-          </span>
+          <SyncIndicator />
         </>}
       />
 
@@ -891,7 +1100,6 @@ function BoardView() {
                 }} />
               ))}
 
-              {/* Platform thread lines — vertical connector from header to last initiative */}
               {platformSpans.map((s) => (
                 <div key={'thread:' + s.platform.id} style={{
                   position: 'absolute', top: s.y1 + PLAT_H, left: 3, width: 2,
@@ -901,7 +1109,6 @@ function BoardView() {
                 }} />
               ))}
 
-              {/* Synergy / Blocker band */}
               {activeBand && (
                 <div style={{
                   position: 'absolute', top: 0, bottom: 0, zIndex: 0, pointerEvents: 'none',
@@ -1054,6 +1261,14 @@ function BoardView() {
           onSavePlatform={savePlatform} onDelPlatform={delPlatform}
           onSaveTech={saveTech}   onDelTech={delTech}
           onSaveBlocker={saveBlocker} onDelBlocker={delBlocker}
+        />
+      )}
+
+      {/* GitHub PAT setup overlay */}
+      {showPatSetup && (
+        <PatSetupOverlay
+          onConnect={onPatConnect}
+          onSkip={() => setShowPatSetup(false)}
         />
       )}
     </div>

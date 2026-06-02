@@ -1,5 +1,5 @@
 // Data layer: BU → Platform → Initiative hierarchy.
-// Excel is the source of truth; localStorage preserves CRUD edits.
+// GitHub repo (data.json) is the source of truth; localStorage caches live edits.
 
 const BUSINESS_UNITS = [
   { id: 'mkt', name: 'Marketing',      short: 'MK', accent: 'oklch(0.48 0.12 290)', lead: 'Anne Berg' },
@@ -61,7 +61,7 @@ const INITIATIVES = [
     milestones: [{ date: '2026-04-10', label: 'Go-live' }],
   },
   {
-    id: 'i_seo', buId: 'mkt', name: 'SEO content assistant',
+    id: 'i_seo', buId: 'mkt', platformId: null, name: 'SEO content assistant',
     status: 'idea', owner: 'Brand studio',
     techIds: ['t_gpt', 't_azure'], blockerIds: ['b_budget'],
     tags: ['Content', 'SEO'], description: 'Draft SEO-optimised articles from briefs and keywords.',
@@ -69,7 +69,7 @@ const INITIATIVES = [
     milestones: [],
   },
   {
-    id: 'i_persona', buId: 'mkt', name: 'Customer persona engine',
+    id: 'i_persona', buId: 'mkt', platformId: null, name: 'Customer persona engine',
     status: 'pilot', owner: 'Insights',
     techIds: ['t_rag'], blockerIds: ['b_talent'],
     tags: ['Analytics', 'B2C'], description: 'Build dynamic customer segments from behavioural data.',
@@ -95,7 +95,7 @@ const INITIATIVES = [
     milestones: [{ date: '2026-02-01', label: 'Go-live' }, { date: '2026-08-15', label: 'EN+DK rollout' }],
   },
   {
-    id: 'i_sum', buId: 'cxo', name: 'Call summarisation',
+    id: 'i_sum', buId: 'cxo', platformId: null, name: 'Call summarisation',
     status: 'live', owner: 'Contact Centre',
     techIds: ['t_whisper', 't_xcript'], blockerIds: [],
     tags: ['Productivity'], description: 'Auto-summarise calls and write them into CRM.',
@@ -113,7 +113,7 @@ const INITIATIVES = [
 
   // ── Digital & Data ─────────────────────────────────────────────────────────
   {
-    id: 'i_search', buId: 'dig', name: 'Enterprise knowledge search',
+    id: 'i_search', buId: 'dig', platformId: null, name: 'Enterprise knowledge search',
     status: 'poc', owner: 'Platform team',
     techIds: ['t_gpt', 't_rag'], blockerIds: ['b_legal', 'b_vendor', 'b_data'],
     tags: ['Internal'], description: 'RAG-based search across internal wikis and documents.',
@@ -121,7 +121,7 @@ const INITIATIVES = [
     milestones: [{ date: '2026-10-15', label: 'POC review' }],
   },
   {
-    id: 'i_trans', buId: 'dig', name: 'Meeting transcription',
+    id: 'i_trans', buId: 'dig', platformId: null, name: 'Meeting transcription',
     status: 'live', owner: 'Workplace IT',
     techIds: ['t_whisper', 't_xcript', 't_copilot'], blockerIds: ['b_it'],
     tags: ['Productivity'], description: 'Transcribe, summarise, and action-item all meetings.',
@@ -129,7 +129,7 @@ const INITIATIVES = [
     milestones: [{ date: '2026-03-01', label: 'Go-live' }],
   },
   {
-    id: 'i_assist', buId: 'dig', name: 'Developer copilot',
+    id: 'i_assist', buId: 'dig', platformId: null, name: 'Developer copilot',
     status: 'pilot', owner: 'Engineering',
     techIds: ['t_gpt', 't_copilot', 't_azure'], blockerIds: ['b_talent'],
     tags: ['DevEx'], description: 'In-IDE code suggestions tuned to internal patterns.',
@@ -137,7 +137,7 @@ const INITIATIVES = [
     milestones: [{ date: '2026-06-01', label: 'Pilot live' }],
   },
   {
-    id: 'i_predict', buId: 'dig', name: 'Predictive analytics engine',
+    id: 'i_predict', buId: 'dig', platformId: null, name: 'Predictive analytics engine',
     status: 'idea', owner: 'Data Science',
     techIds: ['t_rag', 't_auto'], blockerIds: ['b_budget', 'b_data', 'b_res'],
     tags: ['Analytics'], description: 'Forecast churn and NPS from interaction and CRM data.',
@@ -171,133 +171,21 @@ function buildSynergyMap(initiatives, field) {
   return map;
 }
 
-// ── Excel parsing ─────────────────────────────────────────────────────────────
-function parseWorkbook(wb) {
-  const str = (v) => String(v == null ? '' : v).trim();
-
-  const rows = (name) => {
-    const ws = wb.Sheets[name];
-    if (!ws) return [];
-    return (typeof XLSX !== 'undefined')
-      ? XLSX.utils.sheet_to_json(ws, { defval: '', raw: true })
-      : [];
-  };
-
-  const norm = (s) => str(s).toLowerCase().replace(/\s+/g, '');
-
-  function pickRow(r, ...keys) {
-    for (const k of keys) {
-      for (const rk of Object.keys(r)) {
-        if (norm(rk) === norm(k) && str(r[rk]) !== '') return str(r[rk]);
-      }
-    }
-    return '';
-  }
-
-  function parseDate(v) {
-    if (typeof v === 'number' && v > 40000 && v < 60000) {
-      const d = new Date(Math.round((v - 25569) * 86400 * 1000));
-      return d.toISOString().slice(0, 10);
-    }
-    return str(v);
-  }
-
-  const platforms = rows('Platforms').map((r) => ({
-    id:   pickRow(r, 'id'),
-    name: pickRow(r, 'name'),
-    buId: pickRow(r, 'business unit id', 'businessunitid', 'buid'),
-  })).filter((p) => p.id && p.name && p.buId);
-
-  const businessUnits = rows('Business_Units').map((r) => ({
-    id:     pickRow(r, 'id'),
-    name:   pickRow(r, 'name'),
-    short:  pickRow(r, 'short'),
-    accent: pickRow(r, 'accent color', 'accent') || 'oklch(0.45 0.08 250)',
-    lead:   pickRow(r, 'lead'),
-  })).filter((b) => b.id && b.name);
-
-  const technologies = rows('Technologies').map((r) => ({
-    id:       pickRow(r, 'id'),
-    name:     pickRow(r, 'name'),
-    category: pickRow(r, 'category'),
-    colorHue: parseInt(pickRow(r, 'color hue', 'colorhue'), 10) || null,
-  })).filter((t) => t.id && t.name);
-
-  const blockers = rows('Blockers').map((r) => ({
-    id:       pickRow(r, 'id'),
-    name:     pickRow(r, 'name'),
-    category: pickRow(r, 'category'),
-    colorHue: parseInt(pickRow(r, 'color hue', 'colorhue'), 10) || null,
-  })).filter((b) => b.id && b.name);
-
-  const techByName = {};
-  for (const t of technologies) techByName[t.name.toLowerCase()] = t.id;
-
-  const blockerByName = {};
-  for (const b of blockers) blockerByName[b.name.toLowerCase()] = b.id;
-
-  const milestonesByInit = {};
-  for (const m of rows('Milestones')) {
-    const iid = pickRow(m, 'initiative id', 'initiativeid');
-    if (!iid) continue;
-    if (!milestonesByInit[iid]) milestonesByInit[iid] = [];
-    const date = parseDate(m['Date'] || m['date'] || pickRow(m, 'date'));
-    const label = pickRow(m, 'label');
-    if (date) milestonesByInit[iid].push({ date, label });
-  }
-
-  const validStatuses = new Set(['idea', 'poc', 'pilot', 'live']);
-
-  const initiatives = rows('Initiatives').map((r) => {
-    const id = pickRow(r, 'id');
-    const rawTechs = pickRow(r, 'technologies');
-    const techIds = rawTechs
-      .split(',').map((s) => s.trim()).filter(Boolean)
-      .map((name) => techByName[name.toLowerCase()]).filter(Boolean);
-
-    const rawBlockers = pickRow(r, 'blockers');
-    const blockerIds = rawBlockers
-      .split(',').map((s) => s.trim()).filter(Boolean)
-      .map((name) => blockerByName[name.toLowerCase()]).filter(Boolean);
-
-    const status = pickRow(r, 'status').toLowerCase();
-    const startRaw = r['Start Date'] || r['start date'] || r['Start'] || pickRow(r, 'start date', 'start');
-    const endRaw   = r['End Date']   || r['end date']   || r['End']   || pickRow(r, 'end date', 'end');
-    return {
-      id,
-      buId:        pickRow(r, 'business unit id', 'businessunitid', 'buid'),
-      platformId:  pickRow(r, 'platform id', 'platformid') || null,
-      name:        pickRow(r, 'name'),
-      status:      validStatuses.has(status) ? status : 'idea',
-      owner:       pickRow(r, 'owner'),
-      start:       parseDate(startRaw),
-      end:         parseDate(endRaw),
-      description: pickRow(r, 'description'),
-      tags:        pickRow(r, 'tags').split(',').map((s) => s.trim()).filter(Boolean),
-      techIds,
-      blockerIds,
-      milestones:  milestonesByInit[id] || [],
-    };
-  }).filter((i) => i.id && i.name);
-
+// Parse a JSON string (from data.json or GitHub API) into a store object.
+// Falls back to seed constants for any missing/empty array.
+function parseJSON(text) {
+  const p = JSON.parse(text);
   return {
-    statuses:      JSON.parse(JSON.stringify(STATUSES)),
-    technologies:  technologies.length  ? technologies  : JSON.parse(JSON.stringify(TECHNOLOGIES)),
-    blockers:      blockers.length      ? blockers      : JSON.parse(JSON.stringify(BLOCKERS)),
-    initiatives:   initiatives.length   ? initiatives   : JSON.parse(JSON.stringify(INITIATIVES)),
-    businessUnits: businessUnits.length ? businessUnits : JSON.parse(JSON.stringify(BUSINESS_UNITS)),
-    platforms:     platforms.length     ? platforms     : JSON.parse(JSON.stringify(PLATFORMS)),
+    statuses:      (p.statuses      && p.statuses.length)      ? p.statuses      : JSON.parse(JSON.stringify(STATUSES)),
+    technologies:  (p.technologies  && p.technologies.length)  ? p.technologies  : JSON.parse(JSON.stringify(TECHNOLOGIES)),
+    blockers:      (p.blockers      && p.blockers.length)       ? p.blockers      : JSON.parse(JSON.stringify(BLOCKERS)),
+    initiatives:   (p.initiatives   && p.initiatives.length)   ? p.initiatives   : JSON.parse(JSON.stringify(INITIATIVES)),
+    businessUnits: (p.businessUnits && p.businessUnits.length) ? p.businessUnits : JSON.parse(JSON.stringify(BUSINESS_UNITS)),
+    platforms:     (p.platforms     && p.platforms.length)     ? p.platforms     : JSON.parse(JSON.stringify(PLATFORMS)),
   };
-}
-
-function parseExcelBuffer(buf) {
-  if (typeof XLSX === 'undefined') throw new Error('SheetJS (XLSX) not loaded');
-  const wb = XLSX.read(new Uint8Array(buf), { type: 'array', raw: true });
-  return parseWorkbook(wb);
 }
 
 Object.assign(window, {
   BUSINESS_UNITS, PLATFORMS, STATUSES, TECHNOLOGIES, BLOCKERS, INITIATIVES,
-  makeStore, buildSynergyMap, _byId,
-  parseWorkbook, parseExcelBuffer,
+  makeStore, buildSynergyMap, _byId, parseJSON,
 });
