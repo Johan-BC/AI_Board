@@ -220,6 +220,7 @@ function BoardView() {
   const [drawer, setDrawer]         = React.useState(null);
   const [zoom, setZoom]             = React.useState(1);
   const [blockerMode, setBlockerMode] = React.useState(false);
+  const [catalogue, setCatalogue]     = React.useState(false);
   const dragSuppressRef = React.useRef(null);
   const fileInputRef    = React.useRef(null);
   const scrollerRef     = React.useRef(null);
@@ -472,6 +473,42 @@ function BoardView() {
     setDrawer(null);
   };
 
+  const upsert = (arr, item) =>
+    arr.some((x) => x.id === item.id) ? arr.map((x) => x.id === item.id ? item : x) : [...arr, item];
+
+  const saveBU      = (d) => setStore((s) => ({ ...s, businessUnits: upsert(s.businessUnits, d) }));
+  const delBU       = (id) => setStore((s) => {
+    const remaining = s.businessUnits.filter((b) => b.id !== id);
+    const fallback  = remaining[0]?.id || null;
+    return {
+      ...s,
+      businessUnits: remaining,
+      platforms:  (s.platforms  || []).filter((p) => p.buId !== id),
+      initiatives: s.initiatives.map((i) => i.buId === id ? { ...i, buId: fallback, platformId: null } : i),
+    };
+  });
+
+  const savePlatform = (d) => setStore((s) => ({ ...s, platforms: upsert(s.platforms || [], d) }));
+  const delPlatform  = (id) => setStore((s) => ({
+    ...s,
+    platforms:   (s.platforms || []).filter((p) => p.id !== id),
+    initiatives: s.initiatives.map((i) => i.platformId === id ? { ...i, platformId: null } : i),
+  }));
+
+  const saveTech  = (d) => setStore((s) => ({ ...s, technologies: upsert(s.technologies, d) }));
+  const delTech   = (id) => setStore((s) => ({
+    ...s,
+    technologies: s.technologies.filter((t) => t.id !== id),
+    initiatives:  s.initiatives.map((i) => ({ ...i, techIds: (i.techIds || []).filter((x) => x !== id) })),
+  }));
+
+  const saveBlocker = (d) => setStore((s) => ({ ...s, blockers: upsert(s.blockers, d) }));
+  const delBlocker  = (id) => setStore((s) => ({
+    ...s,
+    blockers:    s.blockers.filter((b) => b.id !== id),
+    initiatives: s.initiatives.map((i) => ({ ...i, blockerIds: (i.blockerIds || []).filter((x) => x !== id) })),
+  }));
+
   const newInit = (buId) => setDrawer({
     _new: true, id: 'i_' + Math.random().toString(36).slice(2, 7),
     buId: buId || (store.businessUnits[0] && store.businessUnits[0].id) || 'mkt',
@@ -626,6 +663,7 @@ function BoardView() {
           </button>
           <button onClick={reloadExcel} style={{ border: 'none', background: 'transparent', color: UI.inkFaint, cursor: 'pointer', padding: '5px 6px', fontSize: 13, fontFamily: UI.mono, lineHeight: 1 }}>↺</button>
           <button onClick={resetToSeed} style={{ border: 'none', background: 'transparent', color: UI.inkFaint, cursor: 'pointer', padding: '5px 6px', fontSize: 10, fontFamily: UI.mono, letterSpacing: 0.5, lineHeight: 1, textTransform: 'uppercase' }}>Reset</button>
+          <UiButton size="sm" variant="soft" onClick={() => { setCatalogue(true); setDrawer(null); }} icon={<span style={{ fontSize: 13, lineHeight: 0 }}>⊞</span>}>Catalogue</UiButton>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: UI.mono, fontSize: 9.5, color: srcColor, maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             <span style={{ width: 5, height: 5, borderRadius: 99, background: srcColor, flex: '0 0 auto' }} />{dataSource}
           </span>
@@ -1005,6 +1043,18 @@ function BoardView() {
       {drawer && (
         <UiInitiativeDrawer store={store} draft={drawer}
           onClose={() => setDrawer(null)} onSave={saveInit} onDelete={delInit} />
+      )}
+
+      {/* Catalogue drawer */}
+      {catalogue && (
+        <UiCatalogueDrawer
+          store={store}
+          onClose={() => setCatalogue(false)}
+          onSaveBU={saveBU}       onDelBU={delBU}
+          onSavePlatform={savePlatform} onDelPlatform={delPlatform}
+          onSaveTech={saveTech}   onDelTech={delTech}
+          onSaveBlocker={saveBlocker} onDelBlocker={delBlocker}
+        />
       )}
     </div>
   );
