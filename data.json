@@ -1,188 +1,616 @@
 {
   "statuses": [
-    { "id": "idea",  "label": "Idea",  "color": "oklch(0.55 0.005 80)"  },
-    { "id": "poc",   "label": "POC",   "color": "oklch(0.55 0.12 240)"  },
-    { "id": "pilot", "label": "Pilot", "color": "oklch(0.62 0.14 70)"   },
-    { "id": "live",  "label": "Live",  "color": "oklch(0.52 0.13 150)"  }
-  ],
-  "businessUnits": [
-    { "id": "mkt", "name": "Marketing",      "short": "MK", "accent": "oklch(0.48 0.12 290)", "lead": "Anne Berg"     },
-    { "id": "cxo", "name": "Cust. Ops",      "short": "CO", "accent": "oklch(0.48 0.12 165)", "lead": "Mads Iversen"  },
-    { "id": "dig", "name": "Digital & Data", "short": "DD", "accent": "oklch(0.55 0.13 55)",  "lead": "Sofie Lund"    }
-  ],
-  "platforms": [
-    { "id": "p_adobe",   "name": "Adobe",    "buId": "mkt" },
-    { "id": "p_genesys", "name": "Genesys",  "buId": "cxo" },
-    { "id": "p_boost",   "name": "Boost.ai", "buId": "cxo" }
+    {
+      "id": "idea",
+      "label": "Idea",
+      "color": "oklch(0.55 0.005 80)"
+    },
+    {
+      "id": "poc",
+      "label": "POC",
+      "color": "oklch(0.55 0.12 240)"
+    },
+    {
+      "id": "pilot",
+      "label": "Pilot",
+      "color": "oklch(0.62 0.14 70)"
+    },
+    {
+      "id": "live",
+      "label": "Live",
+      "color": "oklch(0.52 0.13 150)"
+    }
   ],
   "technologies": [
-    { "id": "t_gpt",     "name": "GPT-4o",           "category": "LLM",           "colorHue": 250 },
-    { "id": "t_azure",   "name": "Azure OpenAI",      "category": "LLM",           "colorHue": 220 },
-    { "id": "t_rag",     "name": "RAG / Vector DB",   "category": "LLM",           "colorHue": 290 },
-    { "id": "t_whisper", "name": "Whisper STT",       "category": "Speech",        "colorHue": 30  },
-    { "id": "t_xcript",  "name": "AutoTranscript",    "category": "Speech",        "colorHue": 50  },
-    { "id": "t_aa",      "name": "Agent Assist",      "category": "Agent tooling", "colorHue": 180 },
-    { "id": "t_auto",    "name": "Agent Automation",  "category": "Agent tooling", "colorHue": 200 },
-    { "id": "t_copilot", "name": "Copilot M365",      "category": "Assistant",     "colorHue": 150 }
+    {
+      "id": "t_gpt",
+      "name": "GPT-4o",
+      "category": "LLM",
+      "colorHue": 250
+    },
+    {
+      "id": "t_azure",
+      "name": "Azure OpenAI",
+      "category": "LLM",
+      "colorHue": 220
+    },
+    {
+      "id": "t_rag",
+      "name": "RAG / Vector DB",
+      "category": "LLM",
+      "colorHue": 290
+    },
+    {
+      "id": "t_whisper",
+      "name": "Whisper STT",
+      "category": "Speech",
+      "colorHue": 30
+    },
+    {
+      "id": "t_xcript",
+      "name": "AutoTranscript",
+      "category": "Speech",
+      "colorHue": 50
+    },
+    {
+      "id": "t_aa",
+      "name": "Agent Assist",
+      "category": "Agent tooling",
+      "colorHue": 180
+    },
+    {
+      "id": "t_auto",
+      "name": "Agent Automation",
+      "category": "Agent tooling",
+      "colorHue": 200
+    },
+    {
+      "id": "t_copilot",
+      "name": "Copilot M365",
+      "category": "Assistant",
+      "colorHue": 150
+    }
   ],
   "blockers": [
-    { "id": "b_legal",  "name": "Legal review",        "category": "Godkendelse",  "colorHue": 10  },
-    { "id": "b_budget", "name": "Budget godkendelse",   "category": "Godkendelse",  "colorHue": 30  },
-    { "id": "b_gdpr",   "name": "GDPR compliance",      "category": "Godkendelse",  "colorHue": 5   },
-    { "id": "b_it",     "name": "IT infrastruktur",     "category": "Teknik",       "colorHue": 200 },
-    { "id": "b_vendor", "name": "Vendor kontrakt",      "category": "Teknik",       "colorHue": 220 },
-    { "id": "b_data",   "name": "Data adgang",          "category": "Teknik",       "colorHue": 240 },
-    { "id": "b_talent", "name": "Kompetencer",          "category": "Organisation", "colorHue": 60  },
-    { "id": "b_res",    "name": "Ressourcer/kapacitet", "category": "Organisation", "colorHue": 70  }
+    {
+      "id": "b_legal",
+      "name": "Legal review",
+      "category": "Godkendelse",
+      "colorHue": 10
+    },
+    {
+      "id": "b_budget",
+      "name": "Budget godkendelse",
+      "category": "Godkendelse",
+      "colorHue": 30
+    },
+    {
+      "id": "b_gdpr",
+      "name": "GDPR compliance",
+      "category": "Godkendelse",
+      "colorHue": 5
+    },
+    {
+      "id": "b_it",
+      "name": "IT infrastruktur",
+      "category": "Teknik",
+      "colorHue": 200
+    },
+    {
+      "id": "b_vendor",
+      "name": "Vendor kontrakt",
+      "category": "Teknik",
+      "colorHue": 220
+    },
+    {
+      "id": "b_data",
+      "name": "Data adgang",
+      "category": "Teknik",
+      "colorHue": 240
+    },
+    {
+      "id": "b_talent",
+      "name": "Kompetencer",
+      "category": "Organisation",
+      "colorHue": 60
+    },
+    {
+      "id": "b_res",
+      "name": "Ressourcer/kapacitet",
+      "category": "Organisation",
+      "colorHue": 70
+    }
   ],
   "outcomes": [
-    { "id": "o_tnps",   "name": "Lower tNPS",             "category": "Customer Exp.", "colorHue": 200 },
-    { "id": "o_aht",    "name": "Lower AHT",               "category": "Customer Exp.", "colorHue": 210 },
-    { "id": "o_fcr",    "name": "Higher FCR",              "category": "Customer Exp.", "colorHue": 190 },
-    { "id": "o_repeat", "name": "Fewer repeat contacts",   "category": "Customer Exp.", "colorHue": 220 },
-    { "id": "o_sales",  "name": "More sales per call",     "category": "Revenue",       "colorHue": 145 },
-    { "id": "o_conv",   "name": "Higher conversion",       "category": "Revenue",       "colorHue": 155 },
-    { "id": "o_fte",    "name": "Lower FTE cost",          "category": "Efficiency",    "colorHue": 60  },
-    { "id": "o_cpc",    "name": "Lower cost per contact",  "category": "Efficiency",    "colorHue": 65  },
-    { "id": "o_ttm",    "name": "Faster time to market",   "category": "Efficiency",    "colorHue": 55  },
-    { "id": "o_qa",     "name": "Higher QA score",         "category": "Quality",       "colorHue": 110 },
-    { "id": "o_comp",   "name": "Fewer compliance issues", "category": "Quality",       "colorHue": 100 }
+    {
+      "id": "o_tnps",
+      "name": "Lower tNPS",
+      "category": "Customer Exp.",
+      "colorHue": 200
+    },
+    {
+      "id": "o_aht",
+      "name": "Lower AHT",
+      "category": "Customer Exp.",
+      "colorHue": 210
+    },
+    {
+      "id": "o_fcr",
+      "name": "Higher FCR",
+      "category": "Customer Exp.",
+      "colorHue": 190
+    },
+    {
+      "id": "o_repeat",
+      "name": "Fewer repeat contacts",
+      "category": "Customer Exp.",
+      "colorHue": 220
+    },
+    {
+      "id": "o_sales",
+      "name": "More sales per call",
+      "category": "Revenue",
+      "colorHue": 145
+    },
+    {
+      "id": "o_conv",
+      "name": "Higher conversion",
+      "category": "Revenue",
+      "colorHue": 155
+    },
+    {
+      "id": "o_fte",
+      "name": "Lower FTE cost",
+      "category": "Efficiency",
+      "colorHue": 60
+    },
+    {
+      "id": "o_cpc",
+      "name": "Lower cost per contact",
+      "category": "Efficiency",
+      "colorHue": 65
+    },
+    {
+      "id": "o_ttm",
+      "name": "Faster time to market",
+      "category": "Efficiency",
+      "colorHue": 55
+    },
+    {
+      "id": "o_qa",
+      "name": "Higher QA score",
+      "category": "Quality",
+      "colorHue": 110
+    },
+    {
+      "id": "o_comp",
+      "name": "Fewer compliance issues",
+      "category": "Quality",
+      "colorHue": 100
+    }
   ],
   "initiatives": [
     {
-      "id": "i_camp", "buId": "mkt", "platformId": "p_adobe",
+      "id": "i_camp",
+      "buId": "mkt",
+      "platformId": "p_adobe",
       "name": "Personalised campaign generation",
-      "status": "poc", "owner": "Marketing Ops",
-      "techIds": ["t_gpt", "t_azure"], "blockerIds": ["b_legal", "b_gdpr"],
-      "outcomeIds": ["o_sales", "o_conv", "o_tnps"],
-      "tags": ["B2C", "EU"],
+      "status": "poc",
+      "owner": "Marketing Ops",
+      "techIds": [
+        "t_gpt",
+        "t_azure"
+      ],
+      "blockerIds": [
+        "b_legal",
+        "b_gdpr"
+      ],
+      "outcomeIds": [
+        "o_sales",
+        "o_conv",
+        "o_tnps"
+      ],
+      "tags": [
+        "B2C",
+        "EU"
+      ],
       "description": "Generate variant copy + creative per segment using LLMs.",
-      "start": "2026-03-01", "end": "2026-09-30",
-      "milestones": [{ "date": "2026-06-15", "label": "Pilot kickoff" }]
-    },
-    {
-      "id": "i_tag", "buId": "mkt", "platformId": "p_adobe",
-      "name": "Asset auto-tagging",
-      "status": "live", "owner": "DAM team",
-      "techIds": ["t_gpt", "t_rag"], "blockerIds": [],
-      "outcomeIds": ["o_ttm", "o_fte"],
-      "tags": ["Content ops"],
-      "description": "Classify and tag the DAM stock library automatically.",
-      "start": "2025-11-01", "end": "2026-12-31",
-      "milestones": [{ "date": "2026-04-10", "label": "Go-live" }]
-    },
-    {
-      "id": "i_seo", "buId": "mkt", "platformId": null,
-      "name": "SEO content assistant",
-      "status": "idea", "owner": "Brand studio",
-      "techIds": ["t_gpt", "t_azure"], "blockerIds": ["b_budget"],
-      "outcomeIds": ["o_conv", "o_ttm"],
-      "tags": ["Content", "SEO"],
-      "description": "Draft SEO-optimised articles from briefs and keywords.",
-      "start": "2026-09-01", "end": "2027-02-28",
-      "milestones": []
-    },
-    {
-      "id": "i_persona", "buId": "mkt", "platformId": null,
-      "name": "Customer persona engine",
-      "status": "pilot", "owner": "Insights",
-      "techIds": ["t_rag"], "blockerIds": ["b_talent"],
-      "outcomeIds": ["o_tnps", "o_conv"],
-      "tags": ["Analytics", "B2C"],
-      "description": "Build dynamic customer segments from behavioural data.",
-      "start": "2026-04-01", "end": "2026-11-30",
-      "milestones": [{ "date": "2026-07-01", "label": "Pilot live" }]
-    },
-    {
-      "id": "i_voice", "buId": "cxo", "platformId": "p_boost",
-      "name": "Customer voicebot",
-      "status": "pilot", "owner": "Customer Care",
-      "techIds": ["t_whisper", "t_auto", "t_aa"], "blockerIds": ["b_legal", "b_it"],
-      "outcomeIds": ["o_tnps", "o_aht", "o_fcr", "o_sales"],
-      "tags": ["B2C", "24/7"],
-      "description": "Voice-first front door for the service line.",
-      "start": "2026-02-01", "end": "2026-11-30",
-      "milestones": [{ "date": "2026-07-01", "label": "Pilot live" }]
-    },
-    {
-      "id": "i_helpdesk", "buId": "cxo", "platformId": "p_genesys",
-      "name": "IT helpdesk bot",
-      "status": "live", "owner": "IT",
-      "techIds": ["t_gpt", "t_aa", "t_auto"], "blockerIds": ["b_gdpr"],
-      "outcomeIds": ["o_fte", "o_cpc", "o_qa"],
-      "tags": ["Internal"],
-      "description": "Tier-0 IT support via Slack and employee portal.",
-      "start": "2025-09-01", "end": "2026-12-31",
+      "start": "2026-03-01",
+      "end": "2026-09-30",
       "milestones": [
-        { "date": "2026-02-01", "label": "Go-live" },
-        { "date": "2026-08-15", "label": "EN+DK rollout" }
+        {
+          "date": "2026-06-15",
+          "label": "Pilot kickoff"
+        }
       ]
     },
     {
-      "id": "i_sum", "buId": "cxo", "platformId": null,
-      "name": "Call summarisation",
-      "status": "live", "owner": "Contact Centre",
-      "techIds": ["t_whisper", "t_xcript"], "blockerIds": [],
-      "outcomeIds": ["o_fte", "o_cpc", "o_qa"],
-      "tags": ["Productivity"],
-      "description": "Auto-summarise calls and write them into CRM.",
-      "start": "2025-12-01", "end": "2026-12-31",
-      "milestones": [{ "date": "2026-03-20", "label": "Go-live" }]
+      "id": "i_tag",
+      "buId": "mkt",
+      "platformId": "p_adobe",
+      "name": "Asset auto-tagging",
+      "status": "live",
+      "owner": "DAM team",
+      "techIds": [
+        "t_gpt",
+        "t_rag"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [
+        "o_ttm",
+        "o_fte"
+      ],
+      "tags": [
+        "Content ops"
+      ],
+      "description": "Classify and tag the DAM stock library automatically.",
+      "start": "2025-11-01",
+      "end": "2026-12-31",
+      "milestones": [
+        {
+          "date": "2026-04-10",
+          "label": "Go-live"
+        }
+      ]
     },
     {
-      "id": "i_qa", "buId": "cxo", "platformId": "p_genesys",
-      "name": "Agent-assist QA",
-      "status": "pilot", "owner": "Quality",
-      "techIds": ["t_xcript", "t_aa"], "blockerIds": ["b_vendor"],
-      "outcomeIds": ["o_qa", "o_comp", "o_fcr"],
-      "tags": ["Compliance"],
-      "description": "Score 100% of interactions against quality rubrics.",
-      "start": "2026-03-01", "end": "2026-10-31",
-      "milestones": [{ "date": "2026-06-01", "label": "Pilot live" }]
-    },
-    {
-      "id": "i_search", "buId": "dig", "platformId": null,
-      "name": "Enterprise knowledge search",
-      "status": "poc", "owner": "Platform team",
-      "techIds": ["t_gpt", "t_rag"], "blockerIds": ["b_legal", "b_vendor", "b_data"],
-      "outcomeIds": ["o_fte", "o_ttm"],
-      "tags": ["Internal"],
-      "description": "RAG-based search across internal wikis and documents.",
-      "start": "2026-04-01", "end": "2026-12-31",
-      "milestones": [{ "date": "2026-10-15", "label": "POC review" }]
-    },
-    {
-      "id": "i_trans", "buId": "dig", "platformId": null,
-      "name": "Meeting transcription",
-      "status": "live", "owner": "Workplace IT",
-      "techIds": ["t_whisper", "t_xcript", "t_copilot"], "blockerIds": ["b_it"],
-      "outcomeIds": ["o_fte", "o_ttm"],
-      "tags": ["Productivity"],
-      "description": "Transcribe, summarise, and action-item all meetings.",
-      "start": "2026-01-01", "end": "2026-12-31",
-      "milestones": [{ "date": "2026-03-01", "label": "Go-live" }]
-    },
-    {
-      "id": "i_assist", "buId": "dig", "platformId": null,
-      "name": "Developer copilot",
-      "status": "pilot", "owner": "Engineering",
-      "techIds": ["t_gpt", "t_copilot", "t_azure"], "blockerIds": ["b_talent"],
-      "outcomeIds": ["o_ttm", "o_qa"],
-      "tags": ["DevEx"],
-      "description": "In-IDE code suggestions tuned to internal patterns.",
-      "start": "2026-03-01", "end": "2026-09-30",
-      "milestones": [{ "date": "2026-06-01", "label": "Pilot live" }]
-    },
-    {
-      "id": "i_predict", "buId": "dig", "platformId": null,
-      "name": "Predictive analytics engine",
-      "status": "idea", "owner": "Data Science",
-      "techIds": ["t_rag", "t_auto"], "blockerIds": ["b_budget", "b_data", "b_res"],
-      "outcomeIds": ["o_tnps", "o_repeat", "o_conv"],
-      "tags": ["Analytics"],
-      "description": "Forecast churn and NPS from interaction and CRM data.",
-      "start": "2026-09-01", "end": "2027-03-31",
+      "id": "i_seo",
+      "buId": "mkt",
+      "platformId": null,
+      "name": "SEO content assistant",
+      "status": "idea",
+      "owner": "Brand studio",
+      "techIds": [
+        "t_gpt",
+        "t_azure"
+      ],
+      "blockerIds": [
+        "b_budget"
+      ],
+      "outcomeIds": [
+        "o_conv",
+        "o_ttm"
+      ],
+      "tags": [
+        "Content",
+        "SEO"
+      ],
+      "description": "Draft SEO-optimised articles from briefs and keywords.",
+      "start": "2026-09-01",
+      "end": "2027-02-28",
       "milestones": []
+    },
+    {
+      "id": "i_persona",
+      "buId": "mkt",
+      "platformId": null,
+      "name": "Customer persona engine",
+      "status": "pilot",
+      "owner": "Insights",
+      "techIds": [
+        "t_rag"
+      ],
+      "blockerIds": [
+        "b_talent"
+      ],
+      "outcomeIds": [
+        "o_tnps",
+        "o_conv"
+      ],
+      "tags": [
+        "Analytics",
+        "B2C"
+      ],
+      "description": "Build dynamic customer segments from behavioural data.",
+      "start": "2026-04-01",
+      "end": "2026-11-30",
+      "milestones": [
+        {
+          "date": "2026-07-01",
+          "label": "Pilot live"
+        }
+      ]
+    },
+    {
+      "id": "i_voice",
+      "buId": "cxo",
+      "platformId": "p_boost",
+      "name": "Customer voicebot",
+      "status": "pilot",
+      "owner": "Customer Care",
+      "techIds": [
+        "t_whisper",
+        "t_auto",
+        "t_aa"
+      ],
+      "blockerIds": [
+        "b_legal",
+        "b_it"
+      ],
+      "outcomeIds": [
+        "o_tnps",
+        "o_aht",
+        "o_fcr",
+        "o_sales"
+      ],
+      "tags": [
+        "B2C",
+        "24/7"
+      ],
+      "description": "Voice-first front door for the service line.",
+      "start": "2026-02-01",
+      "end": "2026-11-30",
+      "milestones": [
+        {
+          "date": "2026-07-01",
+          "label": "Pilot live"
+        }
+      ]
+    },
+    {
+      "id": "i_helpdesk",
+      "buId": "cxo",
+      "platformId": "p_genesys",
+      "name": "IT helpdesk bot",
+      "status": "live",
+      "owner": "IT",
+      "techIds": [
+        "t_gpt",
+        "t_aa",
+        "t_auto"
+      ],
+      "blockerIds": [
+        "b_gdpr"
+      ],
+      "outcomeIds": [
+        "o_fte",
+        "o_cpc",
+        "o_qa"
+      ],
+      "tags": [
+        "Internal"
+      ],
+      "description": "Tier-0 IT support via Slack and employee portal.",
+      "start": "2025-09-01",
+      "end": "2026-12-31",
+      "milestones": [
+        {
+          "date": "2026-02-01",
+          "label": "Go-live"
+        },
+        {
+          "date": "2026-08-15",
+          "label": "EN+DK rollout"
+        }
+      ]
+    },
+    {
+      "id": "i_sum",
+      "buId": "cxo",
+      "platformId": null,
+      "name": "Call summarisation",
+      "status": "live",
+      "owner": "Contact Centre",
+      "techIds": [
+        "t_whisper",
+        "t_xcript"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [
+        "o_fte",
+        "o_cpc",
+        "o_qa"
+      ],
+      "tags": [
+        "Productivity"
+      ],
+      "description": "Auto-summarise calls and write them into CRM.",
+      "start": "2025-12-01",
+      "end": "2026-12-31",
+      "milestones": [
+        {
+          "date": "2026-03-20",
+          "label": "Go-live"
+        }
+      ]
+    },
+    {
+      "id": "i_qa",
+      "buId": "cxo",
+      "platformId": "p_genesys",
+      "name": "Agent-assist QA",
+      "status": "pilot",
+      "owner": "Quality",
+      "techIds": [
+        "t_xcript",
+        "t_aa"
+      ],
+      "blockerIds": [
+        "b_vendor"
+      ],
+      "outcomeIds": [
+        "o_qa",
+        "o_comp",
+        "o_fcr"
+      ],
+      "tags": [
+        "Compliance"
+      ],
+      "description": "Score 100% of interactions against quality rubrics.",
+      "start": "2026-03-01",
+      "end": "2026-10-31",
+      "milestones": [
+        {
+          "date": "2026-06-01",
+          "label": "Pilot live"
+        }
+      ]
+    },
+    {
+      "id": "i_search",
+      "buId": "dig",
+      "platformId": null,
+      "name": "Enterprise knowledge search",
+      "status": "poc",
+      "owner": "Platform team",
+      "techIds": [
+        "t_gpt",
+        "t_rag"
+      ],
+      "blockerIds": [
+        "b_legal",
+        "b_vendor",
+        "b_data"
+      ],
+      "outcomeIds": [
+        "o_fte",
+        "o_ttm"
+      ],
+      "tags": [
+        "Internal"
+      ],
+      "description": "RAG-based search across internal wikis and documents.",
+      "start": "2026-04-01",
+      "end": "2026-12-31",
+      "milestones": [
+        {
+          "date": "2026-10-15",
+          "label": "POC review"
+        }
+      ]
+    },
+    {
+      "id": "i_trans",
+      "buId": "dig",
+      "platformId": null,
+      "name": "Meeting transcription",
+      "status": "live",
+      "owner": "Workplace IT",
+      "techIds": [
+        "t_whisper",
+        "t_xcript",
+        "t_copilot"
+      ],
+      "blockerIds": [
+        "b_it"
+      ],
+      "outcomeIds": [
+        "o_fte",
+        "o_ttm"
+      ],
+      "tags": [
+        "Productivity"
+      ],
+      "description": "Transcribe, summarise, and action-item all meetings.",
+      "start": "2026-01-01",
+      "end": "2026-12-31",
+      "milestones": [
+        {
+          "date": "2026-03-01",
+          "label": "Go-live"
+        }
+      ]
+    },
+    {
+      "id": "i_assist",
+      "buId": "dig",
+      "platformId": null,
+      "name": "Developer copilot",
+      "status": "pilot",
+      "owner": "Engineering",
+      "techIds": [
+        "t_gpt",
+        "t_copilot",
+        "t_azure"
+      ],
+      "blockerIds": [
+        "b_talent"
+      ],
+      "outcomeIds": [
+        "o_ttm",
+        "o_qa"
+      ],
+      "tags": [
+        "DevEx"
+      ],
+      "description": "In-IDE code suggestions tuned to internal patterns.",
+      "start": "2026-03-01",
+      "end": "2026-09-30",
+      "milestones": [
+        {
+          "date": "2026-06-01",
+          "label": "Pilot live"
+        }
+      ]
+    },
+    {
+      "id": "i_predict",
+      "buId": "dig",
+      "platformId": null,
+      "name": "Predictive analytics engine",
+      "status": "idea",
+      "owner": "Data Science",
+      "techIds": [
+        "t_rag",
+        "t_auto"
+      ],
+      "blockerIds": [
+        "b_budget",
+        "b_data",
+        "b_res"
+      ],
+      "outcomeIds": [
+        "o_tnps",
+        "o_repeat",
+        "o_conv"
+      ],
+      "tags": [
+        "Analytics"
+      ],
+      "description": "Forecast churn and NPS from interaction and CRM data.",
+      "start": "2026-09-01",
+      "end": "2027-03-31",
+      "milestones": []
+    }
+  ],
+  "businessUnits": [
+    {
+      "id": "mkt",
+      "name": "Marketing",
+      "short": "MK",
+      "accent": "oklch(0.48 0.12 290)",
+      "lead": "Anne Berg"
+    },
+    {
+      "id": "cxo",
+      "name": "Cust. Ops",
+      "short": "CO",
+      "accent": "oklch(0.48 0.12 165)",
+      "lead": "Mads Iversen"
+    },
+    {
+      "id": "dig",
+      "name": "Digital & Data",
+      "short": "DD",
+      "accent": "oklch(0.55 0.13 55)",
+      "lead": "Sofie Lund"
+    }
+  ],
+  "platforms": [
+    {
+      "id": "p_adobe",
+      "name": "Adobe",
+      "buId": "mkt"
+    },
+    {
+      "id": "p_genesys",
+      "name": "Genesys",
+      "buId": "cxo"
+    },
+    {
+      "id": "p_boost",
+      "name": "Boost.ai",
+      "buId": "cxo"
     }
   ]
 }
