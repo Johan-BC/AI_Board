@@ -31,6 +31,7 @@ function techHue(item) {
 
 const BLOCKER_RED    = 'oklch(0.52 0.2 15)';
 const BLOCKER_RED_BG = 'oklch(0.97 0.04 15)';
+const OUTCOME_TEAL   = 'oklch(0.48 0.13 175)';
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 const STORE_KEY = 'aiboard:store:v4';
@@ -202,13 +203,17 @@ function PatSetupOverlay({ onConnect, onSkip }) {
 
 // ── Filter strip — multi-row, no scrollbar, no category labels ───────────────
 function FilterStrip({
-  store, selectedTechs, selectedBlockers, toggleTech, toggleBlocker,
-  techSynergy, blockerSynergy, matchMode, setMatchMode,
-  blockerMode, setBlockerMode, filteredInits, matchedSet, blockerMatchedSet,
-  onClearTechs, onClearBlockers,
+  store, selectedTechs, selectedBlockers, selectedOutcomes,
+  toggleTech, toggleBlocker, toggleOutcome,
+  techSynergy, blockerSynergy, outcomeSynergy,
+  matchMode, setMatchMode,
+  blockerMode, setBlockerMode,
+  filteredInits, matchedSet, blockerMatchedSet, outcomeMatchedSet,
+  onClearTechs, onClearBlockers, onClearOutcomes,
 }) {
   const hasTech    = selectedTechs.size > 0;
   const hasBlocker = selectedBlockers.size > 0;
+  const hasOutcome = selectedOutcomes.size > 0;
   const totalBlocked = store.initiatives.filter((i) => (i.blockerIds || []).length > 0).length;
 
   const makeChip = ({ id, name, selected, hue, isBlocker, onToggle, buSize }) => {
@@ -256,6 +261,13 @@ function FilterStrip({
     hue: 15, isBlocker: true,
     onToggle: () => toggleBlocker(b.id),
     buSize: (blockerSynergy.get(b.id) || new Set()).size,
+  }));
+
+  const outcomeChips = (store.outcomes || []).map((o) => makeChip({
+    id: o.id, name: o.name, selected: selectedOutcomes.has(o.id),
+    hue: o.colorHue ?? 155, isBlocker: false,
+    onToggle: () => toggleOutcome(o.id),
+    buSize: (outcomeSynergy.get(o.id) || new Set()).size,
   }));
 
   const SectionHeader = ({ label, color, count, onClear, hasSelection, matchCount, totalCount, matchMode, setMatchMode, showMatchToggle }) => (
@@ -313,6 +325,15 @@ function FilterStrip({
         />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>{blockerChips}</div>
       </div>
+      <div style={{ flex: 1, padding: '8px 12px', borderRight: `1px solid ${UI.border}` }}>
+        <SectionHeader
+          label="Outcomes" color={OUTCOME_TEAL}
+          hasSelection={hasOutcome}
+          matchCount={outcomeMatchedSet.size} totalCount={filteredInits.length}
+          onClear={onClearOutcomes}
+        />
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>{outcomeChips}</div>
+      </div>
       <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'flex-start', padding: '8px 12px', paddingTop: 28 }}>
         <button onClick={() => setBlockerMode(!blockerMode)} style={{
           display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -335,18 +356,20 @@ function FilterStrip({
 
 // ── Main board component ──────────────────────────────────────────────────────
 function BoardView() {
-  const [store, setStore]                       = React.useState(null);
-  const [syncStatus, setSyncStatus]             = React.useState('loading');
-  const [showPatSetup, setShowPatSetup]         = React.useState(false);
-  const [statusFilter, setStatusFilter]         = React.useState(null);
-  const [buFilter, setBuFilter]                 = React.useState(null);
-  const [selectedTechs, setSelectedTechs]       = React.useState(() => new Set());
-  const [selectedBlockers, setSelectedBlockers] = React.useState(() => new Set());
-  const [matchMode, setMatchMode]               = React.useState('any');
-  const [drawer, setDrawer]                     = React.useState(null);
-  const [zoom, setZoom]                         = React.useState(1);
-  const [blockerMode, setBlockerMode]           = React.useState(false);
-  const [catalogue, setCatalogue]               = React.useState(false);
+  const [store, setStore]                         = React.useState(null);
+  const [syncStatus, setSyncStatus]               = React.useState('loading');
+  const [showPatSetup, setShowPatSetup]           = React.useState(false);
+  const [statusFilter, setStatusFilter]           = React.useState(null);
+  const [buFilter, setBuFilter]                   = React.useState(null);
+  const [selectedTechs, setSelectedTechs]         = React.useState(() => new Set());
+  const [selectedBlockers, setSelectedBlockers]   = React.useState(() => new Set());
+  const [selectedOutcomes, setSelectedOutcomes]   = React.useState(() => new Set());
+  const [matchMode, setMatchMode]                 = React.useState('any');
+  const [drawer, setDrawer]                       = React.useState(null);
+  const [zoom, setZoom]                           = React.useState(1);
+  const [blockerMode, setBlockerMode]             = React.useState(false);
+  const [catalogue, setCatalogue]                 = React.useState(false);
+  const [view, setView]                           = React.useState('gantt'); // 'gantt' | 'portfolio'
 
   const shaRef      = React.useRef(null);   // current SHA of data.json on GitHub
   const ghTimerRef  = React.useRef(null);   // debounce timer for GitHub writes
@@ -355,7 +378,7 @@ function BoardView() {
 
   const applyStore = (s) => {
     setStore(s);
-    setSelectedTechs(new Set()); setSelectedBlockers(new Set());
+    setSelectedTechs(new Set()); setSelectedBlockers(new Set()); setSelectedOutcomes(new Set());
     setStatusFilter(null); setBuFilter(null); setDrawer(null);
     setBlockerMode(false);
   };
@@ -508,11 +531,20 @@ function BoardView() {
     ).map((i) => i.id));
   }, [filteredInits, selectedBlockers]);
 
-  const techSynergy    = React.useMemo(() => store ? buildSynergyMap(store.initiatives, 'techIds')    : new Map(), [store]);
-  const blockerSynergy = React.useMemo(() => store ? buildSynergyMap(store.initiatives, 'blockerIds') : new Map(), [store]);
+  const techSynergy    = React.useMemo(() => store ? buildSynergyMap(store.initiatives, 'techIds')     : new Map(), [store]);
+  const blockerSynergy = React.useMemo(() => store ? buildSynergyMap(store.initiatives, 'blockerIds')  : new Map(), [store]);
+  const outcomeSynergy = React.useMemo(() => store ? buildSynergyMap(store.initiatives, 'outcomeIds')  : new Map(), [store]);
+
+  const outcomeMatchedSet = React.useMemo(() => {
+    if (!store || selectedOutcomes.size === 0) return new Set();
+    return new Set(filteredInits.filter((i) =>
+      (i.outcomeIds || []).some((o) => selectedOutcomes.has(o))
+    ).map((i) => i.id));
+  }, [filteredInits, selectedOutcomes]);
 
   const toggleTech    = (id) => setSelectedTechs((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleBlocker = (id) => setSelectedBlockers((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleOutcome = (id) => setSelectedOutcomes((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const range = React.useMemo(() => {
     if (!store) return { start: new Date(today.getFullYear(), today.getMonth() - 2, 1), end: new Date(today.getFullYear(), today.getMonth() + 10, 0) };
@@ -641,8 +673,9 @@ function BoardView() {
     setStore((s) => {
       const exists = s.initiatives.some((i) => i.id === d.id);
       const cleaned = { ...d }; delete cleaned._new;
-      if (!cleaned.milestones) cleaned.milestones = [];
-      if (!cleaned.blockerIds) cleaned.blockerIds = [];
+      if (!cleaned.milestones)  cleaned.milestones  = [];
+      if (!cleaned.blockerIds)  cleaned.blockerIds  = [];
+      if (!cleaned.outcomeIds)  cleaned.outcomeIds  = [];
       const next = exists
         ? s.initiatives.map((i) => i.id === d.id ? cleaned : i)
         : [...s.initiatives, cleaned];
@@ -692,12 +725,19 @@ function BoardView() {
     initiatives: s.initiatives.map((i) => ({ ...i, blockerIds: (i.blockerIds || []).filter((x) => x !== id) })),
   }));
 
+  const saveOutcome = (d) => setStore((s) => ({ ...s, outcomes: upsert(s.outcomes || [], d) }));
+  const delOutcome  = (id) => setStore((s) => ({
+    ...s,
+    outcomes:    (s.outcomes || []).filter((o) => o.id !== id),
+    initiatives: s.initiatives.map((i) => ({ ...i, outcomeIds: (i.outcomeIds || []).filter((x) => x !== id) })),
+  }));
+
   const newInit = (buId) => setDrawer({
     _new: true, id: 'i_' + Math.random().toString(36).slice(2, 7),
     buId: buId || (store.businessUnits[0] && store.businessUnits[0].id) || 'mkt',
     platformId: null,
     name: '', status: 'idea', owner: '',
-    techIds: [], blockerIds: [], tags: [], description: '',
+    techIds: [], blockerIds: [], outcomeIds: [], tags: [], description: '',
     start: dateToISO(today), end: dateToISO(new Date(today.getTime() + 120 * D_MS)),
     milestones: [],
   });
@@ -712,8 +752,18 @@ function BoardView() {
 
   if (!store) return <LoadingScreen message="Henter data…" />;
 
-  const techById = _byId(store.technologies);
-  const buById   = _byId(store.businessUnits);
+  const techById     = _byId(store.technologies);
+  const buById       = _byId(store.businessUnits);
+  const outcomeById  = _byId(store.outcomes || []);
+
+  // Precompute: first colorHue per outcome category (pillar)
+  const pillarColorMap = React.useMemo(() => {
+    const m = {};
+    for (const o of (store.outcomes || [])) {
+      if (m[o.category] == null) m[o.category] = o.colorHue;
+    }
+    return m;
+  }, [store]);
 
   const scrollTo = (date) => {
     if (!scrollerRef.current) return;
@@ -862,11 +912,19 @@ function BoardView() {
           </div>
           <div style={{ width: 1, height: 22, background: UI.border, margin: '0 4px' }} />
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <button onClick={() => scrollByMonths(-1)} style={chipBtn(false, true)}>‹</button>
-            <button onClick={() => scrollTo(today)} style={chipBtn(false, true)}>I dag</button>
-            <button onClick={() => scrollByMonths(1)} style={chipBtn(false, true)}>›</button>
+            {['gantt', 'portfolio'].map((v) => (
+              <button key={v} onClick={() => setView(v)} style={chipBtn(view === v, true)}>
+                {v === 'gantt' ? 'Gantt' : 'Portfolio'}
+              </button>
+            ))}
+          </div>
+          <div style={{ width: 1, height: 22, background: UI.border, margin: '0 2px' }} />
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <button onClick={() => scrollByMonths(-1)} style={chipBtn(false, true)} disabled={view !== 'gantt'}>‹</button>
+            <button onClick={() => scrollTo(today)} style={chipBtn(false, true)} disabled={view !== 'gantt'}>I dag</button>
+            <button onClick={() => scrollByMonths(1)} style={chipBtn(false, true)} disabled={view !== 'gantt'}>›</button>
             {[0.75, 1, 1.5].map((z) => (
-              <button key={z} onClick={() => setZoom(z)} style={chipBtn(zoom === z, true)}>
+              <button key={z} onClick={() => setZoom(z)} style={chipBtn(zoom === z, true)} disabled={view !== 'gantt'}>
                 {z === 0.75 ? 'S' : z === 1 ? 'M' : 'L'}
               </button>
             ))}
@@ -879,21 +937,30 @@ function BoardView() {
         </>}
       />
 
-      {/* ── Filter strip (Tech + Blockers) ────────────────────────────────── */}
-      <FilterStrip
-        store={store}
-        selectedTechs={selectedTechs} selectedBlockers={selectedBlockers}
-        toggleTech={toggleTech} toggleBlocker={toggleBlocker}
-        techSynergy={techSynergy} blockerSynergy={blockerSynergy}
-        matchMode={matchMode} setMatchMode={setMatchMode}
-        blockerMode={blockerMode} setBlockerMode={setBlockerMode}
-        filteredInits={filteredInits} matchedSet={matchedSet} blockerMatchedSet={blockerMatchedSet}
-        onClearTechs={() => setSelectedTechs(new Set())}
-        onClearBlockers={() => setSelectedBlockers(new Set())}
-      />
+      {/* ── Filter strip (Tech + Blockers + Outcomes) — Gantt only ──────── */}
+      {view === 'gantt' && (
+        <FilterStrip
+          store={store}
+          selectedTechs={selectedTechs} selectedBlockers={selectedBlockers} selectedOutcomes={selectedOutcomes}
+          toggleTech={toggleTech} toggleBlocker={toggleBlocker} toggleOutcome={toggleOutcome}
+          techSynergy={techSynergy} blockerSynergy={blockerSynergy} outcomeSynergy={outcomeSynergy}
+          matchMode={matchMode} setMatchMode={setMatchMode}
+          blockerMode={blockerMode} setBlockerMode={setBlockerMode}
+          filteredInits={filteredInits} matchedSet={matchedSet} blockerMatchedSet={blockerMatchedSet}
+          outcomeMatchedSet={outcomeMatchedSet}
+          onClearTechs={() => setSelectedTechs(new Set())}
+          onClearBlockers={() => setSelectedBlockers(new Set())}
+          onClearOutcomes={() => setSelectedOutcomes(new Set())}
+        />
+      )}
+
+      {/* ── Portfolio view ────────────────────────────────────────────────── */}
+      {view === 'portfolio' && (
+        <UiPortfolioView store={store} onOpenInit={(i) => setDrawer({ ...i })} />
+      )}
 
       {/* ── Gantt (full width) ────────────────────────────────────────────── */}
-      <div ref={scrollerRef} className="board-scroller" style={{ flex: 1, overflow: 'auto', position: 'relative', minWidth: 0, minHeight: 0 }}>
+      {view === 'gantt' && <div ref={scrollerRef} className="board-scroller" style={{ flex: 1, overflow: 'auto', position: 'relative', minWidth: 0, minHeight: 0 }}>
         <div style={{ display: 'flex', minWidth: labelW + timelineW, position: 'relative' }}>
 
           {/* ── Label column (sticky left) ─────────────────────────────── */}
@@ -1201,6 +1268,20 @@ function BoardView() {
                       }}>{r.platform.name}</span>
                     )}
                     <div style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 11.5, fontWeight: 600, color: UI.ink }}>{i.name}</div>
+                    {showChips && (i.outcomeIds || []).length > 0 && (() => {
+                      const myPillars = [...new Set((i.outcomeIds || []).map((oid) => outcomeById[oid]?.category).filter(Boolean))];
+                      return myPillars.length > 0 ? (
+                        <div style={{ display: 'flex', gap: 2, marginLeft: 4, flex: '0 0 auto' }}>
+                          {myPillars.slice(0, 4).map((pillar, pi) => (
+                            <span key={pi} title={pillar} style={{
+                              width: 6, height: 6, borderRadius: 99, flex: '0 0 auto',
+                              background: `oklch(0.52 0.12 ${pillarColorMap[pillar] ?? 155})`,
+                              opacity: 0.75,
+                            }} />
+                          ))}
+                        </div>
+                      ) : null;
+                    })()}
                     {i.techIds.length > 0 && (
                       <div data-no-drag onPointerDown={(ev) => ev.stopPropagation()} style={{ display: 'flex', gap: 2, marginLeft: 5, flex: '0 0 auto' }}>
                         {showChips ? i.techIds.slice(0, 3).map((tid) => {
@@ -1244,7 +1325,7 @@ function BoardView() {
             </div>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Initiative drawer */}
       {drawer && (
@@ -1257,10 +1338,11 @@ function BoardView() {
         <UiCatalogueDrawer
           store={store}
           onClose={() => setCatalogue(false)}
-          onSaveBU={saveBU}       onDelBU={delBU}
+          onSaveBU={saveBU}           onDelBU={delBU}
           onSavePlatform={savePlatform} onDelPlatform={delPlatform}
-          onSaveTech={saveTech}   onDelTech={delTech}
+          onSaveTech={saveTech}       onDelTech={delTech}
           onSaveBlocker={saveBlocker} onDelBlocker={delBlocker}
+          onSaveOutcome={saveOutcome} onDelOutcome={delOutcome}
         />
       )}
 

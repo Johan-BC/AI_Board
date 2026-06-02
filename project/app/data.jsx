@@ -42,12 +42,31 @@ const BLOCKERS = [
   { id: 'b_res',    name: 'Ressourcer/kapacitet', category: 'Organisation',  colorHue: 70  },
 ];
 
+const OUTCOMES = [
+  // Customer Experience pillar
+  { id: 'o_tnps',   name: 'Lower tNPS',             category: 'Customer Exp.', colorHue: 200 },
+  { id: 'o_aht',    name: 'Lower AHT',               category: 'Customer Exp.', colorHue: 210 },
+  { id: 'o_fcr',    name: 'Higher FCR',              category: 'Customer Exp.', colorHue: 190 },
+  { id: 'o_repeat', name: 'Fewer repeat contacts',   category: 'Customer Exp.', colorHue: 220 },
+  // Revenue pillar
+  { id: 'o_sales',  name: 'More sales per call',     category: 'Revenue',       colorHue: 145 },
+  { id: 'o_conv',   name: 'Higher conversion',       category: 'Revenue',       colorHue: 155 },
+  // Efficiency pillar
+  { id: 'o_fte',    name: 'Lower FTE cost',          category: 'Efficiency',    colorHue: 60  },
+  { id: 'o_cpc',    name: 'Lower cost per contact',  category: 'Efficiency',    colorHue: 65  },
+  { id: 'o_ttm',    name: 'Faster time to market',   category: 'Efficiency',    colorHue: 55  },
+  // Quality pillar
+  { id: 'o_qa',     name: 'Higher QA score',         category: 'Quality',       colorHue: 110 },
+  { id: 'o_comp',   name: 'Fewer compliance issues', category: 'Quality',       colorHue: 100 },
+];
+
 const INITIATIVES = [
   // ── Marketing ──────────────────────────────────────────────────────────────
   {
     id: 'i_camp', buId: 'mkt', platformId: 'p_adobe', name: 'Personalised campaign generation',
     status: 'poc', owner: 'Marketing Ops',
     techIds: ['t_gpt', 't_azure'], blockerIds: ['b_legal', 'b_gdpr'],
+    outcomeIds: ['o_sales', 'o_conv', 'o_tnps'],
     tags: ['B2C', 'EU'], description: 'Generate variant copy + creative per segment using LLMs.',
     start: '2026-03-01', end: '2026-09-30',
     milestones: [{ date: '2026-06-15', label: 'Pilot kickoff' }],
@@ -56,6 +75,7 @@ const INITIATIVES = [
     id: 'i_tag', buId: 'mkt', platformId: 'p_adobe', name: 'Asset auto-tagging',
     status: 'live', owner: 'DAM team',
     techIds: ['t_gpt', 't_rag'], blockerIds: [],
+    outcomeIds: ['o_ttm', 'o_fte'],
     tags: ['Content ops'], description: 'Classify and tag the DAM stock library automatically.',
     start: '2025-11-01', end: '2026-12-31',
     milestones: [{ date: '2026-04-10', label: 'Go-live' }],
@@ -64,6 +84,7 @@ const INITIATIVES = [
     id: 'i_seo', buId: 'mkt', platformId: null, name: 'SEO content assistant',
     status: 'idea', owner: 'Brand studio',
     techIds: ['t_gpt', 't_azure'], blockerIds: ['b_budget'],
+    outcomeIds: ['o_conv', 'o_ttm'],
     tags: ['Content', 'SEO'], description: 'Draft SEO-optimised articles from briefs and keywords.',
     start: '2026-09-01', end: '2027-02-28',
     milestones: [],
@@ -72,6 +93,7 @@ const INITIATIVES = [
     id: 'i_persona', buId: 'mkt', platformId: null, name: 'Customer persona engine',
     status: 'pilot', owner: 'Insights',
     techIds: ['t_rag'], blockerIds: ['b_talent'],
+    outcomeIds: ['o_tnps', 'o_conv'],
     tags: ['Analytics', 'B2C'], description: 'Build dynamic customer segments from behavioural data.',
     start: '2026-04-01', end: '2026-11-30',
     milestones: [{ date: '2026-07-01', label: 'Pilot live' }],
@@ -82,6 +104,7 @@ const INITIATIVES = [
     id: 'i_voice', buId: 'cxo', platformId: 'p_boost', name: 'Customer voicebot',
     status: 'pilot', owner: 'Customer Care',
     techIds: ['t_whisper', 't_auto', 't_aa'], blockerIds: ['b_legal', 'b_it'],
+    outcomeIds: ['o_tnps', 'o_aht', 'o_fcr', 'o_sales'],
     tags: ['B2C', '24/7'], description: 'Voice-first front door for the service line.',
     start: '2026-02-01', end: '2026-11-30',
     milestones: [{ date: '2026-07-01', label: 'Pilot live' }],
@@ -90,6 +113,7 @@ const INITIATIVES = [
     id: 'i_helpdesk', buId: 'cxo', platformId: 'p_genesys', name: 'IT helpdesk bot',
     status: 'live', owner: 'IT',
     techIds: ['t_gpt', 't_aa', 't_auto'], blockerIds: ['b_gdpr'],
+    outcomeIds: ['o_fte', 'o_cpc', 'o_qa'],
     tags: ['Internal'], description: 'Tier-0 IT support via Slack and employee portal.',
     start: '2025-09-01', end: '2026-12-31',
     milestones: [{ date: '2026-02-01', label: 'Go-live' }, { date: '2026-08-15', label: 'EN+DK rollout' }],
@@ -98,6 +122,7 @@ const INITIATIVES = [
     id: 'i_sum', buId: 'cxo', platformId: null, name: 'Call summarisation',
     status: 'live', owner: 'Contact Centre',
     techIds: ['t_whisper', 't_xcript'], blockerIds: [],
+    outcomeIds: ['o_fte', 'o_cpc', 'o_qa'],
     tags: ['Productivity'], description: 'Auto-summarise calls and write them into CRM.',
     start: '2025-12-01', end: '2026-12-31',
     milestones: [{ date: '2026-03-20', label: 'Go-live' }],
@@ -106,6 +131,7 @@ const INITIATIVES = [
     id: 'i_qa', buId: 'cxo', platformId: 'p_genesys', name: 'Agent-assist QA',
     status: 'pilot', owner: 'Quality',
     techIds: ['t_xcript', 't_aa'], blockerIds: ['b_vendor'],
+    outcomeIds: ['o_qa', 'o_comp', 'o_fcr'],
     tags: ['Compliance'], description: 'Score 100 % of interactions against quality rubrics.',
     start: '2026-03-01', end: '2026-10-31',
     milestones: [{ date: '2026-06-01', label: 'Pilot live' }],
@@ -116,6 +142,7 @@ const INITIATIVES = [
     id: 'i_search', buId: 'dig', platformId: null, name: 'Enterprise knowledge search',
     status: 'poc', owner: 'Platform team',
     techIds: ['t_gpt', 't_rag'], blockerIds: ['b_legal', 'b_vendor', 'b_data'],
+    outcomeIds: ['o_fte', 'o_ttm'],
     tags: ['Internal'], description: 'RAG-based search across internal wikis and documents.',
     start: '2026-04-01', end: '2026-12-31',
     milestones: [{ date: '2026-10-15', label: 'POC review' }],
@@ -124,6 +151,7 @@ const INITIATIVES = [
     id: 'i_trans', buId: 'dig', platformId: null, name: 'Meeting transcription',
     status: 'live', owner: 'Workplace IT',
     techIds: ['t_whisper', 't_xcript', 't_copilot'], blockerIds: ['b_it'],
+    outcomeIds: ['o_fte', 'o_ttm'],
     tags: ['Productivity'], description: 'Transcribe, summarise, and action-item all meetings.',
     start: '2026-01-01', end: '2026-12-31',
     milestones: [{ date: '2026-03-01', label: 'Go-live' }],
@@ -132,6 +160,7 @@ const INITIATIVES = [
     id: 'i_assist', buId: 'dig', platformId: null, name: 'Developer copilot',
     status: 'pilot', owner: 'Engineering',
     techIds: ['t_gpt', 't_copilot', 't_azure'], blockerIds: ['b_talent'],
+    outcomeIds: ['o_ttm', 'o_qa'],
     tags: ['DevEx'], description: 'In-IDE code suggestions tuned to internal patterns.',
     start: '2026-03-01', end: '2026-09-30',
     milestones: [{ date: '2026-06-01', label: 'Pilot live' }],
@@ -140,6 +169,7 @@ const INITIATIVES = [
     id: 'i_predict', buId: 'dig', platformId: null, name: 'Predictive analytics engine',
     status: 'idea', owner: 'Data Science',
     techIds: ['t_rag', 't_auto'], blockerIds: ['b_budget', 'b_data', 'b_res'],
+    outcomeIds: ['o_tnps', 'o_repeat', 'o_conv'],
     tags: ['Analytics'], description: 'Forecast churn and NPS from interaction and CRM data.',
     start: '2026-09-01', end: '2027-03-31',
     milestones: [],
@@ -153,6 +183,7 @@ function makeStore() {
     statuses:      JSON.parse(JSON.stringify(STATUSES)),
     technologies:  JSON.parse(JSON.stringify(TECHNOLOGIES)),
     blockers:      JSON.parse(JSON.stringify(BLOCKERS)),
+    outcomes:      JSON.parse(JSON.stringify(OUTCOMES)),
     initiatives:   JSON.parse(JSON.stringify(INITIATIVES)),
     businessUnits: JSON.parse(JSON.stringify(BUSINESS_UNITS)),
     platforms:     JSON.parse(JSON.stringify(PLATFORMS)),
@@ -179,6 +210,7 @@ function parseJSON(text) {
     statuses:      (p.statuses      && p.statuses.length)      ? p.statuses      : JSON.parse(JSON.stringify(STATUSES)),
     technologies:  (p.technologies  && p.technologies.length)  ? p.technologies  : JSON.parse(JSON.stringify(TECHNOLOGIES)),
     blockers:      (p.blockers      && p.blockers.length)       ? p.blockers      : JSON.parse(JSON.stringify(BLOCKERS)),
+    outcomes:      (p.outcomes      && p.outcomes.length)       ? p.outcomes      : JSON.parse(JSON.stringify(OUTCOMES)),
     initiatives:   (p.initiatives   && p.initiatives.length)   ? p.initiatives   : JSON.parse(JSON.stringify(INITIATIVES)),
     businessUnits: (p.businessUnits && p.businessUnits.length) ? p.businessUnits : JSON.parse(JSON.stringify(BUSINESS_UNITS)),
     platforms:     (p.platforms     && p.platforms.length)     ? p.platforms     : JSON.parse(JSON.stringify(PLATFORMS)),
@@ -186,6 +218,6 @@ function parseJSON(text) {
 }
 
 Object.assign(window, {
-  BUSINESS_UNITS, PLATFORMS, STATUSES, TECHNOLOGIES, BLOCKERS, INITIATIVES,
+  BUSINESS_UNITS, PLATFORMS, STATUSES, TECHNOLOGIES, BLOCKERS, OUTCOMES, INITIATIVES,
   makeStore, buildSynergyMap, _byId, parseJSON,
 });

@@ -349,6 +349,47 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
           </div>
         </UiFieldRow>
 
+        <UiFieldRow label="Outcomes" hint={`${(d.outcomeIds || []).length} selected`}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+            {(store.outcomes || []).length === 0 ? (
+              <div style={{ fontSize: 11, color: UI.inkFaint, fontStyle: 'italic' }}>Ingen outcomes defineret. Tilføj dem i Catalogue → Outcomes.</div>
+            ) : [...new Set((store.outcomes || []).map((o) => o.category))].map((cat) => {
+              const catOutcomes = (store.outcomes || []).filter((o) => o.category === cat);
+              const firstHue = catOutcomes[0]?.colorHue ?? 155;
+              return (
+                <div key={cat}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: 99, display: 'inline-block', background: `oklch(0.58 0.13 ${firstHue})` }} />
+                    <div style={{ fontFamily: UI.mono, fontSize: 9.5, letterSpacing: 0.8, textTransform: 'uppercase', color: UI.inkFaint }}>{cat}</div>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {catOutcomes.map((o) => {
+                      const hot = (d.outcomeIds || []).includes(o.id);
+                      const oc = `oklch(0.48 0.13 ${o.colorHue})`;
+                      return (
+                        <button key={o.id} onClick={() => {
+                          const next = hot
+                            ? (d.outcomeIds || []).filter((x) => x !== o.id)
+                            : [...(d.outcomeIds || []), o.id];
+                          patch('outcomeIds', next);
+                        }} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          fontFamily: UI.mono, fontSize: 10.5, lineHeight: 1,
+                          padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
+                          background: hot ? oc : UI.panelSoft,
+                          color: hot ? '#fff' : UI.ink,
+                          border: `1px solid ${hot ? oc : UI.border}`,
+                          fontWeight: 500,
+                        }}>{o.name}</button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </UiFieldRow>
+
         <UiFieldRow label="Milepæle" hint={`${(d.milestones || []).length} defineret`}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 4 }}>
             {(d.milestones || []).map((m, idx) => (
@@ -396,15 +437,16 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
   );
 }
 
-// Catalogue CRUD drawer — BUs, Platforms, Technologies, Blockers.
+// Catalogue CRUD drawer — BUs, Platforms, Technologies, Blockers, Outcomes.
 function UiCatalogueDrawer({
   store, onClose,
   onSaveBU, onDelBU,
   onSavePlatform, onDelPlatform,
   onSaveTech, onDelTech,
   onSaveBlocker, onDelBlocker,
+  onSaveOutcome, onDelOutcome,
 }) {
-  const TABS = ['BUs', 'Platforms', 'Technologies', 'Blockers'];
+  const TABS = ['BUs', 'Platforms', 'Technologies', 'Blockers', 'Outcomes'];
   const [tab, setTab] = React.useState('BUs');
   const [editing, setEditing] = React.useState(null); // { kind, id } or null
   const [editDraft, setEditDraft] = React.useState({});
@@ -570,12 +612,12 @@ function UiCatalogueDrawer({
     </>
   );
 
-  // ── Tech / Blocker shared list ────────────────────────────────────────────────
-  const renderCatList = (items, isBlocker) => {
-    const onSave = isBlocker ? onSaveBlocker : onSaveTech;
-    const onDel  = isBlocker ? onDelBlocker  : onDelTech;
-    const prefix = isBlocker ? 'b_' : 't_';
-    const label  = isBlocker ? 'blocker' : 'technology';
+  // ── Tech / Blocker / Outcome shared list ─────────────────────────────────────
+  const renderCatList = (items, isBlocker, customSave, customDel, customPrefix, customLabel) => {
+    const onSave = customSave ?? (isBlocker ? onSaveBlocker : onSaveTech);
+    const onDel  = customDel  ?? (isBlocker ? onDelBlocker  : onDelTech);
+    const prefix = customPrefix ?? (isBlocker ? 'b_' : 't_');
+    const label  = customLabel  ?? (isBlocker ? 'blocker' : 'technology');
     const existingCats = [...new Set(items.map((x) => x.category).filter(Boolean))];
     return (
       <>
@@ -650,6 +692,7 @@ function UiCatalogueDrawer({
     'Platforms':    renderPlatforms(),
     'Technologies': renderCatList(store.technologies || [], false),
     'Blockers':     renderCatList(store.blockers || [], true),
+    'Outcomes':     renderCatList(store.outcomes || [], false, onSaveOutcome, onDelOutcome, 'o_', 'outcome'),
   };
 
   return (
@@ -690,6 +733,170 @@ function UiCatalogueDrawer({
   );
 }
 
+// ── Portfolio / Outcome pillar view ──────────────────────────────────────────
+function UiPortfolioView({ store, onOpenInit }) {
+  const outcomes   = store.outcomes || [];
+  const pillars    = [...new Set(outcomes.map((o) => o.category))];
+  const buById     = _byId(store.businessUnits);
+  const outcomeById = _byId(outcomes);
+
+  // First colorHue per pillar
+  const pillarHue = {};
+  for (const o of outcomes) {
+    if (pillarHue[o.category] == null) pillarHue[o.category] = o.colorHue;
+  }
+
+  // Initiatives without any outcomeIds
+  const uninit = store.initiatives.filter((i) => !(i.outcomeIds || []).length);
+  const withOutcomes = store.initiatives.filter((i) => (i.outcomeIds || []).length > 0);
+
+  return (
+    <div style={{ flex: 1, overflow: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20, fontFamily: UI.sans }}>
+      {/* Header */}
+      <div>
+        <div style={{ fontFamily: UI.mono, fontSize: 10, letterSpacing: 1.2, textTransform: 'uppercase', color: UI.inkFaint, marginBottom: 5 }}>Portfolio Value</div>
+        <div style={{ fontSize: 17, fontWeight: 600, color: UI.ink, letterSpacing: -0.3 }}>Hvilken værdi skaber AI-porteføljen?</div>
+        <div style={{ fontSize: 12, color: UI.inkMuted, marginTop: 4 }}>
+          {withOutcomes.length} af {store.initiatives.length} initiativer har registreret outcomes
+          {uninit.length > 0 && <span style={{ color: 'oklch(0.62 0.14 70)', marginLeft: 6 }}>· {uninit.length} mangler</span>}
+        </div>
+      </div>
+
+      {/* Pillar cards */}
+      {pillars.length === 0 ? (
+        <div style={{ color: UI.inkFaint, fontSize: 13 }}>Ingen outcomes defineret. Gå til Catalogue → Outcomes for at tilføje.</div>
+      ) : (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${Math.min(pillars.length, 4)}, minmax(200px, 1fr))`,
+          gap: 14, alignItems: 'start',
+        }}>
+          {pillars.map((pillar) => {
+            const pillarOutcomes = outcomes.filter((o) => o.category === pillar);
+            const hue = pillarHue[pillar] ?? 200;
+            const pillarColor  = `oklch(0.46 0.13 ${hue})`;
+            const pillarBg     = `oklch(0.97 0.025 ${hue})`;
+            const pillarBorder = `oklch(0.88 0.06 ${hue})`;
+
+            // Initiatives targeting this pillar
+            const inits = store.initiatives.filter((i) =>
+              (i.outcomeIds || []).some((oid) => {
+                const o = outcomeById[oid];
+                return o && o.category === pillar;
+              })
+            );
+
+            const counts = { idea: 0, poc: 0, pilot: 0, live: 0 };
+            for (const i of inits) counts[i.status] = (counts[i.status] || 0) + 1;
+
+            return (
+              <div key={pillar} style={{
+                background: UI.panel,
+                border: `1px solid ${pillarBorder}`,
+                borderRadius: 10, overflow: 'hidden',
+                boxShadow: UI.shadowMd,
+              }}>
+                {/* Pillar header */}
+                <div style={{ background: pillarBg, padding: '12px 14px', borderBottom: `1px solid ${pillarBorder}` }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: pillarColor, marginBottom: 8 }}>{pillar}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {pillarOutcomes.map((o) => (
+                      <span key={o.id} style={{
+                        fontFamily: UI.mono, fontSize: 9, fontWeight: 500,
+                        padding: '2px 6px', borderRadius: 3,
+                        background: `oklch(0.5 0.1 ${o.colorHue} / 0.14)`,
+                        color: `oklch(0.4 0.13 ${o.colorHue})`,
+                        border: `1px solid oklch(0.5 0.1 ${o.colorHue} / 0.28)`,
+                      }}>{o.name}</span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Status summary bar */}
+                <div style={{
+                  padding: '7px 14px', borderBottom: `1px solid ${UI.border}`,
+                  display: 'flex', alignItems: 'center', gap: 8,
+                }}>
+                  <span style={{ fontFamily: UI.mono, fontSize: 13, fontWeight: 700, color: pillarColor }}>{inits.length}</span>
+                  <span style={{ fontFamily: UI.mono, fontSize: 9.5, color: UI.inkFaint }}>initiativer</span>
+                  <div style={{ flex: 1 }} />
+                  {STATUSES.map((s) => counts[s.id] > 0 && (
+                    <span key={s.id} title={s.label} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 3,
+                      fontFamily: UI.mono, fontSize: 9.5, color: s.color,
+                    }}>
+                      <span style={{ width: 5, height: 5, borderRadius: 99, background: s.color, flex: '0 0 auto' }} />
+                      {counts[s.id]}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Initiative list */}
+                <div>
+                  {inits.length === 0 ? (
+                    <div style={{ padding: '10px 14px', fontSize: 11, color: UI.inkFaint, fontStyle: 'italic' }}>Ingen initiativer endnu</div>
+                  ) : inits.map((i) => {
+                    const bu = buById[i.buId];
+                    const myOutcomes = pillarOutcomes.filter((o) => (i.outcomeIds || []).includes(o.id));
+                    return (
+                      <div key={i.id}
+                        onClick={() => onOpenInit && onOpenInit(i)}
+                        style={{
+                          padding: '7px 14px', display: 'flex', alignItems: 'center', gap: 7,
+                          borderBottom: `1px solid color-mix(in oklch, ${UI.border} 55%, transparent)`,
+                          cursor: onOpenInit ? 'pointer' : 'default',
+                        }}
+                        onMouseEnter={(e) => { if (onOpenInit) e.currentTarget.style.background = UI.panelSoft; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+                        {bu && <UiBuDot bu={bu} size={6} />}
+                        <div style={{
+                          flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 500, color: UI.ink,
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                        }}>{i.name}</div>
+                        <UiStatusPill status={i.status} size="sm" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Initiatives without outcomes */}
+      {uninit.length > 0 && (
+        <div>
+          <div style={{ fontFamily: UI.mono, fontSize: 9.5, letterSpacing: 1, textTransform: 'uppercase', color: UI.inkFaint, marginBottom: 8 }}>
+            Mangler outcomes ({uninit.length})
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {uninit.map((i) => {
+              const bu = buById[i.buId];
+              return (
+                <div key={i.id}
+                  onClick={() => onOpenInit && onOpenInit(i)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '5px 10px', borderRadius: 5,
+                    border: `1.5px dashed ${UI.border}`, background: UI.panel,
+                    fontSize: 11, color: UI.inkMuted,
+                    cursor: onOpenInit ? 'pointer' : 'default',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = UI.borderStrong; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = UI.border; }}>
+                  {bu && <UiBuDot bu={bu} size={5} />}
+                  {i.name}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Global fonts + base styles.
 if (typeof document !== 'undefined' && !document.getElementById('ui-base-styles')) {
   const link = document.createElement('link');
@@ -715,6 +922,6 @@ if (typeof document !== 'undefined' && !document.getElementById('ui-base-styles'
 
 Object.assign(window, {
   UI, UiTopBar, UiButton, UiStatusPill, UiToggle,
-  UiCategoryDot, UiBuDot, UiInitiativeDrawer, UiCatalogueDrawer, UiFieldRow,
+  UiCategoryDot, UiBuDot, UiInitiativeDrawer, UiCatalogueDrawer, UiPortfolioView, UiFieldRow,
   UiSegmented, uiInputStyle,
 });
