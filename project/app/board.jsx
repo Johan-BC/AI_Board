@@ -752,18 +752,15 @@ function BoardView() {
 
   if (!store) return <LoadingScreen message="Henter data…" />;
 
-  const techById     = _byId(store.technologies);
-  const buById       = _byId(store.businessUnits);
-  const outcomeById  = _byId(store.outcomes || []);
+  const techById    = _byId(store.technologies);
+  const buById      = _byId(store.businessUnits);
+  const outcomeById = _byId(store.outcomes || []);
 
-  // Precompute: first colorHue per outcome category (pillar)
-  const pillarColorMap = React.useMemo(() => {
-    const m = {};
-    for (const o of (store.outcomes || [])) {
-      if (m[o.category] == null) m[o.category] = o.colorHue;
-    }
-    return m;
-  }, [store]);
+  // First colorHue per outcome category (pillar) — plain object, no hook
+  const pillarColorMap = {};
+  for (const o of (store.outcomes || [])) {
+    if (pillarColorMap[o.category] == null) pillarColorMap[o.category] = o.colorHue;
+  }
 
   const scrollTo = (date) => {
     if (!scrollerRef.current) return;
