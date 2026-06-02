@@ -868,6 +868,7 @@ function BoardView() {
         {dot(BLOCKER_RED)}
         <span style={{ color: BLOCKER_RED }}>Sync-fejl</span>
         <button onClick={() => { setSyncStatus('loading'); const pat = localStorage.getItem(PAT_KEY); if (!pat) return; readFromGitHub(pat).then(({ store: s, sha }) => { shaRef.current = sha; applyStore(s); setSyncStatus('idle'); }).catch(() => setSyncStatus('error')); }} style={{ border: `1px solid ${BLOCKER_RED}`, background: 'transparent', color: BLOCKER_RED, borderRadius: 4, cursor: 'pointer', padding: '1px 6px', fontSize: 9.5, fontFamily: UI.mono }}>↺ Prøv igen</button>
+        <button onClick={() => { localStorage.removeItem(PAT_KEY); shaRef.current = null; setSyncStatus('no-pat'); setShowPatSetup(true); }} style={{ border: `1px solid ${UI.border}`, background: 'transparent', color: UI.inkMuted, borderRadius: 4, cursor: 'pointer', padding: '1px 6px', fontSize: 9.5, fontFamily: UI.mono }}>Skift PAT</button>
       </span>
     );
     if (syncStatus === 'no-pat') return (
