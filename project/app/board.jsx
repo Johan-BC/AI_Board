@@ -37,12 +37,30 @@ const OUTCOME_TEAL   = 'oklch(0.48 0.13 175)';
 const STORE_KEY = 'aiboard:store:v4';
 const PAT_KEY   = 'aiboard:github-pat';
 
+function migrateStore(p) {
+  // Ensure departments array exists
+  if (!p.departments || !p.departments.length) {
+    p.departments = JSON.parse(JSON.stringify(DEPARTMENTS));
+  }
+  // Migrate initiatives: platformId → platformIds, add departmentIds
+  p.initiatives = (p.initiatives || []).map((i) => {
+    const next = { ...i };
+    if (!next.platformIds) {
+      next.platformIds = next.platformId ? [next.platformId] : [];
+      delete next.platformId;
+    }
+    if (!next.departmentIds) next.departmentIds = [];
+    return next;
+  });
+  return p;
+}
+
 function readLocalStore() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
     if (!raw) return null;
     const p = JSON.parse(raw);
-    if (p && p.initiatives && p.technologies && p.businessUnits && p.blockers) return p;
+    if (p && p.initiatives && p.technologies && p.businessUnits && p.blockers) return migrateStore(p);
   } catch (e) {}
   return null;
 }
@@ -576,28 +594,52 @@ function BoardView() {
     const rows = []; let y = 0;
     const visibleBUs = store.businessUnits.filter((b) => !buFilter || b.id === buFilter);
     const allPlatforms = store.platforms || [];
+    const allDepts = store.departments || [];
+
     for (const bu of visibleBUs) {
       const items = filteredInits.filter((i) => i.buId === bu.id);
       rows.push({ kind: 'bu', bu, y, h: BU_H, count: items.length });
       y += BU_H;
-      // Ungrouped: no platforms OR multiple platforms
-      for (const init of items.filter((i) => !(i.platformIds || []).length || (i.platformIds || []).length > 1)) {
-        rows.push({ kind: 'init', init, bu, platform: null, y, h: ROW_H });
+
+      // Helper: is this init "owned" by exactly one dept (goes under dept header)?
+      const hasSingleDept = (i) => (i.departmentIds || []).length === 1;
+      // Helper: is this init "owned" by exactly one platform with no dept (goes under platform header)?
+      const hasSinglePlatformOnly = (i) => (i.departmentIds || []).length === 0 && (i.platformIds || []).length === 1;
+
+      // 1. Ungrouped: no dept and no platform, or ambiguous (multiple depts / multiple platforms without dept)
+      for (const init of items.filter((i) => !hasSingleDept(i) && !hasSinglePlatformOnly(i))) {
+        rows.push({ kind: 'init', init, bu, department: null, platform: null, y, h: ROW_H });
         y += ROW_H;
       }
-      // Platform groups: only platforms that have ≥1 single-platform init in this BU
-      const platformsHere = allPlatforms.filter((p) =>
-        items.some((i) => (i.platformIds || []).length === 1 && i.platformIds[0] === p.id)
+
+      // 2. Department groups (BU-scoped, single-dept inits)
+      const deptsHere = allDepts.filter((d) => d.buId === bu.id &&
+        items.some((i) => hasSingleDept(i) && i.departmentIds[0] === d.id)
       );
-      for (const platform of platformsHere) {
-        const platItems = items.filter((i) => (i.platformIds || []).length === 1 && i.platformIds[0] === platform.id);
-        rows.push({ kind: 'platform', platform, bu, y, h: PLAT_H });
+      for (const dept of deptsHere) {
+        const deptItems = items.filter((i) => hasSingleDept(i) && i.departmentIds[0] === dept.id);
+        rows.push({ kind: 'department', department: dept, bu, y, h: PLAT_H });
         y += PLAT_H;
-        for (const init of platItems) {
-          rows.push({ kind: 'init', init, bu, platform, y, h: ROW_H });
+        for (const init of deptItems) {
+          rows.push({ kind: 'init', init, bu, department: dept, platform: null, y, h: ROW_H });
           y += ROW_H;
         }
       }
+
+      // 3. Platform groups (global, single-platform inits with no dept)
+      const platformsHere = allPlatforms.filter((p) =>
+        items.some((i) => hasSinglePlatformOnly(i) && i.platformIds[0] === p.id)
+      );
+      for (const platform of platformsHere) {
+        const platItems = items.filter((i) => hasSinglePlatformOnly(i) && i.platformIds[0] === platform.id);
+        rows.push({ kind: 'platform', platform, bu, y, h: PLAT_H });
+        y += PLAT_H;
+        for (const init of platItems) {
+          rows.push({ kind: 'init', init, bu, department: null, platform, y, h: ROW_H });
+          y += ROW_H;
+        }
+      }
+
       y += LANE_GAP;
     }
     return { rows, totalH: y };
@@ -606,7 +648,7 @@ function BoardView() {
   const buBands = React.useMemo(() => {
     const buRows = layout.rows.filter((r) => r.kind === 'bu');
     return buRows.map((r) => {
-      const allInBU = layout.rows.filter((x) => (x.kind === 'bu' || x.kind === 'init' || x.kind === 'platform') && x.bu.id === r.bu.id);
+      const allInBU = layout.rows.filter((x) => ['bu','init','platform','department'].includes(x.kind) && x.bu.id === r.bu.id);
       const last = allInBU[allInBU.length - 1];
       return { buId: r.bu.id, startY: r.y, endY: last.y + last.h };
     });
@@ -678,10 +720,11 @@ function BoardView() {
     setStore((s) => {
       const exists = s.initiatives.some((i) => i.id === d.id);
       const cleaned = { ...d }; delete cleaned._new;
-      if (!cleaned.milestones)  cleaned.milestones  = [];
-      if (!cleaned.blockerIds)  cleaned.blockerIds  = [];
-      if (!cleaned.outcomeIds)  cleaned.outcomeIds  = [];
-      if (!cleaned.platformIds) cleaned.platformIds = [];
+      if (!cleaned.milestones)     cleaned.milestones     = [];
+      if (!cleaned.blockerIds)     cleaned.blockerIds     = [];
+      if (!cleaned.outcomeIds)     cleaned.outcomeIds     = [];
+      if (!cleaned.platformIds)    cleaned.platformIds    = [];
+      if (!cleaned.departmentIds)  cleaned.departmentIds  = [];
       const next = exists
         ? s.initiatives.map((i) => i.id === d.id ? cleaned : i)
         : [...s.initiatives, cleaned];
@@ -710,9 +753,19 @@ function BoardView() {
     return {
       ...s,
       businessUnits: remaining,
-      initiatives:  s.initiatives.map((i) => i.buId === id ? { ...i, buId: fallback } : i),
+      departments: (s.departments || []).filter((d) => d.buId !== id),
+      initiatives:  s.initiatives.map((i) => i.buId === id ? { ...i, buId: fallback, departmentIds: [] } : i),
     };
   });
+
+  const saveDepartment = (d) => setStore((s) => ({ ...s, departments: upsert(s.departments || [], d) }));
+  const delDepartment  = (id) => setStore((s) => ({
+    ...s,
+    departments:  (s.departments || []).filter((d) => d.id !== id),
+    initiatives:  s.initiatives.map((i) => ({
+      ...i, departmentIds: (i.departmentIds || []).filter((x) => x !== id),
+    })),
+  }));
 
   const savePlatform = (d) => setStore((s) => ({ ...s, platforms: upsert(s.platforms || [], d) }));
   const delPlatform  = (id) => setStore((s) => ({
@@ -747,7 +800,7 @@ function BoardView() {
   const newInit = (buId) => setDrawer({
     _new: true, id: 'i_' + Math.random().toString(36).slice(2, 7),
     buId: buId || (store.businessUnits[0] && store.businessUnits[0].id) || 'mkt',
-    platformIds: [],
+    platformIds: [], departmentIds: [],
     name: '', status: 'idea', owner: '',
     techIds: [], blockerIds: [], outcomeIds: [], tags: [], description: '',
     start: dateToISO(today), end: dateToISO(new Date(today.getTime() + 120 * D_MS)),
@@ -1038,9 +1091,23 @@ function BoardView() {
                   );
                 }
 
+                if (r.kind === 'department') {
+                  return (
+                    <div key={'dept:' + r.department.id + ':' + r.y} style={{
+                      position: 'absolute', top: r.y, left: 0, right: 0, height: r.h,
+                      padding: '0 12px 0 28px', display: 'flex', alignItems: 'center', gap: 6,
+                      borderBottom: `1px solid color-mix(in oklch, ${r.bu.accent} 12%, transparent)`,
+                      background: `color-mix(in oklch, ${r.bu.accent} 4%, ${UI.panel})`,
+                    }}>
+                      <span style={{ fontSize: 10, opacity: 0.5 }}>◆</span>
+                      <span style={{ fontFamily: UI.sans, fontSize: 10, fontWeight: 600, letterSpacing: 0.2, color: UI.inkMuted }}>{r.department.name}</span>
+                    </div>
+                  );
+                }
+
                 if (r.kind === 'platform') {
                   return (
-                    <div key={'plat:' + r.platform.id} style={{
+                    <div key={'plat:' + r.platform.id + ':' + r.y} style={{
                       position: 'absolute', top: r.y, left: 0, right: 0, height: r.h,
                       padding: '0 12px 0 28px', display: 'flex', alignItems: 'center', gap: 6,
                       borderBottom: `1px solid color-mix(in oklch, ${r.bu.accent} 18%, transparent)`,
@@ -1055,14 +1122,18 @@ function BoardView() {
                 if (r.kind === 'init') {
                   const { dim } = getBarStyle(r.init, r.bu);
                   const bc = (r.init.blockerIds || []).length;
+                  const isGrouped = r.department || r.platform;
                   const initPlatforms = (r.init.platformIds || []).map((pid) => (store.platforms || []).find((p) => p.id === pid)).filter(Boolean);
+                  const initDepts = !r.department
+                    ? (r.init.departmentIds || []).map((did) => (store.departments || []).find((d) => d.id === did)).filter(Boolean)
+                    : [];
                   return (
                     <div key={r.init.id} onClick={() => setDrawer({ ...r.init })} style={{
                       position: 'absolute', top: r.y, left: 0, right: 0, height: r.h,
-                      padding: `0 12px 0 ${r.platform ? 40 : 28}px`, display: 'flex', alignItems: 'center', gap: 7,
+                      padding: `0 12px 0 ${isGrouped ? 40 : 28}px`, display: 'flex', alignItems: 'center', gap: 7,
                       cursor: 'pointer', opacity: dim ? 0.35 : 1, transition: 'opacity .15s',
                       borderBottom: `1px solid color-mix(in oklch, ${UI.border} 60%, transparent)`,
-                      borderLeft: r.platform ? `3px solid color-mix(in oklch, ${r.bu.accent} 45%, transparent)` : 'none',
+                      borderLeft: isGrouped ? `3px solid color-mix(in oklch, ${r.bu.accent} 45%, transparent)` : 'none',
                     }}
                       onMouseEnter={(e) => e.currentTarget.style.background = UI.panelSoft}
                       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
@@ -1071,6 +1142,15 @@ function BoardView() {
                         flex: 1, minWidth: 0, fontSize: 12, fontWeight: 500, color: UI.ink,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       }}>{r.init.name}</div>
+                      {initDepts.map((dep) => (
+                        <span key={dep.id} style={{
+                          fontFamily: UI.sans, fontSize: 8.5, fontWeight: 600, flexShrink: 0,
+                          color: UI.inkMuted, whiteSpace: 'nowrap',
+                          background: UI.panelSoft,
+                          border: `1px solid ${UI.border}`,
+                          padding: '1px 5px', borderRadius: 3,
+                        }}>{dep.name}</span>
+                      ))}
                       {initPlatforms.map((p) => (
                         <span key={p.id} style={{
                           fontFamily: UI.mono, fontSize: 8.5, fontWeight: 700, flexShrink: 0,
@@ -1169,6 +1249,15 @@ function BoardView() {
                   position: 'absolute', top: r.y, left: 0, width: timelineW, height: r.h,
                   borderBottom: `1px solid ${UI.border}`,
                   background: `color-mix(in oklch, ${r.bu.accent} 5%, transparent)`,
+                  pointerEvents: 'none',
+                }} />
+              ))}
+
+              {layout.rows.filter((r) => r.kind === 'department').map((r) => (
+                <div key={'deptbg:' + r.department.id + ':' + r.y} style={{
+                  position: 'absolute', top: r.y, left: 0, width: timelineW, height: r.h,
+                  borderBottom: `1px solid color-mix(in oklch, ${r.bu.accent} 12%, transparent)`,
+                  background: `color-mix(in oklch, ${r.bu.accent} 3%, transparent)`,
                   pointerEvents: 'none',
                 }} />
               ))}
@@ -1360,11 +1449,12 @@ function BoardView() {
         <UiCatalogueDrawer
           store={store}
           onClose={() => setCatalogue(false)}
-          onSaveBU={saveBU}           onDelBU={delBU}
-          onSavePlatform={savePlatform} onDelPlatform={delPlatform}
-          onSaveTech={saveTech}       onDelTech={delTech}
-          onSaveBlocker={saveBlocker} onDelBlocker={delBlocker}
-          onSaveOutcome={saveOutcome} onDelOutcome={delOutcome}
+          onSaveBU={saveBU}                 onDelBU={delBU}
+          onSaveDepartment={saveDepartment} onDelDepartment={delDepartment}
+          onSavePlatform={savePlatform}     onDelPlatform={delPlatform}
+          onSaveTech={saveTech}             onDelTech={delTech}
+          onSaveBlocker={saveBlocker}       onDelBlocker={delBlocker}
+          onSaveOutcome={saveOutcome}       onDelOutcome={delOutcome}
         />
       )}
 

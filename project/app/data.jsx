@@ -13,6 +13,16 @@ const PLATFORMS = [
   { id: 'p_boost',   name: 'Boost.ai' },
 ];
 
+const DEPARTMENTS = [
+  { id: 'dep_brand',  name: 'Brand & Content',  buId: 'mkt' },
+  { id: 'dep_ops',    name: 'Marketing Ops',     buId: 'mkt' },
+  { id: 'dep_cc',     name: 'Contact Centre',    buId: 'cxo' },
+  { id: 'dep_qual',   name: 'Quality',           buId: 'cxo' },
+  { id: 'dep_it',     name: 'IT',                buId: 'cxo' },
+  { id: 'dep_ds',     name: 'Data Science',      buId: 'dig' },
+  { id: 'dep_eng',    name: 'Engineering',       buId: 'dig' },
+];
+
 const STATUSES = [
   { id: 'idea',  label: 'Idea',  color: 'oklch(0.55 0.005 80)'  },
   { id: 'poc',   label: 'POC',   color: 'oklch(0.55 0.12 240)'  },
@@ -63,7 +73,7 @@ const OUTCOMES = [
 const INITIATIVES = [
   // ── Marketing ──────────────────────────────────────────────────────────────
   {
-    id: 'i_camp', buId: 'mkt', platformIds: ['p_adobe'], name: 'Personalised campaign generation',
+    id: 'i_camp', buId: 'mkt', platformIds: ['p_adobe'], departmentIds: ['dep_ops'], name: 'Personalised campaign generation',
     status: 'poc', owner: 'Marketing Ops',
     techIds: ['t_gpt', 't_azure'], blockerIds: ['b_legal', 'b_gdpr'],
     outcomeIds: ['o_sales', 'o_conv', 'o_tnps'],
@@ -72,7 +82,7 @@ const INITIATIVES = [
     milestones: [{ date: '2026-06-15', label: 'Pilot kickoff' }],
   },
   {
-    id: 'i_tag', buId: 'mkt', platformIds: ['p_adobe'], name: 'Asset auto-tagging',
+    id: 'i_tag', buId: 'mkt', platformIds: ['p_adobe'], departmentIds: ['dep_ops'], name: 'Asset auto-tagging',
     status: 'live', owner: 'DAM team',
     techIds: ['t_gpt', 't_rag'], blockerIds: [],
     outcomeIds: ['o_ttm', 'o_fte'],
@@ -81,7 +91,7 @@ const INITIATIVES = [
     milestones: [{ date: '2026-04-10', label: 'Go-live' }],
   },
   {
-    id: 'i_seo', buId: 'mkt', platformIds: [], name: 'SEO content assistant',
+    id: 'i_seo', buId: 'mkt', platformIds: [], departmentIds: ['dep_brand'], name: 'SEO content assistant',
     status: 'idea', owner: 'Brand studio',
     techIds: ['t_gpt', 't_azure'], blockerIds: ['b_budget'],
     outcomeIds: ['o_conv', 'o_ttm'],
@@ -90,7 +100,7 @@ const INITIATIVES = [
     milestones: [],
   },
   {
-    id: 'i_persona', buId: 'mkt', platformIds: [], name: 'Customer persona engine',
+    id: 'i_persona', buId: 'mkt', platformIds: [], departmentIds: ['dep_brand'], name: 'Customer persona engine',
     status: 'pilot', owner: 'Insights',
     techIds: ['t_rag'], blockerIds: ['b_talent'],
     outcomeIds: ['o_tnps', 'o_conv'],
@@ -101,7 +111,7 @@ const INITIATIVES = [
 
   // ── Customer Operations ────────────────────────────────────────────────────
   {
-    id: 'i_voice', buId: 'cxo', platformIds: ['p_boost'], name: 'Customer voicebot',
+    id: 'i_voice', buId: 'cxo', platformIds: ['p_boost'], departmentIds: ['dep_cc'], name: 'Customer voicebot',
     status: 'pilot', owner: 'Customer Care',
     techIds: ['t_whisper', 't_auto', 't_aa'], blockerIds: ['b_legal', 'b_it'],
     outcomeIds: ['o_tnps', 'o_aht', 'o_fcr', 'o_sales'],
@@ -110,7 +120,7 @@ const INITIATIVES = [
     milestones: [{ date: '2026-07-01', label: 'Pilot live' }],
   },
   {
-    id: 'i_helpdesk', buId: 'cxo', platformIds: ['p_genesys'], name: 'IT helpdesk bot',
+    id: 'i_helpdesk', buId: 'cxo', platformIds: ['p_genesys'], departmentIds: ['dep_it'], name: 'IT helpdesk bot',
     status: 'live', owner: 'IT',
     techIds: ['t_gpt', 't_aa', 't_auto'], blockerIds: ['b_gdpr'],
     outcomeIds: ['o_fte', 'o_cpc', 'o_qa'],
@@ -119,7 +129,7 @@ const INITIATIVES = [
     milestones: [{ date: '2026-02-01', label: 'Go-live' }, { date: '2026-08-15', label: 'EN+DK rollout' }],
   },
   {
-    id: 'i_sum', buId: 'cxo', platformIds: [], name: 'Call summarisation',
+    id: 'i_sum', buId: 'cxo', platformIds: [], departmentIds: ['dep_cc'], name: 'Call summarisation',
     status: 'live', owner: 'Contact Centre',
     techIds: ['t_whisper', 't_xcript'], blockerIds: [],
     outcomeIds: ['o_fte', 'o_cpc', 'o_qa'],
@@ -128,7 +138,7 @@ const INITIATIVES = [
     milestones: [{ date: '2026-03-20', label: 'Go-live' }],
   },
   {
-    id: 'i_qa', buId: 'cxo', platformIds: ['p_genesys'], name: 'Agent-assist QA',
+    id: 'i_qa', buId: 'cxo', platformIds: ['p_genesys'], departmentIds: ['dep_qual'], name: 'Agent-assist QA',
     status: 'pilot', owner: 'Quality',
     techIds: ['t_xcript', 't_aa'], blockerIds: ['b_vendor'],
     outcomeIds: ['o_qa', 'o_comp', 'o_fcr'],
@@ -139,7 +149,7 @@ const INITIATIVES = [
 
   // ── Digital & Data ─────────────────────────────────────────────────────────
   {
-    id: 'i_search', buId: 'dig', platformIds: [], name: 'Enterprise knowledge search',
+    id: 'i_search', buId: 'dig', platformIds: [], departmentIds: ['dep_eng'], name: 'Enterprise knowledge search',
     status: 'poc', owner: 'Platform team',
     techIds: ['t_gpt', 't_rag'], blockerIds: ['b_legal', 'b_vendor', 'b_data'],
     outcomeIds: ['o_fte', 'o_ttm'],
@@ -148,7 +158,7 @@ const INITIATIVES = [
     milestones: [{ date: '2026-10-15', label: 'POC review' }],
   },
   {
-    id: 'i_trans', buId: 'dig', platformIds: [], name: 'Meeting transcription',
+    id: 'i_trans', buId: 'dig', platformIds: [], departmentIds: [], name: 'Meeting transcription',
     status: 'live', owner: 'Workplace IT',
     techIds: ['t_whisper', 't_xcript', 't_copilot'], blockerIds: ['b_it'],
     outcomeIds: ['o_fte', 'o_ttm'],
@@ -157,7 +167,7 @@ const INITIATIVES = [
     milestones: [{ date: '2026-03-01', label: 'Go-live' }],
   },
   {
-    id: 'i_assist', buId: 'dig', platformIds: [], name: 'Developer copilot',
+    id: 'i_assist', buId: 'dig', platformIds: [], departmentIds: ['dep_eng'], name: 'Developer copilot',
     status: 'pilot', owner: 'Engineering',
     techIds: ['t_gpt', 't_copilot', 't_azure'], blockerIds: ['b_talent'],
     outcomeIds: ['o_ttm', 'o_qa'],
@@ -166,7 +176,7 @@ const INITIATIVES = [
     milestones: [{ date: '2026-06-01', label: 'Pilot live' }],
   },
   {
-    id: 'i_predict', buId: 'dig', platformIds: [], name: 'Predictive analytics engine',
+    id: 'i_predict', buId: 'dig', platformIds: [], departmentIds: ['dep_ds'], name: 'Predictive analytics engine',
     status: 'idea', owner: 'Data Science',
     techIds: ['t_rag', 't_auto'], blockerIds: ['b_budget', 'b_data', 'b_res'],
     outcomeIds: ['o_tnps', 'o_repeat', 'o_conv'],
@@ -187,6 +197,7 @@ function makeStore() {
     initiatives:   JSON.parse(JSON.stringify(INITIATIVES)),
     businessUnits: JSON.parse(JSON.stringify(BUSINESS_UNITS)),
     platforms:     JSON.parse(JSON.stringify(PLATFORMS)),
+    departments:   JSON.parse(JSON.stringify(DEPARTMENTS)),
   };
 }
 
@@ -206,15 +217,16 @@ function buildSynergyMap(initiatives, field) {
 // Falls back to seed constants for any missing/empty array.
 function parseJSON(text) {
   const p = JSON.parse(text);
-  // Migrate initiatives: platformId (string) → platformIds (array)
+  // Migrate initiatives: platformId (string) → platformIds (array) + ensure departmentIds
   const rawInits = (p.initiatives && p.initiatives.length) ? p.initiatives : JSON.parse(JSON.stringify(INITIATIVES));
   const migratedInits = rawInits.map((i) => {
-    if (!i.platformIds) {
-      const next = { ...i, platformIds: i.platformId ? [i.platformId] : [] };
+    const next = { ...i };
+    if (!next.platformIds) {
+      next.platformIds = next.platformId ? [next.platformId] : [];
       delete next.platformId;
-      return next;
     }
-    return i;
+    if (!next.departmentIds) next.departmentIds = [];
+    return next;
   });
 
   return {
@@ -225,10 +237,11 @@ function parseJSON(text) {
     initiatives:   migratedInits,
     businessUnits: (p.businessUnits && p.businessUnits.length) ? p.businessUnits : JSON.parse(JSON.stringify(BUSINESS_UNITS)),
     platforms:     (p.platforms     && p.platforms.length)     ? p.platforms     : JSON.parse(JSON.stringify(PLATFORMS)),
+    departments:   (p.departments   && p.departments.length)   ? p.departments   : JSON.parse(JSON.stringify(DEPARTMENTS)),
   };
 }
 
 Object.assign(window, {
-  BUSINESS_UNITS, PLATFORMS, STATUSES, TECHNOLOGIES, BLOCKERS, OUTCOMES, INITIATIVES,
+  BUSINESS_UNITS, PLATFORMS, DEPARTMENTS, STATUSES, TECHNOLOGIES, BLOCKERS, OUTCOMES, INITIATIVES,
   makeStore, buildSynergyMap, _byId, parseJSON,
 });

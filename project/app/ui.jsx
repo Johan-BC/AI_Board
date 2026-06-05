@@ -229,6 +229,36 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
           </div>
         </UiFieldRow>
 
+        {(() => {
+          const buDepts = (store.departments || []).filter((dep) => dep.buId === d.buId);
+          if (buDepts.length === 0) return null;
+          const currentIds = d.departmentIds || [];
+          const toggleDept = (id) => setD((prev) => ({
+            ...prev,
+            departmentIds: (prev.departmentIds || []).includes(id)
+              ? (prev.departmentIds || []).filter((x) => x !== id)
+              : [...(prev.departmentIds || []), id],
+          }));
+          return (
+            <UiFieldRow label="Afdelinger" hint={currentIds.length > 0 ? `${currentIds.length} valgt` : 'ingen'}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                {buDepts.map((dep) => {
+                  const hot = currentIds.includes(dep.id);
+                  return (
+                    <button key={dep.id} onClick={() => toggleDept(dep.id)} style={{
+                      fontFamily: UI.sans, fontSize: 11, padding: '3px 9px', borderRadius: 4, cursor: 'pointer',
+                      background: hot ? UI.inkMuted : UI.panelSoft,
+                      color: hot ? '#fff' : UI.ink,
+                      border: `1px solid ${hot ? UI.inkMuted : UI.border}`,
+                      fontWeight: hot ? 600 : 400,
+                    }}>{dep.name}</button>
+                  );
+                })}
+              </div>
+            </UiFieldRow>
+          );
+        })()}
+
         {(store.platforms || []).length > 0 && (() => {
           const allPlatforms = store.platforms || [];
           const currentIds = d.platformIds || [];
@@ -437,16 +467,17 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
   );
 }
 
-// Catalogue CRUD drawer — BUs, Platforms, Technologies, Blockers, Outcomes.
+// Catalogue CRUD drawer — BUs, Departments, Platforms, Technologies, Blockers, Outcomes.
 function UiCatalogueDrawer({
   store, onClose,
   onSaveBU, onDelBU,
+  onSaveDepartment, onDelDepartment,
   onSavePlatform, onDelPlatform,
   onSaveTech, onDelTech,
   onSaveBlocker, onDelBlocker,
   onSaveOutcome, onDelOutcome,
 }) {
-  const TABS = ['BUs', 'Platforms', 'Technologies', 'Blockers', 'Outcomes'];
+  const TABS = ['BUs', 'Afdelinger', 'Platforme', 'Technologies', 'Blockers', 'Outcomes'];
   const [tab, setTab] = React.useState('BUs');
   const [editing, setEditing] = React.useState(null); // { kind, id } or null
   const [editDraft, setEditDraft] = React.useState({});
@@ -669,9 +700,69 @@ function UiCatalogueDrawer({
     );
   };
 
+  // ── Departments (grouped by BU) ──────────────────────────────────────────────
+  const renderDepartments = () => (
+    <>
+      {store.businessUnits.map((bu) => {
+        const deptList = (store.departments || []).filter((dep) => dep.buId === bu.id);
+        if (deptList.length === 0 && !addOpen) return null;
+        return (
+          <div key={bu.id} style={{ marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <span style={{ width: 7, height: 7, borderRadius: 99, background: bu.accent }} />
+              <span style={{ fontFamily: UI.mono, fontSize: 9.5, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: bu.accent }}>{bu.name}</span>
+            </div>
+            {deptList.map((dep) => {
+              const isEd = editing?.id === dep.id;
+              if (isEd) return (
+                <div key={dep.id} style={{ ...rowStyle, flexDirection: 'column', alignItems: 'stretch', gap: 8, padding: '8px 0 8px 14px' }}>
+                  <UiFieldRow label="Navn"><input value={editDraft.name || ''} onChange={(e) => ep('name', e.target.value)} style={inputSm} autoFocus /></UiFieldRow>
+                  <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                    {actionBtn('Cancel', cancelEdit)}
+                    <UiButton size="sm" variant="primary" onClick={() => {
+                      if (!editDraft.name?.trim()) { setErr('Name is required'); return; }
+                      onSaveDepartment(editDraft); cancelEdit();
+                    }}>Save</UiButton>
+                  </div>
+                </div>
+              );
+              return (
+                <div key={dep.id} style={{ ...rowStyle, paddingLeft: 14 }}>
+                  <div style={{ flex: 1, fontSize: 13, fontWeight: 500, color: UI.ink }}>{dep.name}</div>
+                  {actionBtn('✎', () => startEdit(dep))}
+                  {actionBtn('×', () => { onDelDepartment(dep.id); setErr(''); }, 'oklch(0.55 0.18 25)')}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+      {err && <div style={{ fontSize: 11, color: 'oklch(0.52 0.2 15)', padding: '4px 0' }}>{err}</div>}
+      {addOpen ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 0', borderTop: `1px dashed ${UI.border}`, marginTop: 4 }}>
+          <UiFieldRow label="Navn"><input value={addDraft.name || ''} onChange={(e) => ap('name', e.target.value)} style={inputSm} autoFocus /></UiFieldRow>
+          <UiFieldRow label="Forretningsenhed">
+            <UiSegmented value={addDraft.buId || store.businessUnits[0]?.id} options={store.businessUnits.map((b) => ({ value: b.id, label: b.name }))} onChange={(v) => ap('buId', v)} />
+          </UiFieldRow>
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+            {actionBtn('Cancel', cancelAdd)}
+            <UiButton size="sm" variant="primary" onClick={() => {
+              if (!addDraft.name?.trim()) { setErr('Name is required'); return; }
+              onSaveDepartment({ id: randId('dep_'), name: addDraft.name.trim(), buId: addDraft.buId || store.businessUnits[0]?.id });
+              cancelAdd();
+            }}>Tilføj afdeling</UiButton>
+          </div>
+        </div>
+      ) : (
+        <button onClick={openAdd} style={{ marginTop: 8, alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', fontSize: 11, cursor: 'pointer', borderRadius: 5, border: `1px dashed ${UI.border}`, background: 'transparent', color: UI.inkMuted, fontFamily: UI.sans }}>+ Tilføj afdeling</button>
+      )}
+    </>
+  );
+
   const content = {
     'BUs':          renderBUs(),
-    'Platforms':    renderPlatforms(),
+    'Afdelinger':   renderDepartments(),
+    'Platforme':    renderPlatforms(),
     'Technologies': renderCatList(store.technologies || [], false),
     'Blockers':     renderCatList(store.blockers || [], true),
     'Outcomes':     renderCatList(store.outcomes || [], false, onSaveOutcome, onDelOutcome, 'o_', 'outcome'),
