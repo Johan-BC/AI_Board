@@ -254,35 +254,6 @@
       ]
     },
     {
-      "id": "i_predict",
-      "buId": "mkt",
-      "platformId": null,
-      "name": "Predictive analytics engine",
-      "status": "idea",
-      "owner": "Data Science",
-      "techIds": [
-        "t_rag",
-        "t_auto"
-      ],
-      "blockerIds": [
-        "b_budget",
-        "b_data",
-        "b_res"
-      ],
-      "outcomeIds": [
-        "o_tnps",
-        "o_repeat",
-        "o_conv"
-      ],
-      "tags": [
-        "Analytics"
-      ],
-      "description": "Forecast churn and NPS from interaction and CRM data.",
-      "start": "2026-09-01",
-      "end": "2027-03-31",
-      "milestones": []
-    },
-    {
       "id": "i_xlj9i",
       "buId": "mkt",
       "platformId": "p_xyi2i",
