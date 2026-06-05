@@ -224,7 +224,8 @@
       ],
       "platformIds": [
         "p_adobe"
-      ]
+      ],
+      "departmentIds": []
     },
     {
       "id": "i_tag",
@@ -255,7 +256,8 @@
       ],
       "platformIds": [
         "p_obqcq"
-      ]
+      ],
+      "departmentIds": []
     },
     {
       "id": "i_xlj9i",
@@ -275,7 +277,8 @@
       "milestones": [],
       "platformIds": [
         "p_es9n0"
-      ]
+      ],
+      "departmentIds": []
     },
     {
       "id": "i_tr5wz",
@@ -293,7 +296,8 @@
       "milestones": [],
       "platformIds": [
         "p_es9n0"
-      ]
+      ],
+      "departmentIds": []
     }
   ],
   "businessUnits": [
@@ -320,6 +324,43 @@
       "id": "p_es9n0",
       "name": "Microsoft Copilot 365",
       "buId": "mkt"
+    }
+  ],
+  "departments": [
+    {
+      "id": "dep_brand",
+      "name": "Brand & Content",
+      "buId": "mkt"
+    },
+    {
+      "id": "dep_ops",
+      "name": "Marketing Ops",
+      "buId": "mkt"
+    },
+    {
+      "id": "dep_cc",
+      "name": "Contact Centre",
+      "buId": "cxo"
+    },
+    {
+      "id": "dep_qual",
+      "name": "Quality",
+      "buId": "cxo"
+    },
+    {
+      "id": "dep_it",
+      "name": "IT",
+      "buId": "cxo"
+    },
+    {
+      "id": "dep_ds",
+      "name": "Data Science",
+      "buId": "dig"
+    },
+    {
+      "id": "dep_eng",
+      "name": "Engineering",
+      "buId": "dig"
     }
   ]
 }
