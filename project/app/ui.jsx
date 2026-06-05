@@ -173,7 +173,15 @@ function UiSegmented({ value, options, onChange }) {
 // Initiative create/edit drawer — slides in from right.
 function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
   const [d, setD] = React.useState(draft);
-  React.useEffect(() => setD(draft), [draft?.id, draft?._new]);
+  const [techOpen, setTechOpen] = React.useState(false);
+  const [blockerOpen, setBlockerOpen] = React.useState(false);
+  const [outcomeOpen, setOutcomeOpen] = React.useState(false);
+  React.useEffect(() => {
+    setD(draft);
+    setTechOpen(false);
+    setBlockerOpen(false);
+    setOutcomeOpen(false);
+  }, [draft?.id, draft?._new]);
   if (!d) return null;
   const bu = store.businessUnits.find((b) => b.id === d.buId) || store.businessUnits[0];
   const techCats = [...new Set(store.technologies.map((t) => t.category))];
@@ -316,108 +324,203 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
             style={uiInputStyle} />
         </UiFieldRow>
 
-        <UiFieldRow label="Technologies" hint={`${d.techIds.length} selected`}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
-            {techCats.map((cat) => (
-              <div key={cat}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-                  <UiCategoryDot category={cat} />
-                  <div style={{ fontFamily: UI.mono, fontSize: 9.5, letterSpacing: 0.8, textTransform: 'uppercase', color: UI.inkFaint }}>{cat}</div>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                  {store.technologies.filter((t) => t.category === cat).map((t) => {
-                    const hot = d.techIds.includes(t.id);
-                    return (
-                      <button key={t.id} onClick={() => toggleTech(t.id)} style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 5,
-                        fontFamily: UI.mono, fontSize: 10.5, lineHeight: 1,
-                        padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
-                        background: hot ? UI.ink : UI.panelSoft,
-                        color: hot ? '#fff' : UI.ink,
-                        border: `1px solid ${hot ? UI.ink : UI.border}`,
-                        fontWeight: 500,
-                      }}>{t.name}</button>
-                    );
-                  })}
-                </div>
-              </div>
+        <UiFieldRow label="Technologies" hint={d.techIds.length > 0 ? `${d.techIds.length} valgt` : ''}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center' }}>
+            {store.technologies.filter((t) => d.techIds.includes(t.id)).map((t) => (
+              <span key={t.id} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontFamily: UI.mono, fontSize: 10.5, lineHeight: 1,
+                padding: '3px 6px 3px 8px', borderRadius: 4,
+                background: UI.ink, color: '#fff', border: `1px solid ${UI.ink}`, fontWeight: 500,
+              }}>
+                {t.name}
+                <button onClick={() => toggleTech(t.id)} style={{
+                  background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.6)',
+                  cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: 0,
+                }}>×</button>
+              </span>
             ))}
+            <button onClick={() => setTechOpen(!techOpen)} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '3px 9px', borderRadius: 4, cursor: 'pointer',
+              fontFamily: UI.sans, fontSize: 11, fontWeight: 500, lineHeight: 1,
+              background: 'transparent', color: UI.inkMuted,
+              border: `1px dashed ${UI.border}`,
+            }}>+ Tilføj {techOpen ? '▲' : '▾'}</button>
           </div>
-        </UiFieldRow>
-
-        <UiFieldRow label="Blockers" hint={`${(d.blockerIds || []).length} selected`}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
-            {[...new Set((store.blockers || []).map((b) => b.category))].map((cat) => (
-              <div key={cat}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: 99, display: 'inline-block', background: 'oklch(0.62 0.18 15)' }} />
-                  <div style={{ fontFamily: UI.mono, fontSize: 9.5, letterSpacing: 0.8, textTransform: 'uppercase', color: UI.inkFaint }}>{cat}</div>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                  {(store.blockers || []).filter((b) => b.category === cat).map((b) => {
-                    const hot = (d.blockerIds || []).includes(b.id);
-                    return (
-                      <button key={b.id} onClick={() => {
-                        const next = hot
-                          ? (d.blockerIds || []).filter((x) => x !== b.id)
-                          : [...(d.blockerIds || []), b.id];
-                        patch('blockerIds', next);
-                      }} style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 5,
-                        fontFamily: UI.mono, fontSize: 10.5, lineHeight: 1,
-                        padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
-                        background: hot ? 'oklch(0.45 0.18 15)' : UI.panelSoft,
-                        color: hot ? '#fff' : UI.ink,
-                        border: `1px solid ${hot ? 'oklch(0.45 0.18 15)' : UI.border}`,
-                        fontWeight: 500,
-                      }}>⚠ {b.name}</button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </UiFieldRow>
-
-        <UiFieldRow label="Outcomes" hint={`${(d.outcomeIds || []).length} selected`}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
-            {(store.outcomes || []).length === 0 ? (
-              <div style={{ fontSize: 11, color: UI.inkFaint, fontStyle: 'italic' }}>Ingen outcomes defineret. Tilføj dem i Catalogue → Outcomes.</div>
-            ) : [...new Set((store.outcomes || []).map((o) => o.category))].map((cat) => {
-              const catOutcomes = (store.outcomes || []).filter((o) => o.category === cat);
-              const firstHue = catOutcomes[0]?.colorHue ?? 155;
-              return (
+          {techOpen && (
+            <div style={{
+              marginTop: 7, padding: '8px 10px 6px',
+              border: `1px solid ${UI.border}`, borderRadius: 6,
+              background: UI.panelSoft, display: 'flex', flexDirection: 'column', gap: 8,
+            }}>
+              {techCats.map((cat) => (
                 <div key={cat}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: 99, display: 'inline-block', background: `oklch(0.58 0.13 ${firstHue})` }} />
+                    <UiCategoryDot category={cat} />
                     <div style={{ fontFamily: UI.mono, fontSize: 9.5, letterSpacing: 0.8, textTransform: 'uppercase', color: UI.inkFaint }}>{cat}</div>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                    {catOutcomes.map((o) => {
-                      const hot = (d.outcomeIds || []).includes(o.id);
-                      const oc = `oklch(0.48 0.13 ${o.colorHue})`;
+                    {store.technologies.filter((t) => t.category === cat).map((t) => {
+                      const hot = d.techIds.includes(t.id);
                       return (
-                        <button key={o.id} onClick={() => {
-                          const next = hot
-                            ? (d.outcomeIds || []).filter((x) => x !== o.id)
-                            : [...(d.outcomeIds || []), o.id];
-                          patch('outcomeIds', next);
-                        }} style={{
+                        <button key={t.id} onClick={() => toggleTech(t.id)} style={{
                           display: 'inline-flex', alignItems: 'center', gap: 5,
                           fontFamily: UI.mono, fontSize: 10.5, lineHeight: 1,
                           padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
-                          background: hot ? oc : UI.panelSoft,
+                          background: hot ? UI.ink : UI.panel,
                           color: hot ? '#fff' : UI.ink,
-                          border: `1px solid ${hot ? oc : UI.border}`,
-                          fontWeight: 500,
-                        }}>{o.name}</button>
+                          border: `1px solid ${hot ? UI.ink : UI.border}`,
+                          fontWeight: hot ? 600 : 400,
+                        }}>{t.name}</button>
                       );
                     })}
                   </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+          )}
+        </UiFieldRow>
+
+        <UiFieldRow label="Blockers" hint={(d.blockerIds || []).length > 0 ? `${(d.blockerIds || []).length} valgt` : ''}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center' }}>
+            {(store.blockers || []).filter((b) => (d.blockerIds || []).includes(b.id)).map((b) => (
+              <span key={b.id} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontFamily: UI.mono, fontSize: 10.5, lineHeight: 1,
+                padding: '3px 6px 3px 8px', borderRadius: 4,
+                background: 'oklch(0.45 0.18 15)', color: '#fff',
+                border: '1px solid oklch(0.45 0.18 15)', fontWeight: 500,
+              }}>
+                ⚠ {b.name}
+                <button onClick={() => patch('blockerIds', (d.blockerIds || []).filter((x) => x !== b.id))} style={{
+                  background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.6)',
+                  cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: 0,
+                }}>×</button>
+              </span>
+            ))}
+            <button onClick={() => setBlockerOpen(!blockerOpen)} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '3px 9px', borderRadius: 4, cursor: 'pointer',
+              fontFamily: UI.sans, fontSize: 11, fontWeight: 500, lineHeight: 1,
+              background: 'transparent', color: UI.inkMuted,
+              border: `1px dashed ${UI.border}`,
+            }}>+ Tilføj {blockerOpen ? '▲' : '▾'}</button>
           </div>
+          {blockerOpen && (
+            <div style={{
+              marginTop: 7, padding: '8px 10px 6px',
+              border: `1px solid ${UI.border}`, borderRadius: 6,
+              background: UI.panelSoft, display: 'flex', flexDirection: 'column', gap: 8,
+            }}>
+              {[...new Set((store.blockers || []).map((b) => b.category))].map((cat) => (
+                <div key={cat}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: 99, display: 'inline-block', background: 'oklch(0.62 0.18 15)' }} />
+                    <div style={{ fontFamily: UI.mono, fontSize: 9.5, letterSpacing: 0.8, textTransform: 'uppercase', color: UI.inkFaint }}>{cat}</div>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {(store.blockers || []).filter((b) => b.category === cat).map((b) => {
+                      const hot = (d.blockerIds || []).includes(b.id);
+                      return (
+                        <button key={b.id} onClick={() => {
+                          const next = hot
+                            ? (d.blockerIds || []).filter((x) => x !== b.id)
+                            : [...(d.blockerIds || []), b.id];
+                          patch('blockerIds', next);
+                        }} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          fontFamily: UI.mono, fontSize: 10.5, lineHeight: 1,
+                          padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
+                          background: hot ? 'oklch(0.45 0.18 15)' : UI.panel,
+                          color: hot ? '#fff' : UI.ink,
+                          border: `1px solid ${hot ? 'oklch(0.45 0.18 15)' : UI.border}`,
+                          fontWeight: hot ? 600 : 400,
+                        }}>⚠ {b.name}</button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </UiFieldRow>
+
+        <UiFieldRow label="Outcomes" hint={(d.outcomeIds || []).length > 0 ? `${(d.outcomeIds || []).length} valgt` : ''}>
+          {(store.outcomes || []).length === 0 ? (
+            <div style={{ fontSize: 11, color: UI.inkFaint, fontStyle: 'italic' }}>Ingen outcomes defineret. Tilføj dem i Catalogue → Outcomes.</div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center' }}>
+                {(store.outcomes || []).filter((o) => (d.outcomeIds || []).includes(o.id)).map((o) => {
+                  const oc = `oklch(0.48 0.13 ${o.colorHue})`;
+                  return (
+                    <span key={o.id} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      fontFamily: UI.mono, fontSize: 10.5, lineHeight: 1,
+                      padding: '3px 6px 3px 8px', borderRadius: 4,
+                      background: oc, color: '#fff', border: `1px solid ${oc}`, fontWeight: 500,
+                    }}>
+                      {o.name}
+                      <button onClick={() => patch('outcomeIds', (d.outcomeIds || []).filter((x) => x !== o.id))} style={{
+                        background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.6)',
+                        cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: 0,
+                      }}>×</button>
+                    </span>
+                  );
+                })}
+                <button onClick={() => setOutcomeOpen(!outcomeOpen)} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  padding: '3px 9px', borderRadius: 4, cursor: 'pointer',
+                  fontFamily: UI.sans, fontSize: 11, fontWeight: 500, lineHeight: 1,
+                  background: 'transparent', color: UI.inkMuted,
+                  border: `1px dashed ${UI.border}`,
+                }}>+ Tilføj {outcomeOpen ? '▲' : '▾'}</button>
+              </div>
+              {outcomeOpen && (
+                <div style={{
+                  marginTop: 7, padding: '8px 10px 6px',
+                  border: `1px solid ${UI.border}`, borderRadius: 6,
+                  background: UI.panelSoft, display: 'flex', flexDirection: 'column', gap: 8,
+                }}>
+                  {[...new Set((store.outcomes || []).map((o) => o.category))].map((cat) => {
+                    const catOutcomes = (store.outcomes || []).filter((o) => o.category === cat);
+                    const firstHue = catOutcomes[0]?.colorHue ?? 155;
+                    return (
+                      <div key={cat}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                          <span style={{ width: 7, height: 7, borderRadius: 99, display: 'inline-block', background: `oklch(0.58 0.13 ${firstHue})` }} />
+                          <div style={{ fontFamily: UI.mono, fontSize: 9.5, letterSpacing: 0.8, textTransform: 'uppercase', color: UI.inkFaint }}>{cat}</div>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                          {catOutcomes.map((o) => {
+                            const hot = (d.outcomeIds || []).includes(o.id);
+                            const oc = `oklch(0.48 0.13 ${o.colorHue})`;
+                            return (
+                              <button key={o.id} onClick={() => {
+                                const next = hot
+                                  ? (d.outcomeIds || []).filter((x) => x !== o.id)
+                                  : [...(d.outcomeIds || []), o.id];
+                                patch('outcomeIds', next);
+                              }} style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 5,
+                                fontFamily: UI.mono, fontSize: 10.5, lineHeight: 1,
+                                padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
+                                background: hot ? oc : UI.panel,
+                                color: hot ? '#fff' : UI.ink,
+                                border: `1px solid ${hot ? oc : UI.border}`,
+                                fontWeight: hot ? 600 : 400,
+                              }}>{o.name}</button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
         </UiFieldRow>
 
         <UiFieldRow label="Milepæle" hint={`${(d.milestones || []).length} defineret`}>

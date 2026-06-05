@@ -587,7 +587,7 @@ function BoardView() {
   const dayPx     = timelineW / ((range.end - range.start) / D_MS + 1);
   const dateToX   = (d) => ((d - range.start) / D_MS) * dayPx;
 
-  const BU_H = 40, PLAT_H = 28, ROW_H = 44, LANE_GAP = 8;
+  const BU_H = 40, DEPT_H = 34, PLAT_H = 28, ROW_H = 44, LANE_GAP = 8;
 
   const layout = React.useMemo(() => {
     if (!store) return { rows: [], totalH: 0 };
@@ -618,7 +618,7 @@ function BoardView() {
       );
       for (const dept of deptsHere) {
         const deptItems = items.filter((i) => hasSingleDept(i) && i.departmentIds[0] === dept.id);
-        rows.push({ kind: 'department', department: dept, bu, y, h: PLAT_H });
+        rows.push({ kind: 'department', department: dept, bu, y, h: DEPT_H });
         y += PLAT_H;
         for (const init of deptItems) {
           rows.push({ kind: 'init', init, bu, department: dept, platform: null, y, h: ROW_H });
@@ -1095,12 +1095,12 @@ function BoardView() {
                   return (
                     <div key={'dept:' + r.department.id + ':' + r.y} style={{
                       position: 'absolute', top: r.y, left: 0, right: 0, height: r.h,
-                      padding: '0 12px 0 28px', display: 'flex', alignItems: 'center', gap: 6,
-                      borderBottom: `1px solid color-mix(in oklch, ${r.bu.accent} 12%, transparent)`,
-                      background: `color-mix(in oklch, ${r.bu.accent} 4%, ${UI.panel})`,
+                      padding: '0 12px 0 22px', display: 'flex', alignItems: 'center', gap: 6,
+                      borderBottom: `1px solid color-mix(in oklch, ${r.bu.accent} 28%, transparent)`,
+                      background: `color-mix(in oklch, ${r.bu.accent} 11%, ${UI.panel})`,
+                      borderLeft: `3px solid color-mix(in oklch, ${r.bu.accent} 65%, transparent)`,
                     }}>
-                      <span style={{ fontSize: 10, opacity: 0.5 }}>◆</span>
-                      <span style={{ fontFamily: UI.sans, fontSize: 10, fontWeight: 600, letterSpacing: 0.2, color: UI.inkMuted }}>{r.department.name}</span>
+                      <span style={{ fontFamily: UI.sans, fontSize: 11.5, fontWeight: 600, letterSpacing: 0.1, color: UI.ink }}>{r.department.name}</span>
                     </div>
                   );
                 }
@@ -1256,8 +1256,8 @@ function BoardView() {
               {layout.rows.filter((r) => r.kind === 'department').map((r) => (
                 <div key={'deptbg:' + r.department.id + ':' + r.y} style={{
                   position: 'absolute', top: r.y, left: 0, width: timelineW, height: r.h,
-                  borderBottom: `1px solid color-mix(in oklch, ${r.bu.accent} 12%, transparent)`,
-                  background: `color-mix(in oklch, ${r.bu.accent} 3%, transparent)`,
+                  borderBottom: `1px solid color-mix(in oklch, ${r.bu.accent} 28%, transparent)`,
+                  background: `color-mix(in oklch, ${r.bu.accent} 9%, transparent)`,
                   pointerEvents: 'none',
                 }} />
               ))}
