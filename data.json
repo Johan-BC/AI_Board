@@ -270,6 +270,22 @@
       "start": "2025-12-30",
       "end": "2026-12-31",
       "milestones": []
+    },
+    {
+      "id": "i_tr5wz",
+      "buId": "mkt",
+      "platformId": "p_xyi2i",
+      "name": "Active Copilot Agents",
+      "status": "idea",
+      "owner": "",
+      "techIds": [],
+      "blockerIds": [],
+      "outcomeIds": [],
+      "tags": [],
+      "description": "",
+      "start": "2026-06-05",
+      "end": "2026-10-03",
+      "milestones": []
     }
   ],
   "businessUnits": [
