@@ -225,7 +225,9 @@
       "platformIds": [
         "p_adobe"
       ],
-      "departmentIds": []
+      "departmentIds": [
+        "dep_brand"
+      ]
     },
     {
       "id": "i_tag",
