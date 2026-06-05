@@ -313,8 +313,8 @@
     },
     {
       "id": "i_voice",
-      "buId": "cxo",
-      "platformId": "p_boost",
+      "buId": "mkt",
+      "platformId": null,
       "name": "Customer voicebot",
       "status": "pilot",
       "owner": "Customer Care",
@@ -349,8 +349,8 @@
     },
     {
       "id": "i_helpdesk",
-      "buId": "cxo",
-      "platformId": "p_genesys",
+      "buId": "mkt",
+      "platformId": null,
       "name": "IT helpdesk bot",
       "status": "live",
       "owner": "IT",
@@ -386,7 +386,7 @@
     },
     {
       "id": "i_sum",
-      "buId": "cxo",
+      "buId": "mkt",
       "platformId": null,
       "name": "Call summarisation",
       "status": "live",
@@ -416,8 +416,8 @@
     },
     {
       "id": "i_qa",
-      "buId": "cxo",
-      "platformId": "p_genesys",
+      "buId": "mkt",
+      "platformId": null,
       "name": "Agent-assist QA",
       "status": "pilot",
       "owner": "Quality",
@@ -448,7 +448,7 @@
     },
     {
       "id": "i_search",
-      "buId": "dig",
+      "buId": "mkt",
       "platformId": null,
       "name": "Enterprise knowledge search",
       "status": "poc",
@@ -481,7 +481,7 @@
     },
     {
       "id": "i_trans",
-      "buId": "dig",
+      "buId": "mkt",
       "platformId": null,
       "name": "Meeting transcription",
       "status": "live",
@@ -513,7 +513,7 @@
     },
     {
       "id": "i_assist",
-      "buId": "dig",
+      "buId": "mkt",
       "platformId": null,
       "name": "Developer copilot",
       "status": "pilot",
@@ -545,7 +545,7 @@
     },
     {
       "id": "i_predict",
-      "buId": "dig",
+      "buId": "mkt",
       "platformId": null,
       "name": "Predictive analytics engine",
       "status": "idea",
@@ -580,20 +580,6 @@
       "short": "SAI",
       "accent": "oklch(0.48 0.12 290)",
       "lead": "Trine Heidberg"
-    },
-    {
-      "id": "cxo",
-      "name": "Cust. Ops",
-      "short": "CO",
-      "accent": "oklch(0.48 0.12 165)",
-      "lead": "Mads Iversen"
-    },
-    {
-      "id": "dig",
-      "name": "Digital & Data",
-      "short": "DD",
-      "accent": "oklch(0.55 0.13 55)",
-      "lead": "Sofie Lund"
     }
   ],
   "platforms": [
@@ -601,16 +587,6 @@
       "id": "p_adobe",
       "name": "Cognigy",
       "buId": "mkt"
-    },
-    {
-      "id": "p_genesys",
-      "name": "Genesys",
-      "buId": "cxo"
-    },
-    {
-      "id": "p_boost",
-      "name": "Boost.ai",
-      "buId": "cxo"
     },
     {
       "id": "p_xyi2i",
