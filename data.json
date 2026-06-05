@@ -599,7 +599,7 @@
   "platforms": [
     {
       "id": "p_adobe",
-      "name": "Adobe",
+      "name": "Cognigy",
       "buId": "mkt"
     },
     {
