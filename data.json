@@ -291,6 +291,11 @@
       "id": "p_xyi2i",
       "name": "Copilot 365",
       "buId": "mkt"
+    },
+    {
+      "id": "p_obqcq",
+      "name": "Cognigy - Chat",
+      "buId": "mkt"
     }
   ]
 }
