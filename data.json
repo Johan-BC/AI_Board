@@ -215,8 +215,8 @@
         "EU"
       ],
       "description": "Generate variant copy + creative per segment using LLMs.",
-      "start": "2026-03-01",
-      "end": "2026-09-30",
+      "start": "2025-12-31",
+      "end": "2027-01-01",
       "milestones": [
         {
           "date": "2026-06-15",
@@ -244,8 +244,8 @@
         "Content ops"
       ],
       "description": "Classify and tag the DAM stock library automatically.",
-      "start": "2025-11-01",
-      "end": "2026-12-31",
+      "start": "2025-12-30",
+      "end": "2026-12-30",
       "milestones": [
         {
           "date": "2026-04-10",
