@@ -670,6 +670,7 @@ function BoardView() {
   }));
 
   const saveInit = (d) => {
+    const isNew = !!d._new;
     setStore((s) => {
       const exists = s.initiatives.some((i) => i.id === d.id);
       const cleaned = { ...d }; delete cleaned._new;
@@ -682,6 +683,11 @@ function BoardView() {
       return { ...s, initiatives: next };
     });
     setDrawer(null);
+    // Clear filters so a newly created initiative is always visible
+    if (isNew) {
+      setStatusFilter(null);
+      setBuFilter(null);
+    }
   };
 
   const delInit = (id) => {
