@@ -575,18 +575,22 @@ function BoardView() {
     if (!store) return { rows: [], totalH: 0 };
     const rows = []; let y = 0;
     const visibleBUs = store.businessUnits.filter((b) => !buFilter || b.id === buFilter);
-    const platforms = store.platforms || [];
+    const allPlatforms = store.platforms || [];
     for (const bu of visibleBUs) {
       const items = filteredInits.filter((i) => i.buId === bu.id);
       rows.push({ kind: 'bu', bu, y, h: BU_H, count: items.length });
       y += BU_H;
-      for (const init of items.filter((i) => !i.platformId)) {
+      // Ungrouped: no platforms OR multiple platforms
+      for (const init of items.filter((i) => !(i.platformIds || []).length || (i.platformIds || []).length > 1)) {
         rows.push({ kind: 'init', init, bu, platform: null, y, h: ROW_H });
         y += ROW_H;
       }
-      for (const platform of platforms.filter((p) => p.buId === bu.id)) {
-        const platItems = items.filter((i) => i.platformId === platform.id);
-        if (platItems.length === 0) continue;
+      // Platform groups: only platforms that have ≥1 single-platform init in this BU
+      const platformsHere = allPlatforms.filter((p) =>
+        items.some((i) => (i.platformIds || []).length === 1 && i.platformIds[0] === p.id)
+      );
+      for (const platform of platformsHere) {
+        const platItems = items.filter((i) => (i.platformIds || []).length === 1 && i.platformIds[0] === platform.id);
         rows.push({ kind: 'platform', platform, bu, y, h: PLAT_H });
         y += PLAT_H;
         for (const init of platItems) {
@@ -677,6 +681,7 @@ function BoardView() {
       if (!cleaned.milestones)  cleaned.milestones  = [];
       if (!cleaned.blockerIds)  cleaned.blockerIds  = [];
       if (!cleaned.outcomeIds)  cleaned.outcomeIds  = [];
+      if (!cleaned.platformIds) cleaned.platformIds = [];
       const next = exists
         ? s.initiatives.map((i) => i.id === d.id ? cleaned : i)
         : [...s.initiatives, cleaned];
@@ -705,8 +710,7 @@ function BoardView() {
     return {
       ...s,
       businessUnits: remaining,
-      platforms:    (s.platforms  || []).filter((p) => p.buId !== id),
-      initiatives:  s.initiatives.map((i) => i.buId === id ? { ...i, buId: fallback, platformId: null } : i),
+      initiatives:  s.initiatives.map((i) => i.buId === id ? { ...i, buId: fallback } : i),
     };
   });
 
@@ -714,7 +718,9 @@ function BoardView() {
   const delPlatform  = (id) => setStore((s) => ({
     ...s,
     platforms:   (s.platforms || []).filter((p) => p.id !== id),
-    initiatives: s.initiatives.map((i) => i.platformId === id ? { ...i, platformId: null } : i),
+    initiatives: s.initiatives.map((i) => ({
+      ...i, platformIds: (i.platformIds || []).filter((x) => x !== id),
+    })),
   }));
 
   const saveTech  = (d) => setStore((s) => ({ ...s, technologies: upsert(s.technologies, d) }));
@@ -741,7 +747,7 @@ function BoardView() {
   const newInit = (buId) => setDrawer({
     _new: true, id: 'i_' + Math.random().toString(36).slice(2, 7),
     buId: buId || (store.businessUnits[0] && store.businessUnits[0].id) || 'mkt',
-    platformId: null,
+    platformIds: [],
     name: '', status: 'idea', owner: '',
     techIds: [], blockerIds: [], outcomeIds: [], tags: [], description: '',
     start: dateToISO(today), end: dateToISO(new Date(today.getTime() + 120 * D_MS)),
@@ -1049,6 +1055,7 @@ function BoardView() {
                 if (r.kind === 'init') {
                   const { dim } = getBarStyle(r.init, r.bu);
                   const bc = (r.init.blockerIds || []).length;
+                  const initPlatforms = (r.init.platformIds || []).map((pid) => (store.platforms || []).find((p) => p.id === pid)).filter(Boolean);
                   return (
                     <div key={r.init.id} onClick={() => setDrawer({ ...r.init })} style={{
                       position: 'absolute', top: r.y, left: 0, right: 0, height: r.h,
@@ -1064,15 +1071,15 @@ function BoardView() {
                         flex: 1, minWidth: 0, fontSize: 12, fontWeight: 500, color: UI.ink,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       }}>{r.init.name}</div>
-                      {r.platform && (
-                        <span style={{
+                      {initPlatforms.map((p) => (
+                        <span key={p.id} style={{
                           fontFamily: UI.mono, fontSize: 8.5, fontWeight: 700, flexShrink: 0,
                           color: r.bu.accent, letterSpacing: 0.3, whiteSpace: 'nowrap',
                           background: `color-mix(in oklch, ${r.bu.accent} 8%, transparent)`,
                           border: `1px solid color-mix(in oklch, ${r.bu.accent} 22%, transparent)`,
                           padding: '1px 5px', borderRadius: 3,
-                        }}>{r.platform.name}</span>
-                      )}
+                        }}>{p.name}</span>
+                      ))}
                       {bc > 0 && (
                         <span style={{ fontFamily: UI.mono, fontSize: 9, color: BLOCKER_RED, fontWeight: 700, flexShrink: 0 }}>⚠{bc}</span>
                       )}
@@ -1266,14 +1273,21 @@ function BoardView() {
                     <div data-no-drag onPointerDown={(ev) => startBarDrag(ev, i, 'rL')} style={{ position: 'absolute', left: -3, top: 0, bottom: 0, width: 8, cursor: 'ew-resize' }} />
                     <div data-no-drag onPointerDown={(ev) => startBarDrag(ev, i, 'rR')} style={{ position: 'absolute', right: -3, top: 0, bottom: 0, width: 8, cursor: 'ew-resize' }} />
                     {hasBlockers && <span style={{ fontSize: 9, color: BLOCKER_RED, fontWeight: 700, flex: '0 0 auto', marginRight: 4, lineHeight: 1 }}>⚠</span>}
-                    {r.platform && barW >= 90 && (
-                      <span style={{
-                        fontFamily: UI.mono, fontSize: 8, fontWeight: 700, flex: '0 0 auto', marginRight: 5,
-                        color: r.bu.accent, letterSpacing: 0.3, whiteSpace: 'nowrap',
-                        background: `color-mix(in oklch, ${r.bu.accent} 10%, ${UI.panel})`,
-                        border: `1px solid color-mix(in oklch, ${r.bu.accent} 25%, transparent)`,
-                        padding: '1px 4px', borderRadius: 3, lineHeight: 1,
-                      }}>{r.platform.name}</span>
+                    {barW >= 90 && (i.platformIds || []).slice(0, 2).map((pid) => {
+                      const plat = (store.platforms || []).find((p) => p.id === pid);
+                      if (!plat) return null;
+                      return (
+                        <span key={pid} style={{
+                          fontFamily: UI.mono, fontSize: 8, fontWeight: 700, flex: '0 0 auto', marginRight: 3,
+                          color: r.bu.accent, letterSpacing: 0.3, whiteSpace: 'nowrap',
+                          background: `color-mix(in oklch, ${r.bu.accent} 10%, ${UI.panel})`,
+                          border: `1px solid color-mix(in oklch, ${r.bu.accent} 25%, transparent)`,
+                          padding: '1px 4px', borderRadius: 3, lineHeight: 1,
+                        }}>{plat.name}</span>
+                      );
+                    })}
+                    {barW >= 90 && (i.platformIds || []).length > 2 && (
+                      <span style={{ fontSize: 8, color: r.bu.accent, fontFamily: UI.mono, marginRight: 3 }}>+{i.platformIds.length - 2}</span>
                     )}
                     <div style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 11.5, fontWeight: 600, color: UI.ink }}>{i.name}</div>
                     {showChips && (i.outcomeIds || []).length > 0 && (() => {

@@ -213,7 +213,7 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
             {store.businessUnits.map((b) => {
               const hot = d.buId === b.id;
               return (
-                <button key={b.id} onClick={() => setD(prev => ({ ...prev, buId: b.id, platformId: null }))} style={{
+                <button key={b.id} onClick={() => setD(prev => ({ ...prev, buId: b.id }))} style={{
                   display: 'inline-flex', alignItems: 'center', gap: 5,
                   fontFamily: UI.sans, fontSize: 11, fontWeight: hot ? 600 : 400, lineHeight: 1,
                   padding: '5px 10px', borderRadius: 5, cursor: 'pointer',
@@ -229,22 +229,22 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
           </div>
         </UiFieldRow>
 
-        {(() => {
-          const buPlatforms = (store.platforms || []).filter((p) => p.buId === d.buId);
-          if (buPlatforms.length === 0) return null;
+        {(store.platforms || []).length > 0 && (() => {
+          const allPlatforms = store.platforms || [];
+          const currentIds = d.platformIds || [];
+          const togglePlatform = (id) => setD((prev) => ({
+            ...prev,
+            platformIds: (prev.platformIds || []).includes(id)
+              ? (prev.platformIds || []).filter((x) => x !== id)
+              : [...(prev.platformIds || []), id],
+          }));
           return (
-            <UiFieldRow label="Platform">
+            <UiFieldRow label="Platforme" hint={currentIds.length > 0 ? `${currentIds.length} valgt` : 'ingen'}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                <button onClick={() => patch('platformId', null)} style={{
-                  fontFamily: UI.mono, fontSize: 10.5, padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
-                  background: !d.platformId ? UI.ink : UI.panelSoft,
-                  color: !d.platformId ? '#fff' : UI.inkMuted,
-                  border: `1px solid ${!d.platformId ? UI.ink : UI.border}`,
-                }}>None</button>
-                {buPlatforms.map((p) => {
-                  const hot = d.platformId === p.id;
+                {allPlatforms.map((p) => {
+                  const hot = currentIds.includes(p.id);
                   return (
-                    <button key={p.id} onClick={() => patch('platformId', p.id)} style={{
+                    <button key={p.id} onClick={() => togglePlatform(p.id)} style={{
                       fontFamily: UI.mono, fontSize: 10.5, padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
                       background: hot ? UI.ink : UI.panelSoft,
                       color: hot ? '#fff' : UI.ink,
@@ -553,40 +553,25 @@ function UiCatalogueDrawer({
   // ── Platforms ────────────────────────────────────────────────────────────────
   const renderPlatforms = () => (
     <>
-      {store.businessUnits.map((bu) => {
-        const platList = (store.platforms || []).filter((p) => p.buId === bu.id);
-        if (platList.length === 0 && !addOpen) return null;
-        return (
-          <div key={bu.id} style={{ marginBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-              <span style={{ width: 7, height: 7, borderRadius: 99, background: bu.accent }} />
-              <span style={{ fontFamily: UI.mono, fontSize: 9.5, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: bu.accent }}>{bu.name}</span>
+      {(store.platforms || []).map((p) => {
+        const isEd = editing?.id === p.id;
+        if (isEd) return (
+          <div key={p.id} style={{ ...rowStyle, flexDirection: 'column', alignItems: 'stretch', gap: 8, padding: '8px 0' }}>
+            <UiFieldRow label="Name"><input value={editDraft.name || ''} onChange={(e) => ep('name', e.target.value)} style={inputSm} autoFocus /></UiFieldRow>
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+              {actionBtn('Cancel', cancelEdit)}
+              <UiButton size="sm" variant="primary" onClick={() => {
+                if (!editDraft.name?.trim()) { setErr('Name is required'); return; }
+                onSavePlatform(editDraft); cancelEdit();
+              }}>Save</UiButton>
             </div>
-            {platList.map((p) => {
-              const isEd = editing?.id === p.id;
-              if (isEd) return (
-                <div key={p.id} style={{ ...rowStyle, flexDirection: 'column', alignItems: 'stretch', gap: 8, padding: '8px 0 8px 14px' }}>
-                  <UiFieldRow label="Name"><input value={editDraft.name || ''} onChange={(e) => ep('name', e.target.value)} style={inputSm} autoFocus /></UiFieldRow>
-                  <UiFieldRow label="Business Unit">
-                    <UiSegmented value={editDraft.buId} options={store.businessUnits.map((b) => ({ value: b.id, label: b.name }))} onChange={(v) => ep('buId', v)} />
-                  </UiFieldRow>
-                  <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                    {actionBtn('Cancel', cancelEdit)}
-                    <UiButton size="sm" variant="primary" onClick={() => {
-                      if (!editDraft.name?.trim()) { setErr('Name is required'); return; }
-                      onSavePlatform(editDraft); cancelEdit();
-                    }}>Save</UiButton>
-                  </div>
-                </div>
-              );
-              return (
-                <div key={p.id} style={{ ...rowStyle, paddingLeft: 14 }}>
-                  <div style={{ flex: 1, fontSize: 13, fontWeight: 500, color: UI.ink }}>{p.name}</div>
-                  {actionBtn('✎', () => startEdit(p))}
-                  {actionBtn('×', () => { onDelPlatform(p.id); setErr(''); }, 'oklch(0.55 0.18 25)')}
-                </div>
-              );
-            })}
+          </div>
+        );
+        return (
+          <div key={p.id} style={rowStyle}>
+            <div style={{ flex: 1, fontSize: 13, fontWeight: 500, color: UI.ink }}>{p.name}</div>
+            {actionBtn('✎', () => startEdit(p))}
+            {actionBtn('×', () => { onDelPlatform(p.id); setErr(''); }, 'oklch(0.55 0.18 25)')}
           </div>
         );
       })}
@@ -594,14 +579,11 @@ function UiCatalogueDrawer({
       {addOpen ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 0', borderTop: `1px dashed ${UI.border}`, marginTop: 4 }}>
           <UiFieldRow label="Name"><input value={addDraft.name || ''} onChange={(e) => ap('name', e.target.value)} style={inputSm} autoFocus /></UiFieldRow>
-          <UiFieldRow label="Business Unit">
-            <UiSegmented value={addDraft.buId || store.businessUnits[0]?.id} options={store.businessUnits.map((b) => ({ value: b.id, label: b.name }))} onChange={(v) => ap('buId', v)} />
-          </UiFieldRow>
           <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
             {actionBtn('Cancel', cancelAdd)}
             <UiButton size="sm" variant="primary" onClick={() => {
               if (!addDraft.name?.trim()) { setErr('Name is required'); return; }
-              onSavePlatform({ id: randId('p_'), name: addDraft.name.trim(), buId: addDraft.buId || store.businessUnits[0]?.id });
+              onSavePlatform({ id: randId('p_'), name: addDraft.name.trim() });
               cancelAdd();
             }}>Add platform</UiButton>
           </div>
