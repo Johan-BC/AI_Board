@@ -576,10 +576,10 @@
   "businessUnits": [
     {
       "id": "mkt",
-      "name": "Marketing",
-      "short": "MK",
+      "name": "Service and AI channel transformation",
+      "short": "SAI",
       "accent": "oklch(0.48 0.12 290)",
-      "lead": "Anne Berg"
+      "lead": "Trine Heidberg"
     },
     {
       "id": "cxo",
