@@ -193,7 +193,6 @@
     {
       "id": "i_camp",
       "buId": "mkt",
-      "platformId": "p_adobe",
       "name": "Agentic AI - Voice",
       "status": "poc",
       "owner": "Marketing Ops",
@@ -222,12 +221,14 @@
           "date": "2026-06-15",
           "label": "Pilot kickoff"
         }
+      ],
+      "platformIds": [
+        "p_adobe"
       ]
     },
     {
       "id": "i_tag",
       "buId": "mkt",
-      "platformId": "p_obqcq",
       "name": "Agentic AI - Chat",
       "status": "live",
       "owner": "DAM team",
@@ -251,12 +252,14 @@
           "date": "2026-04-10",
           "label": "Go-live"
         }
+      ],
+      "platformIds": [
+        "p_obqcq"
       ]
     },
     {
       "id": "i_xlj9i",
       "buId": "mkt",
-      "platformId": "p_es9n0",
       "name": "Copilot 365 Transformation",
       "status": "live",
       "owner": "",
@@ -269,12 +272,14 @@
       "description": "",
       "start": "2025-12-30",
       "end": "2026-12-31",
-      "milestones": []
+      "milestones": [],
+      "platformIds": [
+        "p_es9n0"
+      ]
     },
     {
       "id": "i_tr5wz",
       "buId": "mkt",
-      "platformId": "p_es9n0",
       "name": "Active Copilot Agents",
       "status": "idea",
       "owner": "",
@@ -285,7 +290,10 @@
       "description": "",
       "start": "2026-06-05",
       "end": "2026-10-03",
-      "milestones": []
+      "milestones": [],
+      "platformIds": [
+        "p_es9n0"
+      ]
     }
   ],
   "businessUnits": [
