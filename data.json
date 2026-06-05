@@ -571,6 +571,24 @@
       "start": "2026-09-01",
       "end": "2027-03-31",
       "milestones": []
+    },
+    {
+      "id": "i_xlj9i",
+      "buId": "mkt",
+      "platformId": "p_xyi2i",
+      "name": "Copilot 365 Transformation",
+      "status": "idea",
+      "owner": "",
+      "techIds": [
+        "t_copilot"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [],
+      "tags": [],
+      "description": "",
+      "start": "2026-06-05",
+      "end": "2026-10-03",
+      "milestones": []
     }
   ],
   "businessUnits": [
