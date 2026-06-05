@@ -256,7 +256,7 @@
     {
       "id": "i_xlj9i",
       "buId": "mkt",
-      "platformId": "p_xyi2i",
+      "platformId": null,
       "name": "Copilot 365 Transformation",
       "status": "live",
       "owner": "",
@@ -274,7 +274,7 @@
     {
       "id": "i_tr5wz",
       "buId": "mkt",
-      "platformId": "p_xyi2i",
+      "platformId": null,
       "name": "Active Copilot Agents",
       "status": "idea",
       "owner": "",
@@ -301,11 +301,6 @@
     {
       "id": "p_adobe",
       "name": "Cognigy - Voice",
-      "buId": "mkt"
-    },
-    {
-      "id": "p_xyi2i",
-      "name": "Copilot 365",
       "buId": "mkt"
     },
     {
