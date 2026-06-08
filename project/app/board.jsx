@@ -837,6 +837,14 @@ function BoardView() {
     scrollerRef.current.scrollBy({ left: delta * monthW, behavior: 'smooth' });
   };
 
+  const downloadJSON = () => {
+    const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'data.json'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const startLabelResize = (e) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -1018,6 +1026,12 @@ function BoardView() {
           <div style={{ width: 1, height: 22, background: UI.border, margin: '0 2px' }} />
           <button onClick={resetToSeed} style={{ border: 'none', background: 'transparent', color: UI.inkFaint, cursor: 'pointer', padding: '5px 6px', fontSize: 10, fontFamily: UI.mono, letterSpacing: 0.5, lineHeight: 1, textTransform: 'uppercase' }}>Reset</button>
           <UiButton size="sm" variant="soft" onClick={() => { setCatalogue(true); setDrawer(null); }} icon={<span style={{ fontSize: 13, lineHeight: 0 }}>⊞</span>}>Catalogue</UiButton>
+          <button onClick={downloadJSON} title="Download board-data som data.json" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            padding: '4px 9px', borderRadius: 5, cursor: 'pointer',
+            border: `1px solid ${UI.border}`, background: 'transparent',
+            color: UI.inkMuted, fontFamily: UI.mono, fontSize: 10,
+          }}>↓ JSON</button>
           <SyncIndicator />
         </>}
       />
