@@ -388,6 +388,8 @@ function BoardView() {
   const [blockerMode, setBlockerMode]             = React.useState(false);
   const [catalogue, setCatalogue]                 = React.useState(false);
   const [view, setView]                           = React.useState('gantt'); // 'gantt' | 'portfolio'
+  const [labelW, setLabelW]                       = React.useState(280);
+  const labelWRef                                 = React.useRef(280);
 
   const shaRef      = React.useRef(null);   // current SHA of data.json on GitHub
   const ghTimerRef  = React.useRef(null);   // debounce timer for GitHub writes
@@ -582,7 +584,6 @@ function BoardView() {
   }, [range.start.getTime(), range.end.getTime()]);
 
   const monthW    = 80 * zoom;
-  const labelW    = 240;
   const timelineW = monthList.length * monthW;
   const dayPx     = timelineW / ((range.end - range.start) / D_MS + 1);
   const dateToX   = (d) => ((d - range.start) / D_MS) * dayPx;
@@ -836,6 +837,23 @@ function BoardView() {
     scrollerRef.current.scrollBy({ left: delta * monthW, behavior: 'smooth' });
   };
 
+  const startLabelResize = (e) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = labelWRef.current;
+    const onMove = (ev) => {
+      const newW = Math.max(160, Math.min(520, startW + ev.clientX - startX));
+      labelWRef.current = newW;
+      setLabelW(newW);
+    };
+    const onUp = () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  };
+
   const startBarDrag = (e, init, mode) => {
     e.stopPropagation(); e.preventDefault();
     const startX = e.clientX;
@@ -1035,6 +1053,27 @@ function BoardView() {
             width: labelW, flex: '0 0 auto', position: 'sticky', left: 0, zIndex: 4,
             background: UI.panel, borderRight: `1px solid ${UI.border}`,
           }}>
+            {/* Resize handle */}
+            <div
+              onPointerDown={startLabelResize}
+              style={{
+                position: 'absolute', right: -4, top: 0, bottom: 0, width: 8,
+                cursor: 'col-resize', zIndex: 10, userSelect: 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.firstChild.style.opacity = '1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.firstChild.style.opacity = '0';
+              }}
+            >
+              <div style={{
+                width: 3, height: 40, borderRadius: 99,
+                background: UI.accent, opacity: 0,
+                transition: 'opacity .15s', pointerEvents: 'none',
+              }} />
+            </div>
             <div style={{
               height: CAL_H, borderBottom: `1px solid ${UI.border}`,
               display: 'flex', alignItems: 'flex-end', padding: '0 14px 10px 20px',
