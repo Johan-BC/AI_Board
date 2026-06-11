@@ -16,59 +16,65 @@
       "color": "oklch(0.62 0.14 70)"
     },
     {
-      "id": "live",
-      "label": "Live",
+      "id": "prod",
+      "label": "Prod",
       "color": "oklch(0.52 0.13 150)"
     }
   ],
   "technologies": [
     {
-      "id": "t_gpt",
-      "name": "GPT-4o",
-      "category": "LLM",
-      "colorHue": 250
-    },
-    {
-      "id": "t_azure",
-      "name": "Azure OpenAI",
-      "category": "LLM",
-      "colorHue": 220
-    },
-    {
-      "id": "t_rag",
-      "name": "RAG / Vector DB",
-      "category": "LLM",
-      "colorHue": 290
-    },
-    {
-      "id": "t_whisper",
-      "name": "Whisper STT",
-      "category": "Speech",
-      "colorHue": 30
-    },
-    {
-      "id": "t_xcript",
-      "name": "AutoTranscript",
-      "category": "Speech",
-      "colorHue": 50
-    },
-    {
-      "id": "t_aa",
-      "name": "Agent Assist",
-      "category": "Agent tooling",
-      "colorHue": 180
-    },
-    {
-      "id": "t_auto",
-      "name": "Agent Automation",
-      "category": "Agent tooling",
-      "colorHue": 200
-    },
-    {
       "id": "t_copilot",
-      "name": "Copilot M365",
+      "name": "Copilot Studio",
       "category": "Assistant",
       "colorHue": 150
+    },
+    {
+      "id": "t_4a549",
+      "name": "Machine learning ",
+      "category": "Azure",
+      "colorHue": null
+    },
+    {
+      "id": "t_cewv6",
+      "name": "STT/TTS",
+      "category": "eleven labs",
+      "colorHue": 45
+    },
+    {
+      "id": "t_za15x",
+      "name": "AI search results",
+      "category": "AI based search and results",
+      "colorHue": 221
+    },
+    {
+      "id": "t_e9zlh",
+      "name": "AI generated video and voice",
+      "category": "AI generated Content",
+      "colorHue": 123
+    },
+    {
+      "id": "t_hpysq",
+      "name": "Agentic supported workflows",
+      "category": "Agentic",
+      "colorHue": 321
+    },
+    {
+      "id": "t_25p4k",
+      "name": "AI conversations",
+      "category": "AI generated text/speech",
+      "colorHue": 300
+    },
+    {
+      "id": "t_9njqv",
+      "name": "AI based data processing",
+      "category": "Data processing",
+      "colorHue": 150
+    },
+    {
+      "id": "t_rgwfa",
+      "name": "Agentic automation",
+      "category": "Agentic",
+      "colorHue": null
     }
   ],
   "blockers": [
@@ -119,12 +125,18 @@
       "name": "Ressourcer/kapacitet",
       "category": "Organisation",
       "colorHue": 70
+    },
+    {
+      "id": "b_bbrng",
+      "name": "Manglende godkendelse fra TECH",
+      "category": "Godkendelse",
+      "colorHue": 10
     }
   ],
   "outcomes": [
     {
       "id": "o_tnps",
-      "name": "Lower tNPS",
+      "name": "Improve tNPS",
       "category": "Customer Exp.",
       "colorHue": 200
     },
@@ -187,158 +199,524 @@
       "name": "Fewer compliance issues",
       "category": "Quality",
       "colorHue": 100
+    },
+    {
+      "id": "o_ycjeo",
+      "name": "Quality improvement",
+      "category": "Quality",
+      "colorHue": 125
+    },
+    {
+      "id": "o_ixdrw",
+      "name": "Cost reduction",
+      "category": "Efficiency",
+      "colorHue": null
     }
   ],
   "initiatives": [
     {
-      "id": "i_camp",
+      "id": "i_odqgz",
       "buId": "mkt",
-      "name": "Agentic AI - Voice",
-      "status": "poc",
-      "owner": "Marketing Ops",
-      "techIds": [
-        "t_gpt",
-        "t_azure"
-      ],
-      "blockerIds": [
-        "b_legal",
-        "b_gdpr"
-      ],
-      "outcomeIds": [
-        "o_sales",
-        "o_conv",
-        "o_tnps"
-      ],
-      "tags": [
-        "B2C",
-        "EU"
-      ],
-      "description": "Generate variant copy + creative per segment using LLMs.",
-      "start": "2025-12-31",
-      "end": "2027-01-01",
-      "milestones": [
-        {
-          "date": "2026-06-15",
-          "label": "Pilot kickoff"
-        }
-      ],
       "platformIds": [
-        "p_adobe"
+        "p_ttg5a"
       ],
       "departmentIds": [
-        "dep_brand"
+        "dep_lllps"
+      ],
+      "name": "AI-Mail",
+      "status": "pilot",
+      "owner": "Lasse Gilsfeldt",
+      "techIds": [
+        "t_copilot"
+      ],
+      "blockerIds": [
+        "b_bbrng"
+      ],
+      "outcomeIds": [
+        "o_fte"
+      ],
+      "tags": [],
+      "description": "Formål: AI mail; Behov: hurtigere håndtering af mails; Løsning: Copilot hjælper med svar ",
+      "start": "2026-01-01",
+      "end": "2028-01-01",
+      "milestones": [
+        {
+          "date": "2026-07-01",
+          "label": "Go-Live"
+        }
       ]
     },
     {
-      "id": "i_tag",
+      "id": "i_n71kd",
       "buId": "mkt",
-      "name": "Agentic AI - Chat",
-      "status": "live",
-      "owner": "DAM team",
+      "platformIds": [],
+      "departmentIds": [
+        "dep_lllps"
+      ],
+      "name": "AHT Model",
+      "status": "prod",
+      "owner": "Lasse Gilsfeldt",
       "techIds": [
-        "t_gpt",
-        "t_rag"
+        "t_4a549"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [
+        "o_aht",
+        "o_qa"
+      ],
+      "tags": [],
+      "description": "Formål: forbedre AHT: \nBehov: indsigt i samtaler; \nLøsning: ML-model der analyserer \"VARM faser\"\n",
+      "start": "2026-01-01",
+      "end": "2028-01-01",
+      "milestones": [
+        {
+          "date": "2026-07-01",
+          "label": "Review"
+        }
+      ]
+    },
+    {
+      "id": "i_fur7u",
+      "buId": "mkt",
+      "platformIds": [
+        "p_obqcq",
+        "p_dxhpv"
+      ],
+      "departmentIds": [
+        "dep_lllps"
+      ],
+      "name": "Agent Assist",
+      "status": "pilot",
+      "owner": "Lasse Gilsfeldt",
+      "techIds": [
+        "t_cewv6",
+        "t_9njqv"
+      ],
+      "blockerIds": [
+        "b_budget",
+        "b_bbrng",
+        "b_it"
+      ],
+      "outcomeIds": [
+        "o_aht"
+      ],
+      "tags": [],
+      "description": "Formål: reducere AHT; Behov: effektivisering; Løsning: transkribering og summaries på voicekald",
+      "start": "2026-09-29",
+      "end": "2028-01-01",
+      "milestones": [
+        {
+          "date": "2026-09-01",
+          "label": "Test"
+        }
+      ]
+    },
+    {
+      "id": "i_ee8bd",
+      "buId": "mkt",
+      "platformIds": [
+        "p_wblim"
+      ],
+      "departmentIds": [
+        "dep_riw1k"
+      ],
+      "name": "AI plugin i Contentful",
+      "status": "prod",
+      "owner": "Johanne Ladekær",
+      "techIds": [
+        "t_hpysq",
+        "t_9njqv"
+      ],
+      "blockerIds": [
+        "b_res"
+      ],
+      "outcomeIds": [
+        "o_ycjeo"
+      ],
+      "tags": [],
+      "description": "Formål: Generere automatiske AI-tekster til mediefiler. \nBehov: At sikre accessibility. Løsning: Et AI-plugin i Contentful genererer tekst automatisk baseret på indholdet; teamet undersøger også om pluginet kan bruges til andre metafelter.\n",
+      "start": "2026-01-01",
+      "end": "2028-01-01",
+      "milestones": []
+    },
+    {
+      "id": "i_180mm",
+      "buId": "mkt",
+      "platformIds": [],
+      "departmentIds": [
+        "dep_riw1k"
+      ],
+      "name": "Cludo AI search results",
+      "status": "pilot",
+      "owner": "Johanne Ladekær",
+      "techIds": [
+        "t_za15x"
+      ],
+      "blockerIds": [
+        "b_vendor",
+        "b_res",
+        "b_it"
+      ],
+      "outcomeIds": [
+        "o_repeat",
+        "o_qa",
+        "o_fcr"
+      ],
+      "tags": [],
+      "description": "Formål: Give mere svar-lignende AI-søgeresultater. Behov: Forbedre søgeoplevelsen for kunder og agenter på flere søgninger. Løsning: Cludo har rullet en feature ud kaldet AI search results, som skal testes og senere evt. rulles ud på de tre søgninger.\n",
+      "start": "2026-06-01",
+      "end": "2028-01-01",
+      "milestones": [
+        {
+          "date": "2026-06-01",
+          "label": "Find testmiljø"
+        },
+        {
+          "date": "2026-06-01",
+          "label": "Evaluer feature"
+        },
+        {
+          "date": "2026-06-01",
+          "label": "Udrulning i Youniverse"
+        },
+        {
+          "date": "2026-06-01",
+          "label": "Udrulning youSee.dk"
+        }
+      ]
+    },
+    {
+      "id": "i_0w9ld",
+      "buId": "mkt",
+      "platformIds": [
+        "p_0oh1c"
+      ],
+      "departmentIds": [
+        "dep_riw1k"
+      ],
+      "name": "AI hjælpevideoer med Heygen",
+      "status": "prod",
+      "owner": "Emil Lund",
+      "techIds": [
+        "t_e9zlh"
+      ],
+      "blockerIds": [
+        "b_vendor"
+      ],
+      "outcomeIds": [
+        "o_ixdrw",
+        "o_repeat"
+      ],
+      "tags": [],
+      "description": "Formål: Lave AI-genererede hjælpevideoer og andre videoer. Behov: Effektiv produktion af videoer med avatar/skuespiller. Løsning: Et tool genererer video baseret på en prompt med en skuespiller/avatar; teamet evaluerer om de skal fortsætte eller skifte til et andet tool, som kan mere men koster lidt mere.\n",
+      "start": "2026-01-01",
+      "end": "2028-01-01",
+      "milestones": [
+        {
+          "date": "2026-07-01",
+          "label": "Beslutning om fremtidig platform"
+        }
+      ]
+    },
+    {
+      "id": "i_w4zpc",
+      "buId": "mkt",
+      "platformIds": [],
+      "departmentIds": [
+        "dep_petrw"
+      ],
+      "name": "Agentic Design System",
+      "status": "pilot",
+      "owner": "Rikke ",
+      "techIds": [
+        "t_hpysq"
+      ],
+      "blockerIds": [
+        "b_budget",
+        "b_gdpr",
+        "b_bbrng",
+        "b_res"
+      ],
+      "outcomeIds": [
+        "o_ixdrw",
+        "o_ycjeo"
+      ],
+      "tags": [],
+      "description": "Formål: Afprøve et setup for et agentisk designsystem med frontend-katalog/storybook og kobling til frontend. Behov: Skabe bedre frontend og gøre piloten anvendelig i praksis. Løsning: Pilot hvor de forsøger at koble designsetup op på GitHub og interne modeller; på længere sigt tænkes det implementeret i My YouSee og Mit Internet.\nAnthropic-modeller internt; Co-work/andet eksternt værktøj til prompts\n\n",
+      "start": "2026-06-01",
+      "end": "2028-01-01",
+      "milestones": [
+        {
+          "date": "2026-06-01",
+          "label": "Adgang til intern Anthropic model"
+        }
+      ]
+    },
+    {
+      "id": "i_y3shs",
+      "buId": "mkt",
+      "platformIds": [
+        "p_6sydy"
+      ],
+      "departmentIds": [
+        "dep_petrw"
+      ],
+      "name": "Figma AI prototyper og opsummering",
+      "status": "prod",
+      "owner": "Barbara Post",
+      "techIds": [
+        "t_hpysq",
+        "t_9njqv"
       ],
       "blockerIds": [],
       "outcomeIds": [
         "o_ttm",
-        "o_fte"
+        "o_ycjeo"
       ],
-      "tags": [
-        "Content ops"
+      "tags": [],
+      "description": "Formål: Hjælpe med prototyper, workshops og opsummering af inputs/indsigter. Behov: Hurtigere at komme frem til visuelle modeller og støtte kreativ udvikling. Løsning: Figma AI bruges på platformsudvikling og af UX’ere; den beskrives som god til workshops og opsummering, hvis man har mange inputs.\n",
+      "start": "2026-01-01",
+      "end": "2028-01-01",
+      "milestones": []
+    },
+    {
+      "id": "i_axj56",
+      "buId": "mkt",
+      "platformIds": [
+        "p_s66za"
       ],
-      "description": "Classify and tag the DAM stock library automatically.",
-      "start": "2025-12-30",
-      "end": "2026-12-30",
+      "departmentIds": [
+        "dep_petrw"
+      ],
+      "name": "\"Theydo\" - Journey management system",
+      "status": "prod",
+      "owner": "Line Huusom",
+      "techIds": [
+        "t_9njqv"
+      ],
+      "blockerIds": [
+        "b_res",
+        "b_talent",
+        "b_data"
+      ],
+      "outcomeIds": [
+        "o_qa",
+        "o_ycjeo",
+        "o_tnps"
+      ],
+      "tags": [],
+      "description": "Formål: Finde indsigter og pain points på tværs af data. Behov: Bedre beslutningsstøtte ud fra de data, der uploades i systemet. Løsning: Et eksisterende journey management system har AI koblet på og bruges allerede meget; i dag uploades data manuelt, og planen er at få integrationer så nyeste data kommer ind dynamisk.\n",
+      "start": "2026-01-01",
+      "end": "2028-01-01",
       "milestones": [
         {
-          "date": "2026-04-10",
-          "label": "Go-live"
+          "date": "2026-07-01",
+          "label": "Pilotintegrationer håbes i løbet af Q3"
         }
-      ],
+      ]
+    },
+    {
+      "id": "i_82rhu",
+      "buId": "mkt",
       "platformIds": [
         "p_obqcq"
       ],
-      "departmentIds": []
-    },
-    {
-      "id": "i_xlj9i",
-      "buId": "mkt",
-      "name": "Copilot 365 Transformation",
-      "status": "live",
-      "owner": "",
+      "departmentIds": [
+        "dep_czm6m"
+      ],
+      "name": "Chatbot (Chat kanal)",
+      "status": "prod",
+      "owner": "Josephine Nøjsen",
       "techIds": [
-        "t_copilot"
+        "t_25p4k"
       ],
       "blockerIds": [],
-      "outcomeIds": [],
-      "tags": [],
-      "description": "",
-      "start": "2025-12-30",
-      "end": "2026-12-31",
-      "milestones": [],
-      "platformIds": [
-        "p_es9n0"
+      "outcomeIds": [
+        "o_fcr",
+        "o_repeat"
       ],
-      "departmentIds": []
+      "tags": [],
+      "description": "Formål: Automatisere kundedialog via chat.Behov: Håndtere kundeservice effektivt og skalerbart.Løsning: Chatbot baseret på knowledge base og RAG-modeller, som genererer AI-svar og dialog.\n\n\n",
+      "start": "2026-01-01",
+      "end": "2028-01-01",
+      "milestones": []
     },
     {
-      "id": "i_tr5wz",
+      "id": "i_dfqje",
       "buId": "mkt",
-      "name": "Active Copilot Agents",
-      "status": "idea",
-      "owner": "",
-      "techIds": [],
+      "platformIds": [
+        "p_obqcq"
+      ],
+      "departmentIds": [
+        "dep_u4lep"
+      ],
+      "name": "Voicebot (Voice kanal)",
+      "status": "prod",
+      "owner": "Josephine Nøjsen",
+      "techIds": [
+        "t_cewv6",
+        "t_25p4k"
+      ],
       "blockerIds": [],
-      "outcomeIds": [],
+      "outcomeIds": [
+        "o_fcr",
+        "o_tnps",
+        "o_repeat"
+      ],
       "tags": [],
-      "description": "",
-      "start": "2026-06-05",
-      "end": "2026-10-03",
-      "milestones": [],
+      "description": "Formål: Håndtere kundedialog via voice. Behov: Udvide chatbot capability til voice. Løsning: Voicebot med tale-til-tekst og tekst-til-tale samt AI-genereret output.",
+      "start": "2026-01-01",
+      "end": "2028-01-01",
+      "milestones": []
+    },
+    {
+      "id": "i_aedea",
+      "buId": "mkt",
+      "platformIds": [
+        "p_obqcq"
+      ],
+      "departmentIds": [
+        "dep_u4lep"
+      ],
+      "name": "STT/TTS platform (Eleven Labs integration)",
+      "status": "pilot",
+      "owner": "Josephine Nøjsen",
+      "techIds": [
+        "t_cewv6",
+        "t_e9zlh"
+      ],
+      "blockerIds": [
+        "b_vendor"
+      ],
+      "outcomeIds": [
+        "o_tnps",
+        "o_fcr",
+        "o_ycjeo"
+      ],
+      "tags": [],
+      "description": "Formål: Forbedre voice output kvalitet. Behov: Bedre syntetisk tale og voice experience. Løsning: Integration af Eleven Labs til talegenerering som ny leverandør.",
+      "start": "2026-06-01",
+      "end": "2028-01-01",
+      "milestones": [
+        {
+          "date": "2026-06-10",
+          "label": "Kontrakt underskrivse + release"
+        }
+      ]
+    },
+    {
+      "id": "i_pc7hb",
+      "buId": "mkt",
       "platformIds": [
         "p_es9n0"
       ],
-      "departmentIds": []
+      "departmentIds": [
+        "dep_ybx0u"
+      ],
+      "name": "Microsoft copilot 365 Adoption",
+      "status": "prod",
+      "owner": "Johan Christophersen",
+      "techIds": [
+        "t_hpysq",
+        "t_9njqv",
+        "t_rgwfa"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [
+        "o_ycjeo",
+        "o_ixdrw"
+      ],
+      "tags": [],
+      "description": "Formål: Udbrede forståelsen og brugen af generativb AI i youSee\nBehov: En løsning der er compliant og som skaber mest mulig værdi for alle.Løsning: Udrulle Microsoft 365 copilot i youSee",
+      "start": "2026-01-01",
+      "end": "2027-01-01",
+      "milestones": [
+        {
+          "date": "2026-08-01",
+          "label": "Fase 2 - afsluttet"
+        },
+        {
+          "date": "2026-08-01",
+          "label": "Fase 3 - begyndes"
+        }
+      ]
+    },
+    {
+      "id": "i_1dg4h",
+      "buId": "mkt",
+      "platformIds": [
+        "p_obqcq"
+      ],
+      "departmentIds": [
+        "dep_czm6m"
+      ],
+      "name": "Anbefalingsbot (Adobe/tilbudslogik)",
+      "status": "prod",
+      "owner": "Josephine Nøjsen",
+      "techIds": [
+        "t_hpysq",
+        "t_9njqv"
+      ],
+      "blockerIds": [
+        "b_gdpr",
+        "b_legal"
+      ],
+      "outcomeIds": [
+        "o_sales"
+      ],
+      "tags": [],
+      "description": "Formål: Præsentere relevante tilbud til kunder. Behov: Øge relevans i kundeinteraktion og mersalg. Løsning: Bot vurderer baseret på parametre om tilbud skal vises og genererer forslag.\n",
+      "start": "2026-01-01",
+      "end": "2028-01-01",
+      "milestones": []
     }
   ],
   "businessUnits": [
     {
       "id": "mkt",
-      "name": "Service and AI channel transformation",
+      "name": "Service & CX",
       "short": "SAI",
       "accent": "oklch(0.48 0.12 290)",
-      "lead": "Trine Heidberg"
+      "lead": "Trine Heiberg"
     }
   ],
   "platforms": [
     {
-      "id": "p_adobe",
-      "name": "Cognigy - Voice",
-      "buId": "mkt"
-    },
-    {
       "id": "p_obqcq",
-      "name": "Cognigy - Chat",
+      "name": "Cognigy",
       "buId": "mkt"
     },
     {
       "id": "p_es9n0",
       "name": "Microsoft Copilot 365",
       "buId": "mkt"
+    },
+    {
+      "id": "p_dxhpv",
+      "name": "Genesys"
+    },
+    {
+      "id": "p_0oh1c",
+      "name": "HeyGen"
+    },
+    {
+      "id": "p_6sydy",
+      "name": "Figma"
+    },
+    {
+      "id": "p_wblim",
+      "name": "Contentful"
+    },
+    {
+      "id": "p_ttg5a",
+      "name": "Microsoft Copilot Studio"
+    },
+    {
+      "id": "p_s66za",
+      "name": "TheyDo"
     }
   ],
   "departments": [
-    {
-      "id": "dep_brand",
-      "name": "Brand & Content",
-      "buId": "mkt"
-    },
-    {
-      "id": "dep_ops",
-      "name": "Marketing Ops",
-      "buId": "mkt"
-    },
     {
       "id": "dep_cc",
       "name": "Contact Centre",
@@ -363,6 +741,46 @@
       "id": "dep_eng",
       "name": "Engineering",
       "buId": "dig"
+    },
+    {
+      "id": "dep_lllps",
+      "name": "Internal AI Products",
+      "buId": "mkt"
+    },
+    {
+      "id": "dep_riw1k",
+      "name": "Content team",
+      "buId": "mkt"
+    },
+    {
+      "id": "dep_petrw",
+      "name": "UX/UI Team",
+      "buId": "mkt"
+    },
+    {
+      "id": "dep_u4lep",
+      "name": "Agentic AI - Voice",
+      "buId": "mkt"
+    },
+    {
+      "id": "dep_2kqmq",
+      "name": "Consumer",
+      "buId": "mkt"
+    },
+    {
+      "id": "dep_c0w5t",
+      "name": "Service & CX",
+      "buId": "mkt"
+    },
+    {
+      "id": "dep_czm6m",
+      "name": "Agentic AI - Chat",
+      "buId": "mkt"
+    },
+    {
+      "id": "dep_ybx0u",
+      "name": "AI & Channel Transformation",
+      "buId": "mkt"
     }
   ]
 }

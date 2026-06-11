@@ -387,7 +387,8 @@ function BoardView() {
   const [zoom, setZoom]                           = React.useState(1);
   const [blockerMode, setBlockerMode]             = React.useState(false);
   const [catalogue, setCatalogue]                 = React.useState(false);
-  const [view, setView]                           = React.useState('gantt'); // 'gantt' | 'portfolio'
+  const [view, setView]                           = React.useState('gantt'); // 'gantt' | 'portfolio' | 'import'
+  const [milestoneTooltip, setMilestoneTooltip]   = React.useState(null); // {label, date, x, y}
   const [labelW, setLabelW]                       = React.useState(280);
   const labelWRef                                 = React.useRef(280);
 
@@ -530,6 +531,7 @@ function BoardView() {
   const filteredInits = React.useMemo(() => {
     if (!store) return [];
     return store.initiatives.filter((i) =>
+      i.status !== 'idea' &&
       (!statusFilter || i.status === statusFilter) &&
       (!buFilter     || i.buId === buFilter)
     );
@@ -567,9 +569,14 @@ function BoardView() {
   const toggleOutcome = (id) => setSelectedOutcomes((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const range = React.useMemo(() => {
-    if (!store) return { start: new Date(today.getFullYear(), today.getMonth() - 2, 1), end: new Date(today.getFullYear(), today.getMonth() + 10, 0) };
-    const dates = store.initiatives.flatMap((i) => [parseISO(i.start), parseISO(i.end)]);
-    if (!dates.length) return { start: new Date(today.getFullYear(), today.getMonth() - 2, 1), end: new Date(today.getFullYear(), today.getMonth() + 10, 0) };
+    const fallback = { start: new Date(today.getFullYear(), today.getMonth() - 2, 1), end: new Date(today.getFullYear(), today.getMonth() + 10, 0) };
+    if (!store) return fallback;
+    const inits = store.initiatives || [];
+    // BAU (no end date) initiatives only contribute their start to range, not end.
+    const starts = inits.map(i => parseISO(i.start)).filter(d => !isNaN(d));
+    const ends   = inits.filter(i => i.end).map(i => parseISO(i.end)).filter(d => !isNaN(d));
+    const dates  = [...starts, ...ends];
+    if (!dates.length) return fallback;
     let lo = dates.reduce((a, b) => a < b ? a : b);
     let hi = dates.reduce((a, b) => a > b ? a : b);
     lo = startOfMonth(new Date(lo.getFullYear(), lo.getMonth() - 3, 1));
@@ -742,6 +749,35 @@ function BoardView() {
   const delInit = (id) => {
     setStore((s) => ({ ...s, initiatives: s.initiatives.filter((i) => i.id !== id) }));
     setDrawer(null);
+  };
+
+  const handleImport = (rows, extra) => {
+    setStore((s) => {
+      const newInits = rows.map((row, idx) => ({
+        id: 'i_xl_' + Date.now() + '_' + idx,
+        name: row.name,
+        owner: row.owner || '',
+        status: row.status.v || 'idea',
+        buId: row.buId.v || null,
+        departmentIds: row.departmentIds.v || [],
+        techIds: row.techIds.v || [],
+        blockerIds: row.blockerIds.v || [],
+        outcomeIds: row.outcomeIds.v || [],
+        platformIds: row.platformIds?.v || [],
+        start: row.startDate.v || null,
+        end:   row.endDate.v   || null,
+        milestones: row.milestones.filter(m => m.date).map(m => ({ label: m.label, date: m.date })),
+        synergyBuIds: [], pillarIds: [],
+      }));
+      return {
+        ...s,
+        technologies: [...s.technologies, ...extra.techs],
+        blockers:     [...s.blockers,     ...extra.blockers],
+        departments:  [...(s.departments || []), ...extra.departments],
+        platforms:    [...(s.platforms || []),   ...(extra.platforms || [])],
+        initiatives:  [...s.initiatives,  ...newInits],
+      };
+    });
   };
 
   const upsert = (arr, item) =>
@@ -1032,6 +1068,21 @@ function BoardView() {
             border: `1px solid ${UI.border}`, background: 'transparent',
             color: UI.inkMuted, fontFamily: UI.mono, fontSize: 10,
           }}>↓ JSON</button>
+          <button onClick={() => setView('import')} title="Importer initiativer fra Excel" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            padding: '4px 10px', borderRadius: 5, cursor: 'pointer',
+            border: 'none', fontFamily: UI.mono, fontSize: 10, fontWeight: 600,
+            background: view === 'import' ? 'oklch(0.42 0.14 145)' : 'oklch(0.52 0.14 145)',
+            color: '#fff',
+          }}>↑ Import</button>
+          <button onClick={() => setView(view === 'ideas' ? 'gantt' : 'ideas')} title="Idéer og boblere" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            padding: '4px 10px', borderRadius: 5, cursor: 'pointer',
+            border: view === 'ideas' ? 'none' : `1px solid ${UI.border}`,
+            fontFamily: UI.mono, fontSize: 10, fontWeight: 600,
+            background: view === 'ideas' ? 'oklch(0.58 0.13 70)' : 'transparent',
+            color: view === 'ideas' ? '#fff' : UI.inkMuted,
+          }}>💡 Idéer</button>
           <SyncIndicator />
         </>}
       />
@@ -1055,7 +1106,19 @@ function BoardView() {
 
       {/* ── Portfolio view ────────────────────────────────────────────────── */}
       {view === 'portfolio' && (
-        <UiPortfolioView store={store} onOpenInit={(i) => setDrawer({ ...i })} />
+        <UiPortfolioView
+          store={{ ...store, initiatives: store.initiatives.filter(i => i.status !== 'idea') }}
+          onOpenInit={(i) => setDrawer({ ...i })} />
+      )}
+
+      {/* ── Ideas / Boblere view ──────────────────────────────────────────── */}
+      {view === 'ideas' && (
+        <UiIdeasView store={store} onOpenInit={(i) => setDrawer({ ...i })} />
+      )}
+
+      {/* ── Import view ───────────────────────────────────────────────────── */}
+      {view === 'import' && (
+        <UiImportView store={store} onImport={handleImport} onGoToBoard={() => setView('gantt')} />
       )}
 
       {/* ── Gantt (full width) ────────────────────────────────────────────── */}
@@ -1391,15 +1454,22 @@ function BoardView() {
               {layout.rows.map((r) => {
                 if (r.kind !== 'init') return null;
                 const i = r.init;
-                const s = parseISO(i.start), e = parseISO(i.end);
+                const noStart = !i.start;
+                const noEnd   = !i.end;
+                const s    = noStart ? range.start : parseISO(i.start);
+                const e    = noEnd   ? range.end   : parseISO(i.end);
                 const x = dateToX(s), barW = Math.max(24, dateToX(e) - x);
                 const { status, hasBlockers, dim, isHot, borderLeftColor, bgOverride, boxShadow } = getBarStyle(i, r.bu);
                 const showChips = barW >= 72;
+                const dateRange = noStart && noEnd ? 'løbende'
+                               : noStart           ? `◀ – ${fmtDay(e)}`
+                               : noEnd             ? `${fmtDay(s)} – ▶ BAU`
+                               :                    `${fmtDay(s)} – ${fmtDay(e)}`;
                 return (
                   <div key={i.id}
                     onPointerDown={(ev) => { if (ev.target.closest('[data-no-drag]')) return; startBarDrag(ev, i, 'move'); }}
                     onClick={() => onBarClick(i)}
-                    title={`${i.name} · ${fmtDay(s)} – ${fmtDay(e)}${hasBlockers ? ` · ⚠ ${(i.blockerIds || []).length} blocker(s)` : ''}`}
+                    title={`${i.name} · ${dateRange}${hasBlockers ? ` · ⚠ ${(i.blockerIds || []).length} blocker(s)` : ''}`}
                     style={{
                       position: 'absolute', top: r.y + 7, left: x, width: barW, height: r.h - 14,
                       borderRadius: 6, cursor: 'grab',
@@ -1408,7 +1478,8 @@ function BoardView() {
                       borderLeft: `3px solid ${borderLeftColor}`,
                       boxShadow, opacity: dim ? 0.22 : 1,
                       transition: 'opacity .15s, box-shadow .15s',
-                      display: 'flex', alignItems: 'center', padding: '0 10px',
+                      display: 'flex', alignItems: 'center',
+                      paddingLeft: noStart ? 36 : 10, paddingRight: noEnd ? 36 : 10,
                       overflow: 'visible', zIndex: isHot ? 3 : 1,
                       userSelect: 'none', touchAction: 'none',
                     }}>
@@ -1475,14 +1546,45 @@ function BoardView() {
                       const mx = dateToX(parseISO(m.date)) - x;
                       if (mx < 4 || mx > barW - 4) return null;
                       return (
-                        <span key={idx} title={`${m.label} · ${m.date}`} style={{
-                          position: 'absolute', top: '50%', left: mx, width: 9, height: 9,
-                          transform: 'translate(-50%, -50%) rotate(45deg)',
-                          background: '#fff', border: `1.5px solid ${status.color}`,
-                          boxShadow: '0 1px 2px rgba(20,16,12,.15)', pointerEvents: 'none',
-                        }} />
+                        <span key={idx}
+                          data-no-drag
+                          onPointerDown={(ev) => ev.stopPropagation()}
+                          onMouseEnter={(ev) => {
+                            const r = ev.currentTarget.getBoundingClientRect();
+                            setMilestoneTooltip({ label: m.label, date: m.date, x: r.left + r.width / 2, y: r.top });
+                          }}
+                          onMouseLeave={() => setMilestoneTooltip(null)}
+                          style={{
+                            position: 'absolute', top: '50%', left: mx, width: 9, height: 9,
+                            transform: 'translate(-50%, -50%) rotate(45deg)',
+                            background: '#fff', border: `1.5px solid ${status.color}`,
+                            boxShadow: '0 1px 2px rgba(20,16,12,.15)',
+                            pointerEvents: 'auto', cursor: 'default', zIndex: 2,
+                          }} />
                       );
                     })}
+                    {noStart && (
+                      <div style={{
+                        position: 'absolute', left: 0, top: 0, bottom: 0, width: 30,
+                        background: 'repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(255,255,255,0.35) 4px, rgba(255,255,255,0.35) 8px)',
+                        borderRadius: '6px 0 0 6px',
+                        display: 'flex', alignItems: 'center', paddingLeft: 4,
+                        pointerEvents: 'none',
+                      }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.6 }}>◀</span>
+                      </div>
+                    )}
+                    {noEnd && (
+                      <div style={{
+                        position: 'absolute', right: 0, top: 0, bottom: 0, width: 30,
+                        background: 'repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(255,255,255,0.35) 4px, rgba(255,255,255,0.35) 8px)',
+                        borderRadius: '0 6px 6px 0',
+                        display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 4,
+                        pointerEvents: 'none',
+                      }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.6 }}>▶</span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -1509,6 +1611,23 @@ function BoardView() {
           onSaveBlocker={saveBlocker}       onDelBlocker={delBlocker}
           onSaveOutcome={saveOutcome}       onDelOutcome={delOutcome}
         />
+      )}
+
+      {/* Milestone tooltip */}
+      {milestoneTooltip && (
+        <div style={{
+          position: 'fixed', zIndex: 9999, pointerEvents: 'none',
+          left: milestoneTooltip.x, top: milestoneTooltip.y - 8,
+          transform: 'translate(-50%, -100%)',
+          background: UI.ink, color: '#fff',
+          fontSize: 11, fontFamily: UI.sans, lineHeight: 1.4,
+          padding: '4px 8px', borderRadius: 5,
+          boxShadow: '0 2px 8px rgba(0,0,0,.25)',
+          whiteSpace: 'nowrap',
+        }}>
+          {milestoneTooltip.label}
+          <span style={{ opacity: 0.6, marginLeft: 5 }}>{milestoneTooltip.date}</span>
+        </div>
       )}
 
       {/* GitHub PAT setup overlay */}

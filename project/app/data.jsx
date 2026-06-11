@@ -27,7 +27,7 @@ const STATUSES = [
   { id: 'idea',  label: 'Idea',  color: 'oklch(0.55 0.005 80)'  },
   { id: 'poc',   label: 'POC',   color: 'oklch(0.55 0.12 240)'  },
   { id: 'pilot', label: 'Pilot', color: 'oklch(0.62 0.14 70)'   },
-  { id: 'live',  label: 'Live',  color: 'oklch(0.52 0.13 150)'  },
+  { id: 'prod',  label: 'Prod',  color: 'oklch(0.52 0.13 150)'  },
 ];
 
 const TECHNOLOGIES = [
@@ -83,7 +83,7 @@ const INITIATIVES = [
   },
   {
     id: 'i_tag', buId: 'mkt', platformIds: ['p_adobe'], departmentIds: ['dep_ops'], name: 'Asset auto-tagging',
-    status: 'live', owner: 'DAM team',
+    status: 'prod', owner: 'DAM team',
     techIds: ['t_gpt', 't_rag'], blockerIds: [],
     outcomeIds: ['o_ttm', 'o_fte'],
     tags: ['Content ops'], description: 'Classify and tag the DAM stock library automatically.',
@@ -121,7 +121,7 @@ const INITIATIVES = [
   },
   {
     id: 'i_helpdesk', buId: 'cxo', platformIds: ['p_genesys'], departmentIds: ['dep_it'], name: 'IT helpdesk bot',
-    status: 'live', owner: 'IT',
+    status: 'prod', owner: 'IT',
     techIds: ['t_gpt', 't_aa', 't_auto'], blockerIds: ['b_gdpr'],
     outcomeIds: ['o_fte', 'o_cpc', 'o_qa'],
     tags: ['Internal'], description: 'Tier-0 IT support via Slack and employee portal.',
@@ -130,7 +130,7 @@ const INITIATIVES = [
   },
   {
     id: 'i_sum', buId: 'cxo', platformIds: [], departmentIds: ['dep_cc'], name: 'Call summarisation',
-    status: 'live', owner: 'Contact Centre',
+    status: 'prod', owner: 'Contact Centre',
     techIds: ['t_whisper', 't_xcript'], blockerIds: [],
     outcomeIds: ['o_fte', 'o_cpc', 'o_qa'],
     tags: ['Productivity'], description: 'Auto-summarise calls and write them into CRM.',
@@ -159,7 +159,7 @@ const INITIATIVES = [
   },
   {
     id: 'i_trans', buId: 'dig', platformIds: [], departmentIds: [], name: 'Meeting transcription',
-    status: 'live', owner: 'Workplace IT',
+    status: 'prod', owner: 'Workplace IT',
     techIds: ['t_whisper', 't_xcript', 't_copilot'], blockerIds: ['b_it'],
     outcomeIds: ['o_fte', 'o_ttm'],
     tags: ['Productivity'], description: 'Transcribe, summarise, and action-item all meetings.',
