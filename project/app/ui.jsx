@@ -570,6 +570,43 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
   );
 }
 
+// ── Color helpers ─────────────────────────────────────────────────────────────
+function pickDistinctHue(existingHues) {
+  const valid = (existingHues || []).filter((h) => h != null && !isNaN(h));
+  if (!valid.length) return 220;
+  const sorted = [...new Set(valid)].sort((a, b) => a - b);
+  if (sorted.length === 1) return Math.round((sorted[0] + 180) % 360);
+  let maxGap = 0, bestHue = sorted[0];
+  for (let i = 0; i < sorted.length; i++) {
+    const gap = (sorted[(i + 1) % sorted.length] - sorted[i] + 360) % 360;
+    if (gap > maxGap) { maxGap = gap; bestHue = Math.round((sorted[i] + gap / 2) % 360); }
+  }
+  return bestHue;
+}
+
+function hueFromOklch(str) {
+  const m = String(str || '').match(/oklch\(\s*[\d.]+\s+[\d.]+\s+([\d.]+)/);
+  return m ? Math.round(parseFloat(m[1])) : null;
+}
+
+function HuePicker({ hue, onChange }) {
+  const h = hue ?? 220;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span style={{ width: 20, height: 20, borderRadius: 5, flexShrink: 0, border: '1px solid rgba(0,0,0,.12)', background: `oklch(0.55 0.18 ${h})` }} />
+      <input
+        type="range" min={0} max={359} value={h}
+        onChange={(e) => onChange(Number(e.target.value))}
+        style={{
+          flex: 1, height: 10, borderRadius: 5, cursor: 'pointer', border: 'none', outline: 'none',
+          background: 'linear-gradient(to right,oklch(0.55 0.18 0),oklch(0.55 0.18 45),oklch(0.55 0.18 90),oklch(0.55 0.18 135),oklch(0.55 0.18 180),oklch(0.55 0.18 225),oklch(0.55 0.18 270),oklch(0.55 0.18 315),oklch(0.55 0.18 359))',
+          WebkitAppearance: 'none', appearance: 'none', padding: 0,
+        }}
+      />
+    </div>
+  );
+}
+
 // Catalogue CRUD drawer — BUs, Departments, Platforms, Technologies, Blockers, Outcomes.
 function UiCatalogueDrawer({
   store, onClose,
@@ -592,7 +629,7 @@ function UiCatalogueDrawer({
 
   const startEdit = (item) => { setEditing({ id: item.id }); setEditDraft({ ...item }); setErr(''); };
   const cancelEdit = () => { setEditing(null); setEditDraft({}); setErr(''); };
-  const openAdd = () => { setAddDraft({}); setAddOpen(true); setEditing(null); setErr(''); };
+  const openAdd = (defaults = {}) => { setAddDraft(defaults); setAddOpen(true); setEditing(null); setErr(''); };
   const cancelAdd = () => { setAddDraft({}); setAddOpen(false); setErr(''); };
 
   const ep = (k, v) => setEditDraft((d) => ({ ...d, [k]: v }));
@@ -625,8 +662,8 @@ function UiCatalogueDrawer({
               <UiFieldRow label="Name"><input value={editDraft.name || ''} onChange={(e) => ep('name', e.target.value)} style={inputSm} /></UiFieldRow>
               <UiFieldRow label="Short"><input value={editDraft.short || ''} maxLength={3} onChange={(e) => ep('short', e.target.value)} style={inputSm} /></UiFieldRow>
             </div>
-            <UiFieldRow label="Accent color" hint="oklch(…)">
-              <input value={editDraft.accent || ''} onChange={(e) => ep('accent', e.target.value)} style={inputSm} placeholder="oklch(0.48 0.12 250)" />
+            <UiFieldRow label="Farve">
+              <HuePicker hue={hueFromOklch(editDraft.accent) ?? 220} onChange={(h) => ep('accent', `oklch(0.48 0.12 ${h})`)} />
             </UiFieldRow>
             <UiFieldRow label="Lead">
               <input value={editDraft.lead || ''} onChange={(e) => ep('lead', e.target.value)} style={inputSm} />
@@ -663,8 +700,8 @@ function UiCatalogueDrawer({
             <UiFieldRow label="Name"><input value={addDraft.name || ''} onChange={(e) => ap('name', e.target.value)} style={inputSm} autoFocus /></UiFieldRow>
             <UiFieldRow label="Short"><input value={addDraft.short || ''} maxLength={3} onChange={(e) => ap('short', e.target.value)} style={inputSm} /></UiFieldRow>
           </div>
-          <UiFieldRow label="Accent color" hint="oklch(…)">
-            <input value={addDraft.accent || ''} onChange={(e) => ap('accent', e.target.value)} style={inputSm} placeholder="oklch(0.48 0.12 250)" />
+          <UiFieldRow label="Farve">
+            <HuePicker hue={hueFromOklch(addDraft.accent) ?? 220} onChange={(h) => ap('accent', `oklch(0.48 0.12 ${h})`)} />
           </UiFieldRow>
           <UiFieldRow label="Lead">
             <input value={addDraft.lead || ''} onChange={(e) => ap('lead', e.target.value)} style={inputSm} />
@@ -679,7 +716,7 @@ function UiCatalogueDrawer({
           </div>
         </div>
       ) : (
-        <button onClick={openAdd} style={{ marginTop: 8, alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', fontSize: 11, cursor: 'pointer', borderRadius: 5, border: `1px dashed ${UI.border}`, background: 'transparent', color: UI.inkMuted, fontFamily: UI.sans }}>+ Add business unit</button>
+        <button onClick={() => { const hue = pickDistinctHue(store.businessUnits.map((b) => hueFromOklch(b.accent))); openAdd({ accent: `oklch(0.48 0.12 ${hue})` }); }} style={{ marginTop: 8, alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', fontSize: 11, cursor: 'pointer', borderRadius: 5, border: `1px dashed ${UI.border}`, background: 'transparent', color: UI.inkMuted, fontFamily: UI.sans }}>+ Add business unit</button>
       )}
     </>
   );
@@ -743,12 +780,10 @@ function UiCatalogueDrawer({
           const dotColor = isBlocker ? `oklch(0.62 0.18 ${hue})` : `oklch(0.62 0.12 ${hue})`;
           if (isEd) return (
             <div key={item.id} style={{ ...rowStyle, flexDirection: 'column', alignItems: 'stretch', gap: 8, padding: '8px 0' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                <UiFieldRow label="Name"><input value={editDraft.name || ''} onChange={(e) => ep('name', e.target.value)} style={inputSm} autoFocus /></UiFieldRow>
-                <UiFieldRow label="Color hue" hint="0–360">
-                  <input type="number" min={0} max={360} value={editDraft.colorHue ?? ''} onChange={(e) => ep('colorHue', e.target.value === '' ? null : Number(e.target.value))} style={inputSm} />
-                </UiFieldRow>
-              </div>
+              <UiFieldRow label="Name"><input value={editDraft.name || ''} onChange={(e) => ep('name', e.target.value)} style={inputSm} autoFocus /></UiFieldRow>
+              <UiFieldRow label="Farve">
+                <HuePicker hue={editDraft.colorHue ?? 220} onChange={(h) => ep('colorHue', h)} />
+              </UiFieldRow>
               <UiFieldRow label="Category">
                 <input value={editDraft.category || ''} onChange={(e) => ep('category', e.target.value)} style={inputSm} list={`cats-${prefix}`} />
                 <datalist id={`cats-${prefix}`}>{existingCats.map((c) => <option key={c} value={c} />)}</datalist>
@@ -777,12 +812,10 @@ function UiCatalogueDrawer({
         {err && <div style={{ fontSize: 11, color: 'oklch(0.52 0.2 15)', padding: '4px 0' }}>{err}</div>}
         {addOpen ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 0', borderTop: `1px dashed ${UI.border}`, marginTop: 4 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-              <UiFieldRow label="Name"><input value={addDraft.name || ''} onChange={(e) => ap('name', e.target.value)} style={inputSm} autoFocus /></UiFieldRow>
-              <UiFieldRow label="Color hue" hint="0–360">
-                <input type="number" min={0} max={360} value={addDraft.colorHue ?? ''} onChange={(e) => ap('colorHue', e.target.value === '' ? null : Number(e.target.value))} style={inputSm} />
-              </UiFieldRow>
-            </div>
+            <UiFieldRow label="Name"><input value={addDraft.name || ''} onChange={(e) => ap('name', e.target.value)} style={inputSm} autoFocus /></UiFieldRow>
+            <UiFieldRow label="Farve">
+              <HuePicker hue={addDraft.colorHue ?? 220} onChange={(h) => ap('colorHue', h)} />
+            </UiFieldRow>
             <UiFieldRow label="Category">
               <input value={addDraft.category || ''} onChange={(e) => ap('category', e.target.value)} style={inputSm} list={`cats-${prefix}-add`} />
               <datalist id={`cats-${prefix}-add`}>{existingCats.map((c) => <option key={c} value={c} />)}</datalist>
@@ -797,7 +830,7 @@ function UiCatalogueDrawer({
             </div>
           </div>
         ) : (
-          <button onClick={openAdd} style={{ marginTop: 8, alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', fontSize: 11, cursor: 'pointer', borderRadius: 5, border: `1px dashed ${UI.border}`, background: 'transparent', color: UI.inkMuted, fontFamily: UI.sans }}>+ Add {label}</button>
+          <button onClick={() => openAdd({ colorHue: pickDistinctHue(items.map((i) => i.colorHue)) })} style={{ marginTop: 8, alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', fontSize: 11, cursor: 'pointer', borderRadius: 5, border: `1px dashed ${UI.border}`, background: 'transparent', color: UI.inkMuted, fontFamily: UI.sans }}>+ Add {label}</button>
         )}
       </>
     );
