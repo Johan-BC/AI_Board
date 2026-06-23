@@ -234,7 +234,7 @@ function FilterStrip({
   const hasOutcome = selectedOutcomes.size > 0;
   const totalBlocked = store.initiatives.filter((i) => (i.blockerIds || []).length > 0).length;
 
-  const makeChip = ({ id, name, selected, hue, isBlocker, onToggle, buSize }) => {
+  const makeChip = ({ id, name, selected, hue, isBlocker, onToggle, buSize, initCount }) => {
     const accentColor = isBlocker ? BLOCKER_RED : `oklch(0.5 0.15 ${hue})`;
     const accentGlow  = isBlocker ? BLOCKER_RED_BG : `oklch(0.5 0.15 ${hue} / 0.22)`;
     const showDot = !selected && buSize >= 2;
@@ -255,6 +255,15 @@ function FilterStrip({
         onMouseEnter={(e) => { if (!selected) { e.currentTarget.style.background = UI.panelSoft; e.currentTarget.style.borderColor = UI.borderStrong; } }}
         onMouseLeave={(e) => { if (!selected) { e.currentTarget.style.background = UI.panel; e.currentTarget.style.borderColor = UI.border; } }}>
         {name}
+        {initCount != null && (
+          <span style={{
+            fontSize: 9.5, fontFamily: UI.mono, fontWeight: 600, lineHeight: 1,
+            padding: '1px 4px', borderRadius: 3,
+            background: selected ? 'rgba(255,255,255,0.22)' : UI.panelSoft,
+            color: selected ? '#fff' : UI.inkMuted,
+            border: selected ? '1px solid rgba(255,255,255,0.18)' : `1px solid ${UI.border}`,
+          }}>{initCount}</span>
+        )}
         {showDot && (
           <span style={{
             width: 5, height: 5, borderRadius: 99, flex: '0 0 auto',
@@ -267,25 +276,36 @@ function FilterStrip({
     );
   };
 
-  const techChips = store.technologies.map((t) => makeChip({
+  const usedTechIds    = new Set(store.initiatives.flatMap((i) => i.techIds    || []));
+  const usedBlockerIds = new Set(store.initiatives.flatMap((i) => i.blockerIds || []));
+  const usedOutcomeIds = new Set(store.initiatives.flatMap((i) => i.outcomeIds || []));
+
+  const techInitCount    = new Map(store.technologies.map((t) => [t.id, store.initiatives.filter((i) => (i.techIds    || []).includes(t.id)).length]));
+  const blockerInitCount = new Map((store.blockers || []).map((b) => [b.id, store.initiatives.filter((i) => (i.blockerIds || []).includes(b.id)).length]));
+  const outcomeInitCount = new Map((store.outcomes  || []).map((o) => [o.id, store.initiatives.filter((i) => (i.outcomeIds || []).includes(o.id)).length]));
+
+  const techChips = store.technologies.filter((t) => usedTechIds.has(t.id)).map((t) => makeChip({
     id: t.id, name: t.name, selected: selectedTechs.has(t.id),
     hue: techHue(t), isBlocker: false,
     onToggle: () => toggleTech(t.id),
     buSize: (techSynergy.get(t.id) || new Set()).size,
+    initCount: techInitCount.get(t.id) ?? 0,
   }));
 
-  const blockerChips = (store.blockers || []).map((b) => makeChip({
+  const blockerChips = (store.blockers || []).filter((b) => usedBlockerIds.has(b.id)).map((b) => makeChip({
     id: b.id, name: b.name, selected: selectedBlockers.has(b.id),
     hue: 15, isBlocker: true,
     onToggle: () => toggleBlocker(b.id),
     buSize: (blockerSynergy.get(b.id) || new Set()).size,
+    initCount: blockerInitCount.get(b.id) ?? 0,
   }));
 
-  const outcomeChips = (store.outcomes || []).map((o) => makeChip({
+  const outcomeChips = (store.outcomes || []).filter((o) => usedOutcomeIds.has(o.id)).map((o) => makeChip({
     id: o.id, name: o.name, selected: selectedOutcomes.has(o.id),
     hue: o.colorHue ?? 155, isBlocker: false,
     onToggle: () => toggleOutcome(o.id),
     buSize: (outcomeSynergy.get(o.id) || new Set()).size,
+    initCount: outcomeInitCount.get(o.id) ?? 0,
   }));
 
   const SectionHeader = ({ label, color, count, onClear, hasSelection, matchCount, totalCount, matchMode, setMatchMode, showMatchToggle }) => (
@@ -1022,7 +1042,7 @@ function BoardView() {
         right={<>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <span style={{ fontFamily: UI.mono, fontSize: 10, color: UI.inkFaint, marginRight: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Status</span>
-            {[null, ...STATUSES.map((s) => s.id)].map((id) => (
+            {[null, ...STATUSES.filter((s) => s.id !== 'idea').map((s) => s.id)].map((id) => (
               <button key={id || 'all'} onClick={() => setStatusFilter(id)} style={chipBtn(statusFilter === id)}>
                 {id ? STATUSES.find((s) => s.id === id).label : 'All'}
               </button>
@@ -1082,7 +1102,7 @@ function BoardView() {
             fontFamily: UI.mono, fontSize: 10, fontWeight: 600,
             background: view === 'ideas' ? 'oklch(0.58 0.13 70)' : 'transparent',
             color: view === 'ideas' ? '#fff' : UI.inkMuted,
-          }}>💡 Idéer</button>
+          }}>💡 Idea</button>
           <SyncIndicator />
         </>}
       />
