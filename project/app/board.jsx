@@ -960,7 +960,7 @@ function BoardView() {
   const onBarClick = (init) => { if (dragSuppressRef.current === init.id) return; setDrawer({ ...init }); };
 
   const getBarStyle = (init, bu) => {
-    const status      = STATUSES.find((st) => st.id === init.status) || STATUSES[0];
+    const status      = resolveStatus(init.status, store.statuses);
     const hasBlockers = (init.blockerIds || []).length > 0;
     const inBlockerMatch = selectedBlockers.size > 0 && blockerMatchedSet.has(init.id);
     const inTechMatch    = selectedTechs.size    > 0 && matchedSet.has(init.id);
@@ -1273,7 +1273,7 @@ function BoardView() {
                     }}
                       onMouseEnter={(e) => e.currentTarget.style.background = UI.panelSoft}
                       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                      <UiStatusPill status={r.init.status} size="sm" />
+                      <UiStatusPill status={r.init.status} statuses={store.statuses} size="sm" />
                       <div style={{
                         flex: 1, minWidth: 0, fontSize: 12, fontWeight: 500, color: UI.ink,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',

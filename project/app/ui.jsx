@@ -67,8 +67,21 @@ function UiButton({ children, onClick, variant = 'ghost', size = 'md', icon, sty
   );
 }
 
-function UiStatusPill({ status, size = 'md' }) {
-  const s = STATUSES.find((x) => x.id === status) || STATUSES[0];
+// Resolve a status id → { id, label, color }. Prefers the live `statuses`
+// (from data.json/store) over the compiled-in STATUSES constant, so newer
+// statuses (e.g. 'prod') resolve even if a stale cached build is running.
+// Unknown ids render AS THEMSELVES (neutral pill) instead of silently
+// masquerading as STATUSES[0] ('Idea').
+function resolveStatus(status, statuses) {
+  const list = (statuses && statuses.length) ? statuses : STATUSES;
+  const found = list.find((x) => x.id === status);
+  if (found) return found;
+  const label = status ? String(status).charAt(0).toUpperCase() + String(status).slice(1) : 'Ukendt';
+  return { id: status || 'unknown', label, color: 'oklch(0.55 0.02 80)' };
+}
+
+function UiStatusPill({ status, statuses, size = 'md' }) {
+  const s = resolveStatus(status, statuses);
   const isLive = status === 'live';
   return (
     <span style={{
@@ -1062,7 +1075,7 @@ function UiPortfolioView({ store, onOpenInit }) {
                           flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 500, color: UI.ink,
                           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                         }}>{i.name}</div>
-                        <UiStatusPill status={i.status} size="sm" />
+                        <UiStatusPill status={i.status} statuses={store.statuses} size="sm" />
                       </div>
                     );
                   })}
