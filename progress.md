@@ -13,8 +13,7 @@ A React-based AI initiative board for a Danish telecom/enterprise context. It re
   - [`app/data.jsx`](project/app/data.jsx) — seed data, Excel parsing, store helpers
   - [`app/ui.jsx`](project/app/ui.jsx) — shared design tokens (`UI`) and primitive components (`UiTopBar`, `UiButton`, `UiStatusPill`, `UiInitiativeDrawer`, etc.)
   - [`app/board.jsx`](project/app/board.jsx) — main `BoardView` component, `FilterStrip`, layout/synergy logic, drag handling
-- [`index.html`](index.html) at the project root loads the three files in order via Babel standalone (no build tool needed)
-- The original [`project/board.html`](project/board.html) still exists as a self-contained minified single-file version (used as reference / standalone fallback)
+- [`index.html`](index.html) at the project root loads the app files in order via Babel standalone (no build tool needed)
 
 ### Features implemented (both versions)
 - **BU swim lanes** — Marketing, Cust. Ops, Digital & Data, each with color-coded accent stripes
@@ -47,11 +46,10 @@ A React-based AI initiative board for a Danish telecom/enterprise context. It re
 | `app/data.jsx` | Done |
 | `app/ui.jsx` | Done |
 | `app/board.jsx` | Done |
-| `project/board.html` (monolithic standalone) | Done (kept as reference) |
 | `data.xlsx` (seed Excel file) | Present |
 | `create_excel.py` (script to regenerate xlsx) | Present |
 
-The app is fully functional. Both entry points (`index.html` and `project/board.html`) render the same board.
+The app is fully functional. `index.html` at the project root is the single entry point.
 
 ---
 
