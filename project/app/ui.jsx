@@ -82,7 +82,7 @@ function resolveStatus(status, statuses) {
 
 function UiStatusPill({ status, statuses, size = 'md' }) {
   const s = resolveStatus(status, statuses);
-  const isLive = status === 'live';
+  const isLive = status === 'prod';
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,

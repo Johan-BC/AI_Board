@@ -52,6 +52,10 @@ function migrateStore(p) {
     if (!next.departmentIds) next.departmentIds = [];
     return next;
   });
+  // Rename the legacy 'live' status → 'prod' (catalogue + initiatives)
+  const mig = migrateLiveToProd(p.statuses, p.initiatives);
+  p.statuses    = mig.statuses;
+  p.initiatives = mig.initiatives;
   return p;
 }
 
@@ -1493,7 +1497,7 @@ function BoardView() {
                     style={{
                       position: 'absolute', top: r.y + 7, left: x, width: barW, height: r.h - 14,
                       borderRadius: 6, cursor: 'grab',
-                      background: bgOverride || `color-mix(in oklch, ${status.color} ${i.status === 'live' ? 18 : 12}%, ${UI.panel})`,
+                      background: bgOverride || `color-mix(in oklch, ${status.color} ${i.status === 'prod' ? 18 : 12}%, ${UI.panel})`,
                       border: `1px solid color-mix(in oklch, ${status.color} 35%, transparent)`,
                       borderLeft: `3px solid ${borderLeftColor}`,
                       boxShadow, opacity: dim ? 0.22 : 1,

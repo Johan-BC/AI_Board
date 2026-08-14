@@ -213,6 +213,22 @@ function buildSynergyMap(initiatives, field) {
   return map;
 }
 
+// The status formerly known as 'live' was renamed to 'prod'. Old stores
+// (localStorage or an old data.json) still carry the 'live' id in both the
+// statuses catalogue and on initiatives. Without this, the catalogue keeps
+// offering "Live" in the drawer while initiatives loaded from a current
+// data.json carry 'prod' — a status the old catalogue doesn't know.
+// Mutates and returns the given arrays' owner-safe copies.
+function migrateLiveToProd(statuses, initiatives) {
+  const nextStatuses = (statuses || []).map((s) =>
+    s.id === 'live' ? { ...s, id: 'prod', label: 'Prod' } : s
+  );
+  const nextInits = (initiatives || []).map((i) =>
+    i.status === 'live' ? { ...i, status: 'prod' } : i
+  );
+  return { statuses: nextStatuses, initiatives: nextInits };
+}
+
 // Parse a JSON string (from data.json or GitHub API) into a store object.
 // Falls back to seed constants for any missing/empty array.
 function parseJSON(text) {
@@ -229,12 +245,15 @@ function parseJSON(text) {
     return next;
   });
 
+  const rawStatuses = (p.statuses && p.statuses.length) ? p.statuses : JSON.parse(JSON.stringify(STATUSES));
+  const mig = migrateLiveToProd(rawStatuses, migratedInits);
+
   return {
-    statuses:      (p.statuses      && p.statuses.length)      ? p.statuses      : JSON.parse(JSON.stringify(STATUSES)),
+    statuses:      mig.statuses,
     technologies:  (p.technologies  && p.technologies.length)  ? p.technologies  : JSON.parse(JSON.stringify(TECHNOLOGIES)),
     blockers:      (p.blockers      && p.blockers.length)       ? p.blockers      : JSON.parse(JSON.stringify(BLOCKERS)),
     outcomes:      (p.outcomes      && p.outcomes.length)       ? p.outcomes      : JSON.parse(JSON.stringify(OUTCOMES)),
-    initiatives:   migratedInits,
+    initiatives:   mig.initiatives,
     businessUnits: (p.businessUnits && p.businessUnits.length) ? p.businessUnits : JSON.parse(JSON.stringify(BUSINESS_UNITS)),
     platforms:     (p.platforms     && p.platforms.length)     ? p.platforms     : JSON.parse(JSON.stringify(PLATFORMS)),
     departments:   (p.departments   && p.departments.length)   ? p.departments   : JSON.parse(JSON.stringify(DEPARTMENTS)),
@@ -243,5 +262,5 @@ function parseJSON(text) {
 
 Object.assign(window, {
   BUSINESS_UNITS, PLATFORMS, DEPARTMENTS, STATUSES, TECHNOLOGIES, BLOCKERS, OUTCOMES, INITIATIVES,
-  makeStore, buildSynergyMap, _byId, parseJSON,
+  makeStore, buildSynergyMap, _byId, parseJSON, migrateLiveToProd,
 });
