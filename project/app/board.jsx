@@ -1487,7 +1487,11 @@ function BoardView() {
                 // so the bar never appears to stop on a particular date.
                 const barW = noEnd ? Math.max(24, timelineW - x)
                                    : Math.max(24, dateToX(e) - x);
-                const fadeW = noEnd ? Math.min(110, Math.max(40, barW * 0.35)) : 0;
+                const fadeW = noEnd ? Math.min(80, Math.max(36, barW * 0.25)) : 0;
+                // Keep bar content (tech/outcome chips) clear of both the fade
+                // and the sticky BAU badge — otherwise the chips render
+                // half-transparent and crowd the badge at the right edge.
+                const padR  = noEnd ? Math.round(fadeW + 14) : 10;
                 const { status, hasBlockers, dim, isHot, borderLeftColor, bgOverride, boxShadow } = getBarStyle(i, r.bu);
                 const showChips = barW >= 72;
                 const dateRange = noStart && noEnd ? 'løbende'
@@ -1512,7 +1516,7 @@ function BoardView() {
                       boxShadow, opacity: dim ? 0.22 : 1,
                       transition: 'opacity .15s, box-shadow .15s',
                       display: 'flex', alignItems: 'center',
-                      paddingLeft: noStart ? 36 : 10, paddingRight: noEnd ? 36 : 10,
+                      paddingLeft: noStart ? 36 : 10, paddingRight: padR,
                       overflow: 'visible', zIndex: isHot ? 3 : 1,
                       userSelect: 'none', touchAction: 'none',
                     }}>
