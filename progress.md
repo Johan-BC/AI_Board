@@ -88,7 +88,9 @@ Row kinds: `'bu'` · `'department'` · `'platform'` · `'init'`
 - **Gantt** — swim lanes, draggable bars (move + resize), milestone diamonds, today line
 - **Portfolio** — outcome/value pillar view
 - **Idéer og boblere** — `idea`-status initiatives, kept out of the Gantt
-- **Import** — Excel upload with per-row validation before committing
+- **Import** — drag-and-drop or file-pick *any* `.xlsx`/`.xls`, parsed client-side via SheetJS
+  (loaded from CDN in `index.html`), with per-row validation before committing. There is no
+  checked-in spreadsheet — the file always comes from the user.
 
 ### Board
 - Status filter chips (POC / Pilot / Prod; `idea` lives in the Ideas view)
@@ -137,9 +139,7 @@ Row kinds: `'bu'` · `'department'` · `'platform'` · `'init'`
 2. **Desktop only** — no responsive layout for narrow viewports.
 3. **Babel standalone** — fine for prototyping; a build step (Vite/esbuild) would remove the
    runtime compile cost and enable TypeScript.
-4. **`create_excel.py` / `data.xlsx`** — legacy seed-generation helpers from the pre-`data.json`
-   era; unclear whether they still match the current model.
-5. **Outcome tracking** (planned, not implemented) — per-initiative
+4. **Outcome tracking** (planned, not implemented) — per-initiative
    `outcome: { metric, unit, baseline, target, targetDate, measurements: [] }`, progress
    calculation with on-track / at-risk / achieved colouring, a `UiProgressRing` on the Gantt
    bar, and a drawer section after Milepæle.
