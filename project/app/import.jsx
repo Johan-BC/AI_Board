@@ -28,7 +28,8 @@ function xlDate(raw) {
     return { v: d.toISOString().slice(0,10), ok: true };
   }
   const s = raw.toString().trim();
-  if (!s || s === 'N/A' || s === '-') return { v: null, ok: true };
+  // Blank / N/A / - / BAU / løbende all mean "no date" (ongoing), not an error.
+  if (!s || /^(n\/a|-|bau|l(ø|oe)bende|ongoing)$/i.test(s)) return { v: null, ok: true };
   const d = new Date(s);
   if (!isNaN(d.getTime()) && /\d{4}/.test(s)) return { v: d.toISOString().slice(0,10), ok: true };
   return { v: null, ok: false, raw: s };
@@ -562,7 +563,7 @@ function ImpCard({ row, statuses, allBUs, allDepts, allPlatforms, allTechs, allB
             <DateField field={row.startDate} onChange={f => onUpdate(r => ({ ...r, startDate: f }))} />
           </div>
           <div>
-            <FieldLabel>Slutdato <span style={{fontSize:10,color:'#6b7280'}}>(tom = BAU / løbende)</span></FieldLabel>
+            <FieldLabel>Slutdato <span style={{fontSize:10,color:'#6b7280'}}>(tom eller "BAU" = løbende)</span></FieldLabel>
             <DateField field={row.endDate} onChange={f => onUpdate(r => ({ ...r, endDate: f }))} />
           </div>
         </div>

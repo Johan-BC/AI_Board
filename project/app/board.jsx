@@ -1482,7 +1482,12 @@ function BoardView() {
                 const noEnd   = !i.end;
                 const s    = noStart ? range.start : parseISO(i.start);
                 const e    = noEnd   ? range.end   : parseISO(i.end);
-                const x = dateToX(s), barW = Math.max(24, dateToX(e) - x);
+                const x = dateToX(s);
+                // BAU: run all the way to the end of the timeline and fade out,
+                // so the bar never appears to stop on a particular date.
+                const barW = noEnd ? Math.max(24, timelineW - x)
+                                   : Math.max(24, dateToX(e) - x);
+                const fadeW = noEnd ? Math.min(110, Math.max(40, barW * 0.35)) : 0;
                 const { status, hasBlockers, dim, isHot, borderLeftColor, bgOverride, boxShadow } = getBarStyle(i, r.bu);
                 const showChips = barW >= 72;
                 const dateRange = noStart && noEnd ? 'løbende'
@@ -1496,7 +1501,11 @@ function BoardView() {
                     title={`${i.name} · ${dateRange}${hasBlockers ? ` · ⚠ ${(i.blockerIds || []).length} blocker(s)` : ''}`}
                     style={{
                       position: 'absolute', top: r.y + 7, left: x, width: barW, height: r.h - 14,
-                      borderRadius: 6, cursor: 'grab',
+                      borderRadius: noEnd ? '6px 0 0 6px' : 6, cursor: 'grab',
+                      ...(noEnd ? {
+                        WebkitMaskImage: `linear-gradient(to right, #000 calc(100% - ${fadeW}px), transparent 100%)`,
+                        maskImage:       `linear-gradient(to right, #000 calc(100% - ${fadeW}px), transparent 100%)`,
+                      } : null),
                       background: bgOverride || `color-mix(in oklch, ${status.color} ${i.status === 'prod' ? 18 : 12}%, ${UI.panel})`,
                       border: `1px solid color-mix(in oklch, ${status.color} 35%, transparent)`,
                       borderLeft: `3px solid ${borderLeftColor}`,
@@ -1508,7 +1517,9 @@ function BoardView() {
                       userSelect: 'none', touchAction: 'none',
                     }}>
                     <div data-no-drag onPointerDown={(ev) => startBarDrag(ev, i, 'rL')} style={{ position: 'absolute', left: -3, top: 0, bottom: 0, width: 8, cursor: 'ew-resize' }} />
-                    <div data-no-drag onPointerDown={(ev) => startBarDrag(ev, i, 'rR')} style={{ position: 'absolute', right: -3, top: 0, bottom: 0, width: 8, cursor: 'ew-resize' }} />
+                    {/* No right resize handle on BAU bars — dragging it would
+                        silently turn "løbende" into a fixed end date. */}
+                    {!noEnd && <div data-no-drag onPointerDown={(ev) => startBarDrag(ev, i, 'rR')} style={{ position: 'absolute', right: -3, top: 0, bottom: 0, width: 8, cursor: 'ew-resize' }} />}
                     {hasBlockers && <span style={{ fontSize: 9, color: BLOCKER_RED, fontWeight: 700, flex: '0 0 auto', marginRight: 4, lineHeight: 1 }}>⚠</span>}
                     {barW >= 90 && (i.platformIds || []).slice(0, 2).map((pid) => {
                       const plat = (store.platforms || []).find((p) => p.id === pid);
@@ -1598,17 +1609,29 @@ function BoardView() {
                         <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.6 }}>◀</span>
                       </div>
                     )}
-                    {noEnd && (
-                      <div style={{
-                        position: 'absolute', right: 0, top: 0, bottom: 0, width: 30,
-                        background: 'repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(255,255,255,0.35) 4px, rgba(255,255,255,0.35) 8px)',
-                        borderRadius: '0 6px 6px 0',
-                        display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 4,
-                        pointerEvents: 'none',
-                      }}>
-                        <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.6 }}>▶</span>
-                      </div>
-                    )}
+                  </div>
+                );
+              })}
+
+              {/* BAU markers — sticky to the right edge of the scroller so the
+                  "keeps running" cue stays visible at any scroll position. */}
+              {layout.rows.map((r) => {
+                if (r.kind !== 'init' || r.init.end) return null;
+                const { status } = getBarStyle(r.init, r.bu);
+                return (
+                  <div key={`bau-${r.init.id}`} style={{
+                    position: 'absolute', top: r.y + 7, left: 0, right: 0, height: r.h - 14,
+                    display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+                    pointerEvents: 'none', zIndex: 2,
+                  }}>
+                    <span title="Løbende / BAU — ingen slutdato" style={{
+                      position: 'sticky', right: 6, display: 'inline-flex', alignItems: 'center', gap: 3,
+                      fontFamily: UI.mono, fontSize: 8.5, fontWeight: 700, letterSpacing: 0.4,
+                      color: status.color,
+                      background: `color-mix(in oklch, ${status.color} 10%, ${UI.panel})`,
+                      border: `1px solid color-mix(in oklch, ${status.color} 30%, transparent)`,
+                      borderRadius: 3, padding: '1px 4px',
+                    }}>BAU ▶</span>
                   </div>
                 );
               })}

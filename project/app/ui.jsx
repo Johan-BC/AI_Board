@@ -321,7 +321,7 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
           <UiFieldRow label="Start">
             <input type="date" value={d.start || ''} onChange={(e) => patch('start', e.target.value)} style={uiInputStyle} />
           </UiFieldRow>
-          <UiFieldRow label="End">
+          <UiFieldRow label="End" hint={d.end ? null : 'tom = løbende / BAU'}>
             <input type="date" value={d.end || ''} onChange={(e) => patch('end', e.target.value)} style={uiInputStyle} />
           </UiFieldRow>
         </div>
