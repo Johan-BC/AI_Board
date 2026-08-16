@@ -85,12 +85,31 @@ Row kinds: `'bu'` · `'department'` · `'platform'` · `'init'`
 ## Features
 
 ### Views
-- **Gantt** — swim lanes, draggable bars (move + resize), milestone diamonds, today line
+- **Gantt** — swim lanes, draggable bars (move + resize), milestone diamonds, today line,
+  BAU bars for initiatives with no end date
 - **Portfolio** — outcome/value pillar view
 - **Idéer og boblere** — `idea`-status initiatives, kept out of the Gantt
 - **Import** — drag-and-drop or file-pick *any* `.xlsx`/`.xls`, parsed client-side via SheetJS
   (loaded from CDN in `index.html`), with per-row validation before committing. There is no
   checked-in spreadsheet — the file always comes from the user.
+
+### BAU / ongoing initiatives
+An initiative with **no end date** is "løbende / BAU" — it runs indefinitely rather than
+finishing on a date. Both `end: null` and `end: ''` count as BAU (the code tests `!i.end`).
+
+How it renders on the Gantt:
+- the bar runs to the **end of the timeline** and fades out via a CSS mask, so it never
+  appears to stop on a particular date
+- the right corner is squared (no border-radius) so the edge doesn't read as an ending
+- a `BAU ▶` badge is `position: sticky` against the right edge of the scroller, so the cue
+  stays visible at any horizontal scroll position
+- the **right resize handle is removed** — dragging it would silently convert BAU into a
+  fixed end date
+- `paddingRight` tracks the fade width (`fadeW + 14`) to keep the tech/outcome chips clear
+  of both the fade and the badge
+
+Setting it: leave End empty in the drawer, or write `BAU` (also `løbende` / `ongoing` /
+`N/A` / `-`) in the end-date column of an imported spreadsheet.
 
 ### Board
 - Status filter chips (POC / Pilot / Prod; `idea` lives in the Ideas view)
@@ -122,6 +141,11 @@ Row kinds: `'bu'` · `'department'` · `'platform'` · `'init'`
   always visible after saving
 - `delBU` clears attached departments and resets `departmentIds: []` on initiatives
 - `platformSpans` and `buBands` must include `'department'` in their kind filters
+- **`range` excludes BAU end dates** — the timeline range is computed from real start/end
+  values only, so a BAU bar's visual end follows `timelineW`, not a date
+- **Date parsing is deliberately strict:** `xlDate` accepts a known set of "no date" words
+  (blank, `N/A`, `-`, `BAU`, `løbende`, `ongoing`) and still flags anything else it can't
+  parse. Don't widen it to a catch-all — that would swallow genuine typos in imports.
 
 ---
 
