@@ -34,8 +34,9 @@ const BLOCKER_RED_BG = 'oklch(0.97 0.04 15)';
 const OUTCOME_TEAL   = 'oklch(0.48 0.13 175)';
 
 // ── Persistence ───────────────────────────────────────────────────────────────
-const STORE_KEY = 'aiboard:store:v4';
-const PAT_KEY   = 'aiboard:github-pat';
+const STORE_KEY    = 'aiboard:store:v4';
+const PAT_KEY      = 'aiboard:github-pat';
+const COLLAPSE_KEY = 'aiboard:collapsed-bus';
 
 function migrateStore(p) {
   // Ensure departments array exists
@@ -415,6 +416,11 @@ function BoardView() {
   const [milestoneTooltip, setMilestoneTooltip]   = React.useState(null); // {label, date, x, y}
   const [labelW, setLabelW]                       = React.useState(280);
   const labelWRef                                 = React.useRef(280);
+  // Collapsed BU lanes — a view preference, kept out of the store so it never
+  // travels to data.json / GitHub.
+  const [collapsedBUs, setCollapsedBUs]           = React.useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '[]')); } catch (_) { return new Set(); }
+  });
 
   const shaRef      = React.useRef(null);   // current SHA of data.json on GitHub
   const ghTimerRef  = React.useRef(null);   // debounce timer for GitHub writes
@@ -591,6 +597,21 @@ function BoardView() {
   const toggleTech    = (id) => setSelectedTechs((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleBlocker = (id) => setSelectedBlockers((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleOutcome = (id) => setSelectedOutcomes((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleBUCollapse = (id) => setCollapsedBUs((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  React.useEffect(() => {
+    try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsedBUs])); } catch (_) {}
+  }, [collapsedBUs]);
+
+  // Which set is currently driving the highlight, mirroring getBarStyle's
+  // precedence — null when nothing is filtering. Used to tell the user how many
+  // hits are hidden inside a collapsed lane.
+  const highlightSet = React.useMemo(() => {
+    if (selectedBlockers.size > 0) return blockerMatchedSet;
+    if (selectedOutcomes.size > 0) return outcomeMatchedSet;
+    if (selectedTechs.size    > 0) return matchedSet;
+    return null;
+  }, [selectedBlockers, selectedOutcomes, selectedTechs, blockerMatchedSet, outcomeMatchedSet, matchedSet]);
 
   const range = React.useMemo(() => {
     const fallback = { start: new Date(today.getFullYear(), today.getMonth() - 2, 1), end: new Date(today.getFullYear(), today.getMonth() + 10, 0) };
@@ -630,8 +651,14 @@ function BoardView() {
 
     for (const bu of visibleBUs) {
       const items = filteredInits.filter((i) => i.buId === bu.id);
-      rows.push({ kind: 'bu', bu, y, h: BU_H, count: items.length });
+      const collapsed = collapsedBUs.has(bu.id);
+      rows.push({ kind: 'bu', bu, y, h: BU_H, count: items.length, collapsed, items });
       y += BU_H;
+
+      // A collapsed lane keeps only its header row — every downstream memo
+      // (bands, spans, connectors, bars) reads layout.rows, so hiding the rows
+      // here is enough to hide the whole lane.
+      if (collapsed) { y += LANE_GAP; continue; }
 
       // Helper: is this init "owned" by exactly one dept (goes under dept header)?
       const hasSingleDept = (i) => (i.departmentIds || []).length === 1;
@@ -675,7 +702,7 @@ function BoardView() {
       y += LANE_GAP;
     }
     return { rows, totalH: y };
-  }, [store, filteredInits, buFilter]);
+  }, [store, filteredInits, buFilter, collapsedBUs]);
 
   const buBands = React.useMemo(() => {
     const buRows = layout.rows.filter((r) => r.kind === 'bu');
@@ -1197,22 +1224,52 @@ function BoardView() {
                 if (r.kind === 'bu') {
                   const sel = buFilter === r.bu.id;
                   const blockedInBU = store.initiatives.filter((i) => i.buId === r.bu.id && (i.blockerIds || []).length > 0).length;
+                  const hiddenHits = r.collapsed && highlightSet
+                    ? r.items.filter((i) => highlightSet.has(i.id)).length
+                    : 0;
                   return (
                     <div key={'bu:' + r.bu.id} style={{
                       position: 'absolute', top: r.y, left: 0, right: 0, height: r.h,
-                      padding: '0 12px 0 20px', display: 'flex', alignItems: 'center', gap: 7,
+                      padding: '0 12px 0 8px', display: 'flex', alignItems: 'center', gap: 7,
                       borderBottom: `1px solid ${UI.border}`,
                       background: `linear-gradient(90deg, color-mix(in oklch, ${r.bu.accent} 8%, ${UI.panel}) 0%, ${UI.panel} 100%)`,
                     }}>
-                      <span style={{ width: 9, height: 9, borderRadius: 99, background: r.bu.accent }} />
-                      <span style={{ fontSize: 13, fontWeight: 700, color: UI.ink }}>{r.bu.name}</span>
+                      <button
+                        onClick={() => toggleBUCollapse(r.bu.id)}
+                        title={r.collapsed ? `Fold ${r.bu.name} ud` : `Fold ${r.bu.name} sammen`}
+                        aria-expanded={!r.collapsed}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: '0 1 auto',
+                          background: 'transparent', border: 'none', padding: '2px 2px', margin: 0,
+                          cursor: 'pointer', color: UI.ink, textAlign: 'left', font: 'inherit',
+                        }}>
+                        <span style={{
+                          width: 12, flex: '0 0 auto', textAlign: 'center', fontSize: 9, color: UI.inkMuted,
+                          display: 'inline-block',
+                          transform: r.collapsed ? 'rotate(-90deg)' : 'none',
+                          transition: 'transform .15s',
+                        }}>▼</span>
+                        <span style={{ width: 9, height: 9, flex: '0 0 auto', borderRadius: 99, background: r.bu.accent }} />
+                        <span style={{
+                          fontSize: 13, fontWeight: 700, color: UI.ink, minWidth: 0,
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                        }}>{r.bu.name}</span>
+                      </button>
                       <span style={{
-                        fontFamily: UI.mono, fontSize: 9.5, color: UI.inkFaint,
+                        fontFamily: UI.mono, fontSize: 9.5, color: UI.inkFaint, flex: '0 0 auto',
                         background: UI.panelSoft, border: `1px solid ${UI.border}`,
                         borderRadius: 4, padding: '1px 5px',
                       }}>{r.count}</span>
                       {blockedInBU > 0 && (
-                        <span style={{ fontFamily: UI.mono, fontSize: 9, color: BLOCKER_RED, fontWeight: 700 }}>⚠{blockedInBU}</span>
+                        <span style={{ fontFamily: UI.mono, fontSize: 9, color: BLOCKER_RED, fontWeight: 700, flex: '0 0 auto' }}>⚠{blockedInBU}</span>
+                      )}
+                      {hiddenHits > 0 && (
+                        <span title={`${hiddenHits} match(es) skjult i denne enhed`} style={{
+                          fontFamily: UI.mono, fontSize: 9, fontWeight: 700, color: r.bu.accent, flex: '0 0 auto',
+                          background: `color-mix(in oklch, ${r.bu.accent} 12%, transparent)`,
+                          border: `1px solid color-mix(in oklch, ${r.bu.accent} 30%, transparent)`,
+                          borderRadius: 4, padding: '1px 5px',
+                        }}>⌕{hiddenHits}</span>
                       )}
                       <div style={{ flex: 1 }} />
                       <button onClick={() => setBuFilter(sel ? null : r.bu.id)} style={{
@@ -1473,6 +1530,45 @@ function BoardView() {
                   })()}
                 </svg>
               )}
+
+              {/* Roll-up bars for collapsed lanes — a collapsed BU still shows
+                  the span its initiatives cover, so the lane isn't a dead row. */}
+              {layout.rows.map((r) => {
+                if (r.kind !== 'bu' || !r.collapsed || !r.items.length) return null;
+                const starts = r.items.map((i) => parseISO(i.start)).filter((d) => !isNaN(d));
+                const ends   = r.items.filter((i) => i.end).map((i) => parseISO(i.end)).filter((d) => !isNaN(d));
+                const bau    = r.items.some((i) => !i.end);
+                if (!starts.length && !ends.length) return null;
+                const s  = starts.length ? starts.reduce((a, b) => a < b ? a : b) : range.start;
+                const x  = dateToX(s);
+                const x2 = bau ? timelineW
+                              : (ends.length ? dateToX(ends.reduce((a, b) => a > b ? a : b)) : timelineW);
+                const barW  = Math.max(24, x2 - x);
+                const fadeW = bau ? Math.min(80, Math.max(36, barW * 0.25)) : 0;
+                return (
+                  <div key={'rollup:' + r.bu.id}
+                    onClick={() => toggleBUCollapse(r.bu.id)}
+                    title={`${r.bu.name} — ${r.count} initiativer · klik for at folde ud`}
+                    style={{
+                      position: 'absolute', top: r.y + 12, left: x, width: barW, height: 16,
+                      borderRadius: bau ? '5px 0 0 5px' : 5, cursor: 'pointer', zIndex: 1,
+                      ...(bau ? {
+                        WebkitMaskImage: `linear-gradient(to right, #000 calc(100% - ${fadeW}px), transparent 100%)`,
+                        maskImage:       `linear-gradient(to right, #000 calc(100% - ${fadeW}px), transparent 100%)`,
+                      } : null),
+                      background: `repeating-linear-gradient(115deg, color-mix(in oklch, ${r.bu.accent} 26%, ${UI.panel}) 0 6px, color-mix(in oklch, ${r.bu.accent} 15%, ${UI.panel}) 6px 12px)`,
+                      border: `1px solid color-mix(in oklch, ${r.bu.accent} 42%, transparent)`,
+                      display: 'flex', alignItems: 'center',
+                      paddingLeft: 8, paddingRight: bau ? Math.round(fadeW + 8) : 8,
+                      overflow: 'hidden', userSelect: 'none',
+                    }}>
+                    <span style={{
+                      fontFamily: UI.mono, fontSize: 9, fontWeight: 700, letterSpacing: 0.4,
+                      color: `color-mix(in oklch, ${r.bu.accent} 75%, ${UI.ink})`, whiteSpace: 'nowrap',
+                    }}>{r.count} initiativer</span>
+                  </div>
+                );
+              })}
 
               {/* Initiative bars */}
               {layout.rows.map((r) => {

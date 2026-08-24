@@ -80,6 +80,23 @@ BU (swim lane)
 ```
 Row kinds: `'bu'` · `'department'` · `'platform'` · `'init'`
 
+### Collapsing a BU lane
+The chevron on a BU header folds the whole lane away. `layout` pushes the `'bu'` row and
+then `continue`s, so a collapsed lane contributes **only** its header — every downstream
+memo (`buBands`, `platformSpans`, `connectorBars`, synergy bands, the bar renderer) reads
+`layout.rows`, so nothing else needs to know about collapsing.
+
+- State lives in `collapsedBUs` (a `Set` of BU ids), persisted to
+  `localStorage['aiboard:collapsed-bus']` — it's a **view preference**, deliberately kept
+  out of the store so it never travels to `data.json` / GitHub
+- The collapsed lane still renders a hatched **roll-up bar** spanning min(start) →
+  max(end) of its initiatives (BAU fade when any of them is ongoing), labelled
+  `N initiativer`; clicking it expands the lane
+- When a tech/blocker/outcome filter is active, a collapsed header shows a `⌕N` badge
+  counting the matches hidden inside — otherwise a filter hit inside a folded lane would
+  silently vanish. `highlightSet` mirrors `getBarStyle`'s precedence
+  (blockers → outcomes → techs); keep the two in step
+
 ---
 
 ## Features
@@ -112,6 +129,7 @@ Setting it: leave End empty in the drawer, or write `BAU` (also `løbende` / `on
 `N/A` / `-`) in the end-date column of an imported spreadsheet.
 
 ### Board
+- Collapsible BU lanes (chevron on the BU header) with a roll-up bar per collapsed lane
 - Status filter chips (POC / Pilot / Prod; `idea` lives in the Ideas view)
 - BU filter dropdown + per-lane filter
 - Zoom S / M / L (0.75× / 1× / 1.5×)
