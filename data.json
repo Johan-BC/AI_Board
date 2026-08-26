@@ -75,6 +75,18 @@
       "name": "Agentic automation",
       "category": "Agentic",
       "colorHue": null
+    },
+    {
+      "id": "t_iajha",
+      "name": "Claude",
+      "category": "GenAI",
+      "colorHue": 3
+    },
+    {
+      "id": "t_yyls9",
+      "name": "Lovable",
+      "category": "GenAI",
+      "colorHue": 261
     }
   ],
   "blockers": [
@@ -131,6 +143,18 @@
       "name": "Manglende godkendelse fra TECH",
       "category": "Godkendelse",
       "colorHue": 10
+    },
+    {
+      "id": "b_t1yi3",
+      "name": "Ikke tilladt teknologi",
+      "category": "Godkendelse",
+      "colorHue": 72
+    },
+    {
+      "id": "b_ijh8z",
+      "name": "Missing Governance",
+      "category": "Organisation",
+      "colorHue": 136
     }
   ],
   "outcomes": [
@@ -211,6 +235,12 @@
       "name": "Cost reduction",
       "category": "Efficiency",
       "colorHue": null
+    },
+    {
+      "id": "o_luc7c",
+      "name": "Cost optimization",
+      "category": "Efficiency",
+      "colorHue": 318
     }
   ],
   "initiatives": [
@@ -238,7 +268,7 @@
       "tags": [],
       "description": "Formål: AI mail; Behov: hurtigere håndtering af mails; Løsning: Copilot hjælper med svar ",
       "start": "2026-01-01",
-      "end": "2028-01-01",
+      "end": "",
       "milestones": [
         {
           "date": "2026-07-01",
@@ -669,6 +699,318 @@
       "start": "2026-01-01",
       "end": "2028-01-01",
       "milestones": []
+    },
+    {
+      "id": "i_fazu7",
+      "buId": "bu_5j4q7",
+      "platformIds": [],
+      "departmentIds": [
+        "dep_rq9e5"
+      ],
+      "name": "MMM-model / Media Mix Modelling",
+      "status": "prod",
+      "owner": "Michael Gamst",
+      "techIds": [
+        "t_9njqv"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [
+        "o_ixdrw"
+      ],
+      "tags": [],
+      "description": "Formål: At optimere marketing spend og omsætte modeloutput til mere konkrete actions. Behov: Forretningen vil vide, hvor marketingbudgettet skal bruges for størst salgseffekt, og ønsker mere agile og handlingsorienterede analyser end tidligere. Løsning: En MMM-model bygget sammen med mediebureau/samarbejdspartner, som vurderer kanalvalg og spend. Michael siger, at udviklingen har taget et “kvantespring”, og at løsningen kombinerer modeloutput med mere håndgribelige findings, så man ikke bare sidder tilbage med flere spørgsmål, men får konkrete actions. Løsningen ligger hos en ekstern partner i et lukket miljø under NDA.\n",
+      "start": "2026-06-01",
+      "end": "",
+      "milestones": []
+    },
+    {
+      "id": "i_18m70",
+      "buId": "bu_5j4q7",
+      "platformIds": [],
+      "departmentIds": [
+        "dep_rq9e5"
+      ],
+      "name": "Performance Marketing Intelligence",
+      "status": "idea",
+      "owner": "Søren Dyrberg Bundgaard ",
+      "techIds": [
+        "t_iajha"
+      ],
+      "blockerIds": [
+        "b_bbrng",
+        "b_t1yi3"
+      ],
+      "outcomeIds": [
+        "o_luc7c"
+      ],
+      "tags": [],
+      "description": "\"Formål: Give hurtigere og bedre overblik over performance på tværs af mange annonceplatforme og understøtte rapportering internt i marketing og videre til salgsorganisationen.\nBehov: Performance marketing arbejder med data fra 7-8 forskellige systemer, hvor data ikke er ens, og overblik kræver input fra egne rapporter, eksterne bureauer og kollegaer. Det kunne tidligere tage dage/uger at få svar og skabe overblik.\nLøsning: Trænet Claude med sin måde at tænke performance på, bygget skills og faste dashboards, så agenten kan vurdere datasæt ud fra hans instruktioner og give færdige output, visualiseringer og grafer.\"\n",
+      "start": "2026-01-01",
+      "end": "",
+      "milestones": []
+    },
+    {
+      "id": "i_n88d1",
+      "buId": "bu_5j4q7",
+      "platformIds": [],
+      "departmentIds": [
+        "dep_rq9e5"
+      ],
+      "name": "Automatisering af lavpraktiske marketingopgaver",
+      "status": "idea",
+      "owner": "Søren Dyrberg Bundgaard ",
+      "techIds": [
+        "t_iajha"
+      ],
+      "blockerIds": [
+        "b_bbrng",
+        "b_t1yi3"
+      ],
+      "outcomeIds": [
+        "o_ixdrw"
+      ],
+      "tags": [],
+      "description": "\"Formål: Frigøre tid ved at lade AI-agenter udføre manuelle, gentagne marketingopgaver.\nBehov: Opgaver som upload af nye YouTube-assets, placering i rette mapper, linkgenerering og oprettelse af tracking-koder kræver manuel klikarbejde i forskellige systemer.\nLøsning: Definerede opgaver i Claude-browseren, så der kan startes en agent, hvorefter agenten udfører arbejdet på skærmen. \"\n",
+      "start": "",
+      "end": "",
+      "milestones": []
+    },
+    {
+      "id": "i_ldnfz",
+      "buId": "bu_5j4q7",
+      "platformIds": [],
+      "departmentIds": [
+        "dep_rq9e5"
+      ],
+      "name": "Konkurrentovervågning og ekstern research",
+      "status": "idea",
+      "owner": "Søren Dyrberg Bundgaard ",
+      "techIds": [
+        "t_iajha"
+      ],
+      "blockerIds": [
+        "b_bbrng",
+        "b_t1yi3"
+      ],
+      "outcomeIds": [],
+      "tags": [],
+      "description": "\"Formål: Skabe bedre og hurtigere indsigt i konkurrenters annoncer, tilbud, claims og digitale aktiviteter.\nBehov: Manuel gennemgang af konkurrenters 100+ annoncer, tilbud og claims ville kræve meget tid og ville sandsynligvis ikke blive gjort i samme omfang.\nLøsning: Agenter, der kan analysere konkurrenters annonce-setup, fx se hvornår en konkurrent begynder at bruge bestemte claims, hvor mange assets der bruger claimet, og visualisere udvikling over fx 14 dage.\"\n",
+      "start": "",
+      "end": "",
+      "milestones": []
+    },
+    {
+      "id": "i_vhmcf",
+      "buId": "bu_5j4q7",
+      "platformIds": [],
+      "departmentIds": [],
+      "name": "MAPR",
+      "status": "idea",
+      "owner": "Phillip Andreasen",
+      "techIds": [
+        "t_yyls9"
+      ],
+      "blockerIds": [
+        "b_bbrng",
+        "b_t1yi3"
+      ],
+      "outcomeIds": [
+        "o_ixdrw",
+        "o_ycjeo"
+      ],
+      "tags": [],
+      "description": "Formål: Automatisere produktoprettelse. Behov: Manuel dataindsamling er tidskrævende. Løsning: Agent henter, strukturerer og beriger data og indsætter i systemer.",
+      "start": "",
+      "end": "",
+      "milestones": []
+    },
+    {
+      "id": "i_83298",
+      "buId": "bu_5j4q7",
+      "platformIds": [],
+      "departmentIds": [
+        "dep_a2i79"
+      ],
+      "name": "SCRB",
+      "status": "idea",
+      "owner": "Phillip Andreasen",
+      "techIds": [
+        "t_yyls9"
+      ],
+      "blockerIds": [
+        "b_bbrng",
+        "b_t1yi3"
+      ],
+      "outcomeIds": [
+        "o_conv",
+        "o_tnps"
+      ],
+      "tags": [],
+      "description": "Formål: Overvåge fejlbeskeder, out-of-stock-situationer og andre issues. Behov: Manglende monitorering. Løsning: Crawler identificerer fejl og sender til dashboard.",
+      "start": "",
+      "end": "",
+      "milestones": []
+    },
+    {
+      "id": "i_55a4u",
+      "buId": "bu_5j4q7",
+      "platformIds": [
+        "p_wblim"
+      ],
+      "departmentIds": [
+        "dep_a2i79"
+      ],
+      "name": "CMS AI Usecase",
+      "status": "idea",
+      "owner": "Rasmus Thau",
+      "techIds": [
+        "t_9njqv",
+        "t_e9zlh"
+      ],
+      "blockerIds": [
+        "b_talent",
+        "b_it"
+      ],
+      "outcomeIds": [],
+      "tags": [],
+      "description": "Formål: Bruge AI i CMS. Behov: Manglende AI anvendelse. Løsning: Potentielle use cases som content og datastrukturering.",
+      "start": "",
+      "end": "",
+      "milestones": []
+    },
+    {
+      "id": "i_vw646",
+      "buId": "bu_5j4q7",
+      "platformIds": [
+        "p_6sydy"
+      ],
+      "departmentIds": [
+        "dep_a2i79"
+      ],
+      "name": "Figma Design AI-assistent ",
+      "status": "poc",
+      "owner": "Michael Kremer",
+      "techIds": [
+        "t_hpysq"
+      ],
+      "blockerIds": [
+        "b_talent",
+        "b_res"
+      ],
+      "outcomeIds": [
+        "o_ttm",
+        "o_ixdrw",
+        "o_ycjeo"
+      ],
+      "tags": [],
+      "description": "Formål: Reducere manuelt designarbejde, styrke kvaliteten og sikre mere struktur i designleverancer.\nBehov: Designere bruger tid på gentagende tilpasninger af eksisterende designs, mangler ofte sparring og inspiration undervejs, og oplever udfordringer med ustrukturerede filer og navngivning ved overlevering til udvikling.\nLøsning: AI-assistenten kan generere nye designvarianter ud fra eksisterende templates og data (fx fra Excel), foreslå forbedringer og alternative løsninger baseret på best practice samt vurdere designs. Derudover kan den analysere og strukturere designfiler ved automatisk at navngive layers og komponenter efter fælles standarder, så samarbejde og overlevering bliver enklere.",
+      "start": "2026-01-01",
+      "end": "",
+      "milestones": []
+    },
+    {
+      "id": "i_auelb",
+      "buId": "bu_5j4q7",
+      "platformIds": [
+        "p_6sydy"
+      ],
+      "departmentIds": [
+        "dep_a2i79"
+      ],
+      "name": "Figma Make AI",
+      "status": "poc",
+      "owner": "Michael Kremer",
+      "techIds": [
+        "t_e9zlh"
+      ],
+      "blockerIds": [
+        "b_bbrng",
+        "b_budget",
+        "b_t1yi3"
+      ],
+      "outcomeIds": [
+        "o_ttm",
+        "o_ixdrw"
+      ],
+      "tags": [],
+      "description": "\"Formål: Komme hurtigere fra idé til konkret, klikbar og mere realistisk prototype.\nBehov: Traditionel prototyping kræver mange manuelle skærme og lineære klikflows, og PowerPoint/klippe-klistre er ikke velegnet til videre designarbejde.\nLøsning: Med 3-4 skærme eller tekstbeskrivelse kan Figma Make generere undersider, dynamiske flows og kode, som potentielt kan bringes videre til udviklere; konceptet kan flyttes til Figma og kobles til YouSee's design system.\"\n",
+      "start": "2026-01-01",
+      "end": "",
+      "milestones": []
+    },
+    {
+      "id": "i_1endv",
+      "buId": "bu_5j4q7",
+      "platformIds": [
+        "p_6sydy"
+      ],
+      "departmentIds": [
+        "dep_a2i79"
+      ],
+      "name": "FigJam AI ",
+      "status": "poc",
+      "owner": "Michael Kremer",
+      "techIds": [
+        "t_hpysq"
+      ],
+      "blockerIds": [
+        "b_bbrng",
+        "b_ijh8z"
+      ],
+      "outcomeIds": [],
+      "tags": [],
+      "description": "\"Formål: Skabe hurtigere overblik efter workshops og brugertests.\nBehov: Mange post-its/datapunkter fra fx brugertest kræver manuel opsummering, tematisering og analyse.\nLøsning: Man kan markere post-its i FigJam og få AI til at opsummere findings, tematisere indholdet og muliggøre dialog med post-its.\"\n",
+      "start": "2026-01-01",
+      "end": "",
+      "milestones": []
+    },
+    {
+      "id": "i_dzjii",
+      "buId": "bu_5j4q7",
+      "platformIds": [
+        "p_6sydy"
+      ],
+      "departmentIds": [
+        "dep_a2i79"
+      ],
+      "name": "Figma Motion / AI-animation",
+      "status": "poc",
+      "owner": "Michael Kremer",
+      "techIds": [
+        "t_e9zlh"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [],
+      "tags": [],
+      "description": "\"Formål: Udnytte AI-muligheder til animation/motion i Figma-suite.\nBehov: Kreative medarbejdere kan have behov for hurtigere eller bedre motion/animationsarbejde.\nLøsning: Michael nævner 'animation af AI' og 'Figma Motion' som en mulighed, men uden detaljer om konkret setup.\"\n",
+      "start": "2026-01-01",
+      "end": "",
+      "milestones": []
+    },
+    {
+      "id": "i_hb4g0",
+      "buId": "bu_5j4q7",
+      "platformIds": [],
+      "departmentIds": [
+        "dep_a2i79"
+      ],
+      "name": "Hurtigere prototyping",
+      "status": "idea",
+      "owner": "Michael Kremer",
+      "techIds": [
+        "t_iajha"
+      ],
+      "blockerIds": [
+        "b_t1yi3"
+      ],
+      "outcomeIds": [
+        "o_ttm"
+      ],
+      "tags": [],
+      "description": "Fælles behov for hurtigere prototyping og bedre værktøjer, men outcome er ikke realiseret",
+      "start": "",
+      "end": "",
+      "milestones": []
     }
   ],
   "businessUnits": [
@@ -678,6 +1020,20 @@
       "short": "SAI",
       "accent": "oklch(0.48 0.12 290)",
       "lead": "Trine Heiberg"
+    },
+    {
+      "id": "bu_5j4q7",
+      "name": "Brand & Marketing",
+      "short": "BR",
+      "accent": "oklch(0.48 0.12 55)",
+      "lead": "Steffen Lundgren Kristensen"
+    },
+    {
+      "id": "bu_qe7qh",
+      "name": "Commercial & Products",
+      "short": "CO",
+      "accent": "oklch(0.48 0.12 173)",
+      "lead": "Peter Maarbjerg Buus"
     }
   ],
   "platforms": [
@@ -781,6 +1137,16 @@
       "id": "dep_ybx0u",
       "name": "AI & Channel Transformation",
       "buId": "mkt"
+    },
+    {
+      "id": "dep_rq9e5",
+      "name": "Group Branding",
+      "buId": "bu_5j4q7"
+    },
+    {
+      "id": "dep_a2i79",
+      "name": "Online Sale",
+      "buId": "bu_5j4q7"
     }
   ]
 }
