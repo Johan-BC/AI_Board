@@ -241,6 +241,12 @@
       "name": "Cost optimization",
       "category": "Efficiency",
       "colorHue": 318
+    },
+    {
+      "id": "o_ajwjr",
+      "name": "Time reduction",
+      "category": "Efficiency",
+      "colorHue": 269
     }
   ],
   "initiatives": [
