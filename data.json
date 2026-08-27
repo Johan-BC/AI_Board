@@ -1094,6 +1094,32 @@
       "start": "",
       "end": "",
       "milestones": []
+    },
+    {
+      "id": "i_8lz26",
+      "buId": "bu_qe7qh",
+      "platformIds": [],
+      "departmentIds": [],
+      "name": "AI-drevet salgsanalyse og rapportering",
+      "status": "idea",
+      "owner": "Morten Sthaalros Christiansen",
+      "techIds": [
+        "t_9njqv"
+      ],
+      "blockerIds": [
+        "b_data",
+        "b_it"
+      ],
+      "outcomeIds": [
+        "o_ajwjr"
+      ],
+      "tags": [],
+      "purpose": "Automatisere rapportering og analyse af salgsdata. ",
+      "need": "Der findes ca. 60 rapporter, men de bruges ikke aktivt pga. manuel gennemgang og manglende tid/engagement",
+      "solution": "AI analyserer data og genererer automatiske rapporter med forklaringer på afvigelser (fx salg, churn og performance på kanaler) uden manuel dataudtræk",
+      "start": "",
+      "end": "",
+      "milestones": []
     }
   ],
   "businessUnits": [
