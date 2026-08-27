@@ -944,7 +944,8 @@
       "blockerIds": [
         "b_talent",
         "b_res",
-        "b_ijh8z"
+        "b_ijh8z",
+        "b_budget"
       ],
       "outcomeIds": [
         "o_ttm",
