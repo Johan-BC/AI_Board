@@ -1253,6 +1253,13 @@
       "short": "CO",
       "accent": "oklch(0.48 0.12 173)",
       "lead": "Peter Maarbjerg Buus"
+    },
+    {
+      "id": "bu_p85gt",
+      "name": "Sales",
+      "short": "SA",
+      "accent": "oklch(0.48 0.12 353)",
+      "lead": ""
     }
   ],
   "platforms": [
