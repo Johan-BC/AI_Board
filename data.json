@@ -1129,7 +1129,9 @@
       "name": "AI kampagneprioritering",
       "status": "idea",
       "owner": "Morten Sthaalros Christiansen",
-      "techIds": [],
+      "techIds": [
+        "t_9njqv"
+      ],
       "blockerIds": [],
       "outcomeIds": [],
       "tags": [],
