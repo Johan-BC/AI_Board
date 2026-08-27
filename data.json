@@ -1297,6 +1297,31 @@
         }
       ],
       "testing": false
+    },
+    {
+      "id": "i_vd8z1",
+      "buId": "bu_p85gt",
+      "platformIds": [
+        "p_ju1h1"
+      ],
+      "departmentIds": [
+        "dep_odbvf"
+      ],
+      "name": "Coach-modul",
+      "status": "pilot",
+      "owner": "Thomas Emil Mortensen",
+      "techIds": [],
+      "blockerIds": [
+        "b_budget"
+      ],
+      "outcomeIds": [],
+      "tags": [],
+      "purpose": " Give individuel coaching.",
+      "need": "Bedre feedback til agenter",
+      "solution": "AI analyserer performance og giver anbefalinger, evt. nær real-time.",
+      "start": "2026-08-01",
+      "end": "",
+      "milestones": []
     }
   ],
   "businessUnits": [
