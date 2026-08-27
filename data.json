@@ -743,7 +743,9 @@
       "outcomeIds": [
         "o_luc7c"
       ],
-      "tags": [],
+      "tags": [
+        "test"
+      ],
       "description": "\"Formål: Give hurtigere og bedre overblik over performance på tværs af mange annonceplatforme og understøtte rapportering internt i marketing og videre til salgsorganisationen.\nBehov: Performance marketing arbejder med data fra 7-8 forskellige systemer, hvor data ikke er ens, og overblik kræver input fra egne rapporter, eksterne bureauer og kollegaer. Det kunne tidligere tage dage/uger at få svar og skabe overblik.\nLøsning: Trænet Claude med sin måde at tænke performance på, bygget skills og faste dashboards, så agenten kan vurdere datasæt ud fra hans instruktioner og give færdige output, visualiseringer og grafer.\"\n",
       "start": "2026-01-01",
       "end": "",
