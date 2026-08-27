@@ -1197,6 +1197,37 @@
       "start": "",
       "end": "",
       "milestones": []
+    },
+    {
+      "id": "i_2k2uj",
+      "buId": "bu_5j4q7",
+      "platformIds": [
+        "p_16612"
+      ],
+      "departmentIds": [
+        "dep_ul26r"
+      ],
+      "name": "Adobe MCP Servers",
+      "status": "idea",
+      "owner": "Lasse Schmidt",
+      "techIds": [
+        "t_rgwfa",
+        "t_za15x"
+      ],
+      "blockerIds": [
+        "b_bbrng",
+        "b_data"
+      ],
+      "outcomeIds": [
+        "o_ajwjr"
+      ],
+      "tags": [],
+      "purpose": "Analysere kampagner via prompts.",
+      "need": "Hurtigere indsigt",
+      "solution": " LLM kan spørges direkte om performance baseret på data.",
+      "start": "",
+      "end": "",
+      "milestones": []
     }
   ],
   "businessUnits": [
