@@ -1315,7 +1315,10 @@
       "name": "Coach-modul",
       "status": "idea",
       "owner": "Thomas Emil Mortensen",
-      "techIds": [],
+      "techIds": [
+        "t_cewv6",
+        "t_9njqv"
+      ],
       "blockerIds": [
         "b_budget"
       ],
