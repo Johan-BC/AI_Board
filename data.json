@@ -770,7 +770,7 @@
         "o_ixdrw"
       ],
       "tags": [],
-      "description": "\"Formål: Frigøre tid ved at lade AI-agenter udføre manuelle, gentagne marketingopgaver.\nBehov: Opgaver som upload af nye YouTube-assets, placering i rette mapper, linkgenerering og oprettelse af tracking-koder kræver manuel klikarbejde i forskellige systemer.\nLøsning: Definerede opgaver i Claude-browseren, så der kan startes en agent, hvorefter agenten udfører arbejdet på skærmen. \"\n",
+      "description": "Formål: Frigøre tid ved at lade AI-agenter udføre manuelle, gentagne marketingopgaver.\nBehov: Opgaver som upload af nye YouTube-assets, placering i rette mapper, linkgenerering og oprettelse af tracking-koder kræver manuel klikarbejde i forskellige systemer.\nLøsning: Definerede opgaver i Claude-browseren, så der kan startes en agent, hvorefter agenten udfører arbejdet på skærmen. \n",
       "start": "",
       "end": "",
       "milestones": []
