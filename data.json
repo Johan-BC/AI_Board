@@ -1034,7 +1034,9 @@
       "techIds": [
         "t_e9zlh"
       ],
-      "blockerIds": [],
+      "blockerIds": [
+        "b_ijh8z"
+      ],
       "outcomeIds": [],
       "tags": [],
       "start": "2026-01-01",
