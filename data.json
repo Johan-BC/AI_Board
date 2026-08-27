@@ -1262,6 +1262,41 @@
           "label": "Afklare Budget"
         }
       ]
+    },
+    {
+      "id": "i_b5q1w",
+      "buId": "bu_p85gt",
+      "platformIds": [
+        "p_ju1h1"
+      ],
+      "departmentIds": [
+        "dep_odbvf"
+      ],
+      "name": "Pitch rate værktøj",
+      "status": "idea",
+      "owner": "Thomas Emil Mortensen",
+      "techIds": [
+        "t_cewv6",
+        "t_za15x",
+        "t_9njqv"
+      ],
+      "blockerIds": [
+        "b_budget"
+      ],
+      "outcomeIds": [],
+      "tags": [],
+      "purpose": "Øge salgsperformance",
+      "need": " Sælgere husker ikke altid alle produkter",
+      "solution": "AI analyserer samtaler og rater brug af ord og pitches.",
+      "start": "2026-08-01",
+      "end": "",
+      "milestones": [
+        {
+          "date": "2026-08-01",
+          "label": "Afklare budget og test."
+        }
+      ],
+      "testing": false
     }
   ],
   "businessUnits": [
