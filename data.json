@@ -1139,6 +1139,40 @@
       "start": "2026-08-27",
       "end": "2026-12-25",
       "milestones": []
+    },
+    {
+      "id": "i_gf8ve",
+      "buId": "bu_5j4q7",
+      "platformIds": [
+        "p_16612"
+      ],
+      "departmentIds": [
+        "dep_ul26r"
+      ],
+      "name": "Adobe Experience Platform ",
+      "status": "prod",
+      "owner": "Lasse Schmidt",
+      "techIds": [
+        "t_9njqv",
+        "t_rgwfa",
+        "t_hpysq"
+      ],
+      "blockerIds": [
+        "b_data",
+        "b_budget",
+        "b_bbrng"
+      ],
+      "outcomeIds": [
+        "o_tnps",
+        "o_conv"
+      ],
+      "tags": [],
+      "purpose": "Orkestrere sammenhængende kunderejser på tværs af kanaler",
+      "need": "Stigende kompleksitet gør manuelle forretningsregler utilstrækkelige.",
+      "solution": "Platformen bruger kundedata, segmenter og kontekst til at styre 'next best experience', hvor AI gradvist overtager styring fra regler. Early days",
+      "start": "2026-04-01",
+      "end": "",
+      "milestones": []
     }
   ],
   "businessUnits": [
