@@ -1084,7 +1084,8 @@
       ],
       "blockerIds": [],
       "outcomeIds": [
-        "o_ycjeo"
+        "o_ycjeo",
+        "o_ajwjr"
       ],
       "tags": [],
       "purpose": "Reducere tidsforbrug og forbedre kvalitet i forecasting",
