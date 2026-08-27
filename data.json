@@ -1230,6 +1230,38 @@
       "start": "",
       "end": "",
       "milestones": []
+    },
+    {
+      "id": "i_o0wlo",
+      "buId": "bu_p85gt",
+      "platformIds": [
+        "p_ju1h1"
+      ],
+      "departmentIds": [
+        "dep_odbvf"
+      ],
+      "name": "AI-transskribering og opsummering af kald",
+      "status": "poc",
+      "owner": "Thomas Emil Mortensen",
+      "techIds": [
+        "t_cewv6"
+      ],
+      "blockerIds": [
+        "b_budget"
+      ],
+      "outcomeIds": [],
+      "tags": [],
+      "purpose": "Transkribering og summary. Give overblik og lette opfølgning",
+      "need": " Ledere skal gennemgå mange samtaler",
+      "solution": "Automatisk transskribering og opsummering af calls.",
+      "start": "2026-08-01",
+      "end": "",
+      "milestones": [
+        {
+          "date": "2026-08-01",
+          "label": "Afklare Budget"
+        }
+      ]
     }
   ],
   "businessUnits": [
