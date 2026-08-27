@@ -1173,6 +1173,30 @@
       "start": "2026-04-01",
       "end": "",
       "milestones": []
+    },
+    {
+      "id": "i_p3vtm",
+      "buId": "bu_5j4q7",
+      "platformIds": [
+        "p_16612"
+      ],
+      "departmentIds": [],
+      "name": "Propensity model/scoring",
+      "status": "idea",
+      "owner": "Lasse Scmidt",
+      "techIds": [
+        "t_4a549",
+        "t_9njqv"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [],
+      "tags": [],
+      "purpose": "dnytte centralt udviklede propensity- og scoringsmodeller til at skabe mere datadrevne kundeinteraktioner og prioritere de rette indsatser over for den enkelte kunde. YouSee udvikler ikke modellerne, men forbereder anvendelsen af dem i kundejourneys og kundeoplevelser",
+      "need": "Bedre kundeprioritering baseret på data frem for manuelle vurderinger og mavefornemmelser.",
+      "solution": "Centralt udviklede modeller integreres i Adobe-platformen, hvor scores anvendes til retention, customer journeys og Next Best Experience.",
+      "start": "",
+      "end": "",
+      "milestones": []
     }
   ],
   "businessUnits": [
