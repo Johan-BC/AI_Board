@@ -313,6 +313,14 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
           <UiSegmented value={d.status} options={store.statuses.map((s) => ({ value: s.id, label: s.label }))} onChange={(v) => patch('status', v)} />
         </UiFieldRow>
 
+        {d.status === 'idea' && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', userSelect: 'none' }}>
+            <input type="checkbox" checked={!!d.testing} onChange={(e) => patch('testing', e.target.checked)}
+              style={{ width: 14, height: 14, cursor: 'pointer', accentColor: UI.ink }} />
+            <span style={{ fontSize: 12, color: UI.ink, fontWeight: 500 }}>Afprøves</span>
+          </label>
+        )}
+
         <UiFieldRow label="Owner">
           <input value={d.owner} onChange={(e) => patch('owner', e.target.value)} style={uiInputStyle} />
         </UiFieldRow>
