@@ -744,7 +744,7 @@
         "o_luc7c"
       ],
       "tags": [],
-      "description": "\"Formål: Give hurtigere og bedre overblik over performance på tværs af mange annonceplatforme og understøtte rapportering internt i marketing og videre til salgsorganisationen.\nBehov: Performance marketing arbejder med data fra 7-8 forskellige systemer, hvor data ikke er ens, og overblik kræver input fra egne rapporter, eksterne bureauer og kollegaer. Det kunne tidligere tage dage/uger at få svar og skabe overblik.\nLøsning: Trænet Claude med sin måde at tænke performance på, bygget skills og faste dashboards, så agenten kan vurdere datasæt ud fra hans instruktioner og give færdige output, visualiseringer og grafer.\"\n",
+      "description": "Formål: Give hurtigere og bedre overblik over performance på tværs af mange annonceplatforme og understøtte rapportering internt i marketing og videre til salgsorganisationen.\nBehov: Performance marketing arbejder med data fra 7-8 forskellige systemer, hvor data ikke er ens, og overblik kræver input fra egne rapporter, eksterne bureauer og kollegaer. Det kunne tidligere tage dage/uger at få svar og skabe overblik.\nLøsning: Trænet Claude med sin måde at tænke performance på, bygget skills og faste dashboards, så agenten kan vurdere datasæt ud fra hans instruktioner og give færdige output, visualiseringer og grafer.\n",
       "start": "2026-01-01",
       "end": "",
       "milestones": []
@@ -770,7 +770,7 @@
         "o_ixdrw"
       ],
       "tags": [],
-      "description": "\"Formål: Frigøre tid ved at lade AI-agenter udføre manuelle, gentagne marketingopgaver.\nBehov: Opgaver som upload af nye YouTube-assets, placering i rette mapper, linkgenerering og oprettelse af tracking-koder kræver manuel klikarbejde i forskellige systemer.\nLøsning: Definerede opgaver i Claude-browseren, så der kan startes en agent, hvorefter agenten udfører arbejdet på skærmen. \"\n",
+      "description": "Formål: Frigøre tid ved at lade AI-agenter udføre manuelle, gentagne marketingopgaver.\nBehov: Opgaver som upload af nye YouTube-assets, placering i rette mapper, linkgenerering og oprettelse af tracking-koder kræver manuel klikarbejde i forskellige systemer.\nLøsning: Definerede opgaver i Claude-browseren, så der kan startes en agent, hvorefter agenten udfører arbejdet på skærmen. \n",
       "start": "",
       "end": "",
       "milestones": []
@@ -794,7 +794,7 @@
       ],
       "outcomeIds": [],
       "tags": [],
-      "description": "\"Formål: Skabe bedre og hurtigere indsigt i konkurrenters annoncer, tilbud, claims og digitale aktiviteter.\nBehov: Manuel gennemgang af konkurrenters 100+ annoncer, tilbud og claims ville kræve meget tid og ville sandsynligvis ikke blive gjort i samme omfang.\nLøsning: Agenter, der kan analysere konkurrenters annonce-setup, fx se hvornår en konkurrent begynder at bruge bestemte claims, hvor mange assets der bruger claimet, og visualisere udvikling over fx 14 dage.\"\n",
+      "description": "Formål: Skabe bedre og hurtigere indsigt i konkurrenters annoncer, tilbud, claims og digitale aktiviteter.\nBehov: Manuel gennemgang af konkurrenters 100+ annoncer, tilbud og claims ville kræve meget tid og ville sandsynligvis ikke blive gjort i samme omfang.\nLøsning: Agenter, der kan analysere konkurrenters annonce-setup, fx se hvornår en konkurrent begynder at bruge bestemte claims, hvor mange assets der bruger claimet, og visualisere udvikling over fx 14 dage.\n",
       "start": "",
       "end": "",
       "milestones": []
