@@ -890,7 +890,7 @@ function BoardView() {
     buId: buId || (store.businessUnits[0] && store.businessUnits[0].id) || 'mkt',
     platformIds: [], departmentIds: [],
     name: '', status: 'idea', owner: '',
-    techIds: [], blockerIds: [], outcomeIds: [], tags: [], description: '',
+    techIds: [], blockerIds: [], outcomeIds: [], tags: [], purpose: '', need: '', solution: '',
     start: dateToISO(today), end: dateToISO(new Date(today.getTime() + 120 * D_MS)),
     milestones: [],
   });

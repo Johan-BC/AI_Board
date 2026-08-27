@@ -188,13 +188,45 @@ const INITIATIVES = [
 
 const _byId = (arr) => Object.fromEntries(arr.map((x) => [x.id, x]));
 
+// Splits a free-text "Formål: ... Behov: ... Løsning: ..." description (the
+// convention initiatives were written in before purpose/need/solution became
+// real fields) into its three parts. Falls back to putting the whole text in
+// `purpose` when it doesn't follow that convention, so no content is lost.
+function splitLegacyDescription(text) {
+  const raw = (text || '').trim();
+  if (!raw) return { purpose: '', need: '', solution: '' };
+  const stripped = raw.replace(/^["'“]+|["'”]+$/g, '').trim();
+  const m = stripped.match(/Form[åa]l:?\s*([\s\S]*?)\s*Behov:?\s*([\s\S]*?)\s*L[øo]sning:?\s*([\s\S]*)$/i);
+  const clean = (s) => s.trim().replace(/[;,]\s*$/, '').trim();
+  if (m) return { purpose: clean(m[1]), need: clean(m[2]), solution: clean(m[3]) };
+  return { purpose: stripped, need: '', solution: '' };
+}
+
+// Initiatives used to carry one free-text `description`. It's now three
+// fields (purpose/need/solution); this migrates any initiative that still
+// only has the old field, and ensures the new fields always exist.
+function migrateDescriptions(initiatives) {
+  return (initiatives || []).map((i) => {
+    const next = { ...i };
+    const hasNewFields = next.purpose !== undefined || next.need !== undefined || next.solution !== undefined;
+    if (!hasNewFields && next.description) {
+      Object.assign(next, splitLegacyDescription(next.description));
+    }
+    if (next.purpose === undefined) next.purpose = '';
+    if (next.need === undefined) next.need = '';
+    if (next.solution === undefined) next.solution = '';
+    delete next.description;
+    return next;
+  });
+}
+
 function makeStore() {
   return {
     statuses:      JSON.parse(JSON.stringify(STATUSES)),
     technologies:  JSON.parse(JSON.stringify(TECHNOLOGIES)),
     blockers:      JSON.parse(JSON.stringify(BLOCKERS)),
     outcomes:      JSON.parse(JSON.stringify(OUTCOMES)),
-    initiatives:   JSON.parse(JSON.stringify(INITIATIVES)),
+    initiatives:   migrateDescriptions(JSON.parse(JSON.stringify(INITIATIVES))),
     businessUnits: JSON.parse(JSON.stringify(BUSINESS_UNITS)),
     platforms:     JSON.parse(JSON.stringify(PLATFORMS)),
     departments:   JSON.parse(JSON.stringify(DEPARTMENTS)),
@@ -247,6 +279,7 @@ function parseJSON(text) {
 
   const rawStatuses = (p.statuses && p.statuses.length) ? p.statuses : JSON.parse(JSON.stringify(STATUSES));
   const mig = migrateLiveToProd(rawStatuses, migratedInits);
+  mig.initiatives = migrateDescriptions(mig.initiatives);
 
   return {
     statuses:      mig.statuses,
@@ -262,5 +295,5 @@ function parseJSON(text) {
 
 Object.assign(window, {
   BUSINESS_UNITS, PLATFORMS, DEPARTMENTS, STATUSES, TECHNOLOGIES, BLOCKERS, OUTCOMES, INITIATIVES,
-  makeStore, buildSynergyMap, _byId, parseJSON, migrateLiveToProd,
+  makeStore, buildSynergyMap, _byId, parseJSON, migrateLiveToProd, migrateDescriptions, splitLegacyDescription,
 });

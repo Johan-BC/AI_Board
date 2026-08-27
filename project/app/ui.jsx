@@ -334,9 +334,19 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
           </UiFieldRow>
         </div>
 
-        <UiFieldRow label="Description">
-          <textarea value={d.description} onChange={(e) => patch('description', e.target.value)}
-            style={{ ...uiInputStyle, height: 65, resize: 'none', lineHeight: 1.45 }} />
+        <UiFieldRow label="Formål">
+          <textarea value={d.purpose || ''} onChange={(e) => patch('purpose', e.target.value)}
+            style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
+        </UiFieldRow>
+
+        <UiFieldRow label="Behov">
+          <textarea value={d.need || ''} onChange={(e) => patch('need', e.target.value)}
+            style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
+        </UiFieldRow>
+
+        <UiFieldRow label="Løsning">
+          <textarea value={d.solution || ''} onChange={(e) => patch('solution', e.target.value)}
+            style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
         </UiFieldRow>
 
         <UiFieldRow label="Tags" hint="comma-separated">

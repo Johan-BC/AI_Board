@@ -174,10 +174,19 @@ function UiIdeasView({ store, onOpenInit }) {
                   {i.name}
                 </div>
 
-                {/* Description */}
-                {i.description && (
-                  <div style={{ fontSize: 12, color: UI.inkMuted, lineHeight: 1.55, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
-                    {i.description}
+                {/* Formål / Behov / Løsning */}
+                {(i.purpose || i.need || i.solution) && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {[['Formål', i.purpose], ['Behov', i.need], ['Løsning', i.solution]].map(([label, text]) => text && (
+                      <div key={label}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: UI.inkFaint, letterSpacing: 0.5, textTransform: 'uppercase', fontFamily: UI.mono, marginBottom: 2 }}>
+                          {label}
+                        </div>
+                        <div style={{ fontSize: 12, color: UI.inkMuted, lineHeight: 1.55, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {text}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
 
