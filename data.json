@@ -1200,7 +1200,7 @@
       "blockerIds": [],
       "outcomeIds": [],
       "tags": [],
-      "purpose": "dnytte centralt udviklede propensity- og scoringsmodeller til at skabe mere datadrevne kundeinteraktioner og prioritere de rette indsatser over for den enkelte kunde. YouSee udvikler ikke modellerne, men forbereder anvendelsen af dem i kundejourneys og kundeoplevelser",
+      "purpose": "Udnytte centralt udviklede propensity- og scoringsmodeller til at skabe mere datadrevne kundeinteraktioner og prioritere de rette indsatser over for den enkelte kunde. YouSee udvikler ikke modellerne, men forbereder anvendelsen af dem i kundejourneys og kundeoplevelser",
       "need": "Bedre kundeprioritering baseret på data frem for manuelle vurderinger og mavefornemmelser.",
       "solution": "Centralt udviklede modeller integreres i Adobe-platformen, hvor scores anvendes til retention, customer journeys og Next Best Experience.",
       "start": "",
