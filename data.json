@@ -1063,6 +1063,30 @@
       "purpose": "Fælles behov for hurtigere prototyping og bedre værktøjer, men outcome er ikke realiseret",
       "need": "",
       "solution": ""
+    },
+    {
+      "id": "i_bd5vb",
+      "buId": "bu_qe7qh",
+      "platformIds": [],
+      "departmentIds": [],
+      "name": "AI Forecasting (budget/2-års forecast)",
+      "status": "idea",
+      "owner": "Morten Sthaalros Christiansen",
+      "techIds": [
+        "t_iajha",
+        "t_9njqv"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [
+        "o_ycjeo"
+      ],
+      "tags": [],
+      "purpose": "Reducere tidsforbrug og forbedre kvalitet i forecasting",
+      "need": "Forecast laves manuelt i Excel med simple trendlinjer og uden AI-validering, hvilket tager ca. 1,5 måned",
+      "solution": "Anvende AI til at analysere historiske data, validere estimater og generere mere præcise forecast baseret på mønstre og inputvariabler som historik og kontekst.",
+      "start": "",
+      "end": "",
+      "milestones": []
     }
   ],
   "businessUnits": [
