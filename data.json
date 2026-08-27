@@ -1319,7 +1319,10 @@
       "blockerIds": [
         "b_budget"
       ],
-      "outcomeIds": [],
+      "outcomeIds": [
+        "o_sales",
+        "o_ycjeo"
+      ],
       "tags": [],
       "purpose": " Give individuel coaching.",
       "need": "Bedre feedback til agenter",
