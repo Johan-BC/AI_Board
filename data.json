@@ -1229,7 +1229,9 @@
         "t_4a549",
         "t_9njqv"
       ],
-      "blockerIds": [],
+      "blockerIds": [
+        "b_it"
+      ],
       "outcomeIds": [],
       "tags": [],
       "purpose": "Udnytte centralt udviklede propensity- og scoringsmodeller til at skabe mere datadrevne kundeinteraktioner og prioritere de rette indsatser over for den enkelte kunde. YouSee udvikler ikke modellerne, men forbereder anvendelsen af dem i kundejourneys og kundeoplevelser",
