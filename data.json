@@ -914,7 +914,8 @@
       ],
       "purpose": "Overvåge fejlbeskeder, out-of-stock-situationer og andre issues.",
       "need": "Manglende monitorering.",
-      "solution": "Crawler identificerer fejl og sender til dashboard."
+      "solution": "Crawler identificerer fejl og sender til dashboard.",
+      "testing": true
     },
     {
       "id": "i_55a4u",
