@@ -631,7 +631,7 @@
       ],
       "tags": [],
       "start": "2026-01-01",
-      "end": "2028-01-01",
+      "end": "",
       "milestones": [],
       "purpose": "Håndtere kundedialog via voice.",
       "need": "Udvide chatbot capability til voice.",
