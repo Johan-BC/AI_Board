@@ -818,7 +818,9 @@
         "b_t1yi3"
       ],
       "outcomeIds": [
-        "o_ixdrw"
+        "o_ixdrw",
+        "o_ajwjr",
+        "o_ttm"
       ],
       "tags": [],
       "start": "",
@@ -826,7 +828,8 @@
       "milestones": [],
       "purpose": "Frigøre tid ved at lade AI-agenter udføre manuelle, gentagne marketingopgaver.",
       "need": "Opgaver som upload af nye YouTube-assets, placering i rette mapper, linkgenerering og oprettelse af tracking-koder kræver manuel klikarbejde i forskellige systemer.",
-      "solution": "Definerede opgaver i Claude-browseren, så der kan startes en agent, hvorefter agenten udfører arbejdet på skærmen."
+      "solution": "Definerede opgaver i Claude-browseren, så der kan startes en agent, hvorefter agenten udfører arbejdet på skærmen.",
+      "testing": true
     },
     {
       "id": "i_ldnfz",
