@@ -385,7 +385,7 @@
       ],
       "tags": [],
       "start": "2026-01-01",
-      "end": "2028-01-01",
+      "end": "",
       "milestones": [],
       "purpose": "Generere automatiske AI-tekster til mediefiler.",
       "need": "At sikre accessibility.",
