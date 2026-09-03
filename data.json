@@ -482,10 +482,11 @@
         "dep_petrw"
       ],
       "name": "Agentic Design System",
-      "status": "pilot",
+      "status": "idea",
       "owner": "Rikke ",
       "techIds": [
-        "t_hpysq"
+        "t_hpysq",
+        "t_iajha"
       ],
       "blockerIds": [
         "b_budget",
@@ -499,7 +500,7 @@
       ],
       "tags": [],
       "start": "2026-06-01",
-      "end": "2028-01-01",
+      "end": "",
       "milestones": [
         {
           "date": "2026-06-01",
@@ -508,7 +509,8 @@
       ],
       "purpose": "Afprøve et setup for et agentisk designsystem med frontend-katalog/storybook og kobling til frontend.",
       "need": "Skabe bedre frontend og gøre piloten anvendelig i praksis.",
-      "solution": "Pilot hvor de forsøger at koble designsetup op på GitHub og interne modeller; på længere sigt tænkes det implementeret i My YouSee og Mit Internet.\nAnthropic-modeller internt; Co-work/andet eksternt værktøj til prompts"
+      "solution": "Pilot hvor de forsøger at koble designsetup op på GitHub og interne modeller; på længere sigt tænkes det implementeret i My YouSee og Mit Internet.\nAnthropic-modeller internt; Co-work/andet eksternt værktøj til prompts",
+      "testing": true
     },
     {
       "id": "i_y3shs",
