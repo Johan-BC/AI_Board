@@ -1380,6 +1380,37 @@
           "label": "Overlevering til alle brands"
         }
       ]
+    },
+    {
+      "id": "i_jaqkj",
+      "buId": "mkt",
+      "platformIds": [
+        "p_obqcq"
+      ],
+      "departmentIds": [
+        "dep_czm6m"
+      ],
+      "name": "AI-evaluering af chatbot-samtaler",
+      "status": "pilot",
+      "owner": "Ruben Raffnsøe Dall",
+      "techIds": [
+        "t_9njqv",
+        "t_4a549"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [],
+      "tags": [],
+      "purpose": "skabe indsigt.",
+      "need": "manglende datagrundlag",
+      "solution": "AI analyserer samtaler og genererer indsigter.",
+      "start": "2026-04-27",
+      "end": "",
+      "milestones": [
+        {
+          "date": "2026-04-27",
+          "label": "Fælles data-pipeline Q2"
+        }
+      ]
     }
   ],
   "businessUnits": [
