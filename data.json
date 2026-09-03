@@ -289,7 +289,9 @@
     {
       "id": "i_n71kd",
       "buId": "mkt",
-      "platformIds": [],
+      "platformIds": [
+        "p_cn47r"
+      ],
       "departmentIds": [
         "dep_lllps"
       ],
@@ -306,7 +308,7 @@
       ],
       "tags": [],
       "start": "2026-01-01",
-      "end": "2028-01-01",
+      "end": "",
       "milestones": [
         {
           "date": "2026-07-01",
