@@ -266,7 +266,9 @@
         "t_copilot"
       ],
       "blockerIds": [
-        "b_bbrng"
+        "b_bbrng",
+        "b_ijh8z",
+        "b_data"
       ],
       "outcomeIds": [
         "o_fte"
