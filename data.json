@@ -855,7 +855,8 @@
       "milestones": [],
       "purpose": "Skabe bedre og hurtigere indsigt i konkurrenters annoncer, tilbud, claims og digitale aktiviteter.",
       "need": "Manuel gennemgang af konkurrenters 100+ annoncer, tilbud og claims ville kræve meget tid og ville sandsynligvis ikke blive gjort i samme omfang.",
-      "solution": "Agenter, der kan analysere konkurrenters annonce-setup, fx se hvornår en konkurrent begynder at bruge bestemte claims, hvor mange assets der bruger claimet, og visualisere udvikling over fx 14 dage."
+      "solution": "Agenter, der kan analysere konkurrenters annonce-setup, fx se hvornår en konkurrent begynder at bruge bestemte claims, hvor mange assets der bruger claimet, og visualisere udvikling over fx 14 dage.",
+      "testing": true
     },
     {
       "id": "i_vhmcf",
