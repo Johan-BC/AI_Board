@@ -346,11 +346,15 @@
       ],
       "tags": [],
       "start": "2026-09-29",
-      "end": "2028-01-01",
+      "end": "",
       "milestones": [
         {
           "date": "2026-09-01",
           "label": "Test"
+        },
+        {
+          "date": "2026-09-29",
+          "label": "Release MVP"
         }
       ],
       "purpose": "reducere AHT",
