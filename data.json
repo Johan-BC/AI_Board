@@ -87,6 +87,12 @@
       "name": "Lovable",
       "category": "GenAI",
       "colorHue": 261
+    },
+    {
+      "id": "t_zcsbr",
+      "name": "STT/TTS",
+      "category": "STT/TTS",
+      "colorHue": 84
     }
   ],
   "blockers": [
