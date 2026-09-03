@@ -869,7 +869,8 @@
       ],
       "outcomeIds": [
         "o_ixdrw",
-        "o_ycjeo"
+        "o_ycjeo",
+        "o_ajwjr"
       ],
       "tags": [],
       "start": "",
@@ -877,7 +878,8 @@
       "milestones": [],
       "purpose": "Automatisere produktoprettelse.",
       "need": "Manuel dataindsamling er tidskrævende.",
-      "solution": "Agent henter, strukturerer og beriger data og indsætter i systemer."
+      "solution": "Agent henter, strukturerer og beriger data og indsætter i systemer.",
+      "testing": true
     },
     {
       "id": "i_83298",
