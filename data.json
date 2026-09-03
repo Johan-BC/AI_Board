@@ -550,7 +550,7 @@
       "departmentIds": [
         "dep_petrw"
       ],
-      "name": "\"Theydo\" - Journey management system",
+      "name": "Theydo - Journey management system",
       "status": "prod",
       "owner": "Line Huusom",
       "techIds": [
@@ -567,8 +567,8 @@
         "o_tnps"
       ],
       "tags": [],
-      "start": "2026-01-01",
-      "end": "2028-01-01",
+      "start": "2026-07-01",
+      "end": "",
       "milestones": [
         {
           "date": "2026-07-01",
