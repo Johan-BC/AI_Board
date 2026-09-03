@@ -785,7 +785,8 @@
       ],
       "blockerIds": [
         "b_bbrng",
-        "b_t1yi3"
+        "b_t1yi3",
+        "b_data"
       ],
       "outcomeIds": [
         "o_luc7c"
@@ -796,7 +797,8 @@
       "milestones": [],
       "purpose": "Give hurtigere og bedre overblik over performance på tværs af mange annonceplatforme og understøtte rapportering internt i marketing og videre til salgsorganisationen.",
       "need": "Performance marketing arbejder med data fra 7-8 forskellige systemer, hvor data ikke er ens, og overblik kræver input fra egne rapporter, eksterne bureauer og kollegaer. Det kunne tidligere tage dage/uger at få svar og skabe overblik.",
-      "solution": "Trænet Claude med sin måde at tænke performance på, bygget skills og faste dashboards, så agenten kan vurdere datasæt ud fra hans instruktioner og give færdige output, visualiseringer og grafer."
+      "solution": "Trænet Claude med sin måde at tænke performance på, bygget skills og faste dashboards, så agenten kan vurdere datasæt ud fra hans instruktioner og give færdige output, visualiseringer og grafer.",
+      "testing": true
     },
     {
       "id": "i_n88d1",
