@@ -1237,7 +1237,12 @@
       "solution": "Centralt udviklede modeller integreres i Adobe-platformen, hvor scores anvendes til retention, customer journeys og Next Best Experience.",
       "start": "",
       "end": "",
-      "milestones": []
+      "milestones": [
+        {
+          "date": "",
+          "label": "Afventer Infosys"
+        }
+      ]
     },
     {
       "id": "i_2k2uj",
