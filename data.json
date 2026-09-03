@@ -906,7 +906,12 @@
       "tags": [],
       "start": "",
       "end": "",
-      "milestones": [],
+      "milestones": [
+        {
+          "date": "2026-07-01",
+          "label": "IT har indkøbt nyt tool Synergi?"
+        }
+      ],
       "purpose": "Overvåge fejlbeskeder, out-of-stock-situationer og andre issues.",
       "need": "Manglende monitorering.",
       "solution": "Crawler identificerer fejl og sender til dashboard."
