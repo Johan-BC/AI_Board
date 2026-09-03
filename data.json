@@ -1345,6 +1345,41 @@
       "start": "2026-08-01",
       "end": "",
       "milestones": []
+    },
+    {
+      "id": "i_cpewz",
+      "buId": "mkt",
+      "platformIds": [
+        "p_obqcq"
+      ],
+      "departmentIds": [
+        "dep_czm6m"
+      ],
+      "name": "AI Simulering af samtaler til chatbot-test",
+      "status": "prod",
+      "owner": "Ruben Raffnsøe Dall",
+      "techIds": [
+        "t_25p4k",
+        "t_4a549"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [],
+      "tags": [],
+      "purpose": "forbedre chatbots.",
+      "need": "teste komplekse scenarier",
+      "solution": "AI simulerer samtaler og tester bots. På tværs af brands (Consumer)",
+      "start": "2026-04-27",
+      "end": "",
+      "milestones": [
+        {
+          "date": "2026-04-01",
+          "label": "Opsætning i alle brands"
+        },
+        {
+          "date": "2026-04-01",
+          "label": "Overlevering til alle brands"
+        }
+      ]
     }
   ],
   "businessUnits": [
