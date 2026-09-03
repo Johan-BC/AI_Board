@@ -1427,6 +1427,36 @@
           "label": "Fælles data-pipeline Q2"
         }
       ]
+    },
+    {
+      "id": "i_z9nzf",
+      "buId": "bu_5j4q7",
+      "platformIds": [],
+      "departmentIds": [
+        "dep_ul26r"
+      ],
+      "name": "",
+      "status": "idea",
+      "owner": "Michael Kremer",
+      "techIds": [
+        "t_yyls9",
+        "t_iajha"
+      ],
+      "blockerIds": [
+        "b_gdpr",
+        "b_budget",
+        "b_data",
+        "b_t1yi3"
+      ],
+      "outcomeIds": [],
+      "tags": [],
+      "purpose": "Synliggøre at brugere søger mod værktøjer, hvor de kan løse konkrete problemer hurtigere.",
+      "need": "Hvis godkendte værktøjer ikke dækker behovene, bruger folk muligvis andre værktøjer til prototyping eller små hverdagsværktøjer.",
+      "solution": "Ingen konkret løsning nævnes; mødet peger på behovet for at løfte det som fælles behov og finde færre, rigtige værktøjer.",
+      "start": "2026-01-01",
+      "end": "",
+      "milestones": [],
+      "testing": true
     }
   ],
   "businessUnits": [
