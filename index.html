@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Don't let browsers cache the HTML itself, so a new ?v= on the app
-       scripts below actually takes effect on next load (GitHub Pages can't
-       set real no-cache headers on the document). -->
+  <!-- Don't let browsers cache the HTML shell itself (GitHub Pages can't set
+       real no-cache headers on the document). The app scripts below are
+       loaded with a per-load cache-busting query param (see bottom of file),
+       so they never need a manually-bumped ?v= number either. -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -26,11 +27,16 @@
   <!-- SheetJS for Excel parsing -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 
-  <!-- App source files (order matters: data → ui → import → board) -->
-  <script type="text/babel" src="./project/app/data.jsx?v=36"></script>
-  <script type="text/babel" src="./project/app/ui.jsx?v=36"></script>
-  <script type="text/babel" src="./project/app/import.jsx?v=36"></script>
-  <script type="text/babel" src="./project/app/ideas.jsx?v=36"></script>
-  <script type="text/babel" src="./project/app/board.jsx?v=36"></script>
+  <!-- App source files (order matters: data → ui → import → board).
+       Loaded with a cache-busting timestamp query so every page load always
+       gets the latest deployed code, without ever needing a manual ?v= bump. -->
+  <script>
+    (function () {
+      var v = Date.now();
+      ['data', 'ui', 'import', 'ideas', 'board'].forEach(function (name) {
+        document.write('<script type="text/babel" src="./project/app/' + name + '.jsx?v=' + v + '"><\/script>');
+      });
+    })();
+  </script>
 </body>
 </html>
