@@ -1,8 +1,12 @@
 // ── Ideas / "Boblere" view ────────────────────────────────────────────────────
 
 function UiIdeasView({ store, onOpenInit }) {
-  const [hoveredTech, setHoveredTech]       = React.useState(null);
-  const [hoveredOutcome, setHoveredOutcome] = React.useState(null);
+  const [selectedTechIds, setSelectedTechIds]       = React.useState([]);
+  const [selectedOutcomeIds, setSelectedOutcomeIds] = React.useState([]);
+
+  const toggleTech    = id => setSelectedTechIds(ids    => ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]);
+  const toggleOutcome = id => setSelectedOutcomeIds(ids => ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]);
+  const clearFilters  = () => { setSelectedTechIds([]); setSelectedOutcomeIds([]); };
 
   if (!store) return null;
 
@@ -30,12 +34,13 @@ function UiIdeasView({ store, onOpenInit }) {
 
   const maxCount = Math.max(1, ...techTrends.map(t => t.count), ...outcomeTrends.map(o => o.count));
 
-  // Filter cards if a trend item is hovered
-  const visibleIdeas = hoveredTech
-    ? ideas.filter(i => (i.techIds    || []).includes(hoveredTech))
-    : hoveredOutcome
-    ? ideas.filter(i => (i.outcomeIds || []).includes(hoveredOutcome))
-    : ideas;
+  // Filter cards by selected trend items: any match within a group, AND across groups
+  const visibleIdeas = ideas.filter(i => {
+    const techOk    = selectedTechIds.length    === 0 || (i.techIds    || []).some(t => selectedTechIds.includes(t));
+    const outcomeOk = selectedOutcomeIds.length === 0 || (i.outcomeIds || []).some(o => selectedOutcomeIds.includes(o));
+    return techOk && outcomeOk;
+  });
+  const hasFilter = selectedTechIds.length > 0 || selectedOutcomeIds.length > 0;
 
   // ── Empty state ───────────────────────────────────────────────────────────────
   if (ideas.length === 0) {
@@ -54,36 +59,56 @@ function UiIdeasView({ store, onOpenInit }) {
       {/* ── Trend sidebar ─────────────────────────────────────────────────────── */}
       <div style={{ width: 230, flexShrink: 0, borderRight: `1px solid ${UI.border}`, overflowY: 'auto', background: UI.panelSoft, padding: '16px 14px' }}>
 
-        <div style={{ fontSize: 10, fontWeight: 700, color: UI.inkFaint, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 14, fontFamily: UI.mono }}>
-          {ideas.length} idéer
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: UI.inkFaint, letterSpacing: 1, textTransform: 'uppercase', fontFamily: UI.mono }}>
+            {ideas.length} idéer
+          </div>
+          {hasFilter && (
+            <div onClick={clearFilters}
+              style={{ fontSize: 10, fontWeight: 700, color: UI.accent, cursor: 'pointer', letterSpacing: 0.4, textTransform: 'uppercase', fontFamily: UI.mono }}>
+              Ryd
+            </div>
+          )}
         </div>
 
         {techTrends.length > 0 && (<>
           <div style={{ fontSize: 10, fontWeight: 700, color: UI.inkFaint, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 10, fontFamily: UI.mono }}>
             Teknologi-trends
           </div>
-          {techTrends.map(t => (
-            <div key={t.id}
-              onMouseEnter={() => setHoveredTech(t.id)}
-              onMouseLeave={() => setHoveredTech(null)}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, cursor: 'default',
-                opacity: hoveredTech && hoveredTech !== t.id ? 0.4 : 1, transition: 'opacity .12s' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 11.5, color: UI.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 3 }}>
-                  {t.name}
+          {techTrends.map(t => {
+            const active = selectedTechIds.includes(t.id);
+            return (
+              <div key={t.id}
+                onClick={() => toggleTech(t.id)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, cursor: 'pointer', padding: '2px 4px', margin: '0 -4px 8px', borderRadius: 6,
+                  opacity: selectedTechIds.length > 0 && !active ? 0.4 : 1,
+                  background: active ? `oklch(0.96 0.03 ${t.colorHue || 250})` : 'transparent',
+                  transition: 'opacity .12s, background .12s' }}>
+                <div style={{
+                  width: 12, height: 12, borderRadius: 4, flexShrink: 0,
+                  border: `1.5px solid ${active ? `oklch(0.55 0.13 ${t.colorHue || 250})` : UI.border}`,
+                  background: active ? `oklch(0.55 0.13 ${t.colorHue || 250})` : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {active && <span style={{ color: '#fff', fontSize: 9, lineHeight: 1 }}>✓</span>}
                 </div>
-                <div style={{ height: 5, borderRadius: 99, background: UI.border, overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%', borderRadius: 99,
-                    width: `${(t.count / maxCount) * 100}%`,
-                    background: `oklch(0.55 0.13 ${t.colorHue || 250})`,
-                    transition: 'width .3s',
-                  }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11.5, color: UI.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 3 }}>
+                    {t.name}
+                  </div>
+                  <div style={{ height: 5, borderRadius: 99, background: UI.border, overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', borderRadius: 99,
+                      width: `${(t.count / maxCount) * 100}%`,
+                      background: `oklch(0.55 0.13 ${t.colorHue || 250})`,
+                      transition: 'width .3s',
+                    }} />
+                  </div>
                 </div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: UI.inkMuted, fontFamily: UI.mono, minWidth: 14, textAlign: 'right' }}>{t.count}</span>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: UI.inkMuted, fontFamily: UI.mono, minWidth: 14, textAlign: 'right' }}>{t.count}</span>
-            </div>
-          ))}
+            );
+          })}
           <div style={{ height: 1, background: UI.border, margin: '14px 0' }} />
         </>)}
 
@@ -91,31 +116,43 @@ function UiIdeasView({ store, onOpenInit }) {
           <div style={{ fontSize: 10, fontWeight: 700, color: UI.inkFaint, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 10, fontFamily: UI.mono }}>
             Outcome-trends
           </div>
-          {outcomeTrends.map(o => (
-            <div key={o.id}
-              onMouseEnter={() => setHoveredOutcome(o.id)}
-              onMouseLeave={() => setHoveredOutcome(null)}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, cursor: 'default',
-                opacity: hoveredOutcome && hoveredOutcome !== o.id ? 0.4 : 1, transition: 'opacity .12s' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 11.5, color: UI.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 3 }}>
-                  {o.name}
+          {outcomeTrends.map(o => {
+            const active = selectedOutcomeIds.includes(o.id);
+            return (
+              <div key={o.id}
+                onClick={() => toggleOutcome(o.id)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, cursor: 'pointer', padding: '2px 4px', margin: '0 -4px 8px', borderRadius: 6,
+                  opacity: selectedOutcomeIds.length > 0 && !active ? 0.4 : 1,
+                  background: active ? `oklch(0.96 0.03 ${o.colorHue || 155})` : 'transparent',
+                  transition: 'opacity .12s, background .12s' }}>
+                <div style={{
+                  width: 12, height: 12, borderRadius: 4, flexShrink: 0,
+                  border: `1.5px solid ${active ? `oklch(0.52 0.12 ${o.colorHue || 155})` : UI.border}`,
+                  background: active ? `oklch(0.52 0.12 ${o.colorHue || 155})` : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {active && <span style={{ color: '#fff', fontSize: 9, lineHeight: 1 }}>✓</span>}
                 </div>
-                <div style={{ height: 5, borderRadius: 99, background: UI.border, overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%', borderRadius: 99,
-                    width: `${(o.count / maxCount) * 100}%`,
-                    background: `oklch(0.52 0.12 ${o.colorHue || 155})`,
-                    transition: 'width .3s',
-                  }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11.5, color: UI.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 3 }}>
+                    {o.name}
+                  </div>
+                  <div style={{ height: 5, borderRadius: 99, background: UI.border, overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', borderRadius: 99,
+                      width: `${(o.count / maxCount) * 100}%`,
+                      background: `oklch(0.52 0.12 ${o.colorHue || 155})`,
+                      transition: 'width .3s',
+                    }} />
+                  </div>
                 </div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: UI.inkMuted, fontFamily: UI.mono, minWidth: 14, textAlign: 'right' }}>{o.count}</span>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: UI.inkMuted, fontFamily: UI.mono, minWidth: 14, textAlign: 'right' }}>{o.count}</span>
-            </div>
-          ))}
+            );
+          })}
         </>)}
 
-        {(hoveredTech || hoveredOutcome) && (
+        {hasFilter && (
           <div style={{ marginTop: 14, fontSize: 11, color: UI.inkFaint, fontStyle: 'italic' }}>
             Viser {visibleIdeas.length} af {ideas.length}
           </div>
@@ -129,11 +166,10 @@ function UiIdeasView({ store, onOpenInit }) {
             const bu       = buById[i.buId];
             const techs    = (i.techIds    || []).map(t => techById[t]).filter(Boolean);
             const outcomes = (i.outcomeIds || []).map(o => outcomeById[o]).filter(Boolean);
-            const highlighted = hoveredTech
-              ? (i.techIds || []).includes(hoveredTech)
-              : hoveredOutcome
-              ? (i.outcomeIds || []).includes(hoveredOutcome)
-              : false;
+            const highlighted = hasFilter && (
+              (i.techIds    || []).some(t => selectedTechIds.includes(t)) ||
+              (i.outcomeIds || []).some(o => selectedOutcomeIds.includes(o))
+            );
 
             return (
               <div key={i.id}
@@ -200,7 +236,7 @@ function UiIdeasView({ store, onOpenInit }) {
                         background: `oklch(0.97 0.022 ${t.colorHue})`,
                         border: `1px solid oklch(0.88 0.06 ${t.colorHue})`,
                         borderRadius: 4, padding: '2px 6px',
-                        outline: hoveredTech === t.id ? `2px solid oklch(0.55 0.13 ${t.colorHue})` : 'none',
+                        outline: selectedTechIds.includes(t.id) ? `2px solid oklch(0.55 0.13 ${t.colorHue})` : 'none',
                       }}>{t.name}</span>
                     ))}
                   </div>
@@ -214,7 +250,7 @@ function UiIdeasView({ store, onOpenInit }) {
                         fontSize: 10, color: UI.inkMuted,
                         background: UI.panelSoft, border: `1px solid ${UI.border}`,
                         borderRadius: 4, padding: '2px 6px',
-                        outline: hoveredOutcome === o.id ? `2px solid oklch(0.52 0.12 ${o.colorHue})` : 'none',
+                        outline: selectedOutcomeIds.includes(o.id) ? `2px solid oklch(0.52 0.12 ${o.colorHue})` : 'none',
                       }}>{o.name}</span>
                     ))}
                   </div>
