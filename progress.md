@@ -8,7 +8,8 @@ CRUD drawer — a single-page app with no build step. Data lives in `data.json`,
 GitHub so the board is shared rather than per-browser.
 
 - **Live:** https://johan-bc.github.io/AI_Board/
-- **Local dev:** `python -m http.server 8082` (see `.claude/launch.json`) → `index.html`
+- **Local dev:** any static file server, e.g. `npx serve .` or `python -m http.server 8080`
+  (see `.claude/launch.json`, gitignored/local-only) → `index.html`
 
 ---
 
@@ -22,18 +23,31 @@ ReactDOM and Babel standalone from unpkg, then loads the app files in dependency
 data.jsx → ui.jsx → import.jsx → ideas.jsx → board.jsx
 ```
 
-Each is tagged with a `?v=N` cache-buster; `index.html` itself carries `no-cache` meta tags
-so a bumped `?v=` actually takes effect on the next load. **Bump `?v=N` on every JS change.**
+They are **not** loaded via static `<script src>` tags — a small inline loader
+`document.write`s each `<script type="text/babel" src="...?v=<timestamp>">` at parse time,
+generating a fresh cache-busting query on every page load. This means the app JS is never
+stale after a deploy — no manual version bump, no "clear your cache" instructions needed.
+`index.html` itself still carries `no-cache` meta tags, but since GitHub Pages doesn't
+support real no-cache headers, the HTML shell can still be served stale from a browser's
+HTTP cache for up to its `max-age` (GitHub Pages default: 10 min) after a deploy — that
+self-resolves without action once the cache entry expires.
+
+> **If a browser shows a very old version even after a hard reload** (Ctrl+Shift+R) and a
+> cache-busted URL, the HTTP cache isn't the cause — check DevTools → Application → Storage →
+> **"Clear site data"**, and Application → Service Workers for a stray registration. This
+> project has never shipped a service worker, but a leftover one (or Cache Storage entry)
+> from an earlier experiment can survive normal cache-clearing and pin an old build
+> indefinitely. Confirmed fix in practice 2026-09-30.
 
 ### Modules (`project/app/`)
 
 | File | Lines | Responsibility |
 |---|---|---|
-| [`data.jsx`](project/app/data.jsx) | ~266 | Seed constants, `makeStore`, `parseJSON`, migrations, synergy map |
-| [`ui.jsx`](project/app/ui.jsx) | ~1149 | Design tokens (`UI`), primitives, initiative drawer, catalogue drawer, portfolio view |
-| [`import.jsx`](project/app/import.jsx) | ~766 | Excel import with a per-row review/validation UI |
-| [`ideas.jsx`](project/app/ideas.jsx) | ~236 | "Idéer og boblere" view for `idea`-status initiatives |
-| [`board.jsx`](project/app/board.jsx) | ~1670 | `BoardView`, filter strips, layout/synergy logic, drag handling, GitHub sync |
+| [`data.jsx`](project/app/data.jsx) | ~299 | Seed constants, `makeStore`, `parseJSON`, migrations, synergy map |
+| [`ui.jsx`](project/app/ui.jsx) | ~1167 | Design tokens (`UI`), primitives, initiative drawer, catalogue drawer, portfolio view |
+| [`import.jsx`](project/app/import.jsx) | ~767 | Excel import with a per-row review/validation UI |
+| [`ideas.jsx`](project/app/ideas.jsx) | ~281 | "Idéer og boblere" view for `idea`-status initiatives, with click-to-multi-select tech/outcome trend filters |
+| [`board.jsx`](project/app/board.jsx) | ~1793 | `BoardView`, filter strips, layout/synergy logic, drag handling, GitHub sync |
 
 ### Data persistence
 - **Source of truth:** `data.json` in the GitHub repo, read/written via the GitHub API
@@ -68,8 +82,8 @@ older stores:
 - **Departments** are BU-scoped (`buId`) — filtered to the selected BU in the drawer
 - **Statuses:** `idea` · `poc` · `pilot` · `prod` (`prod` was formerly `live`)
 
-Current `data.json`: 1 business unit, 13 departments, 8 platforms, 9 technologies,
-9 blockers, 13 outcomes, 14 initiatives.
+Current `data.json`: 4 business units, 17 departments, 11 platforms, 12 technologies,
+11 blockers, 15 outcomes, 38 initiatives (16 of them `idea`-status).
 
 ### Board layout (swim-lane hierarchy)
 ```
@@ -105,7 +119,10 @@ memo (`buBands`, `platformSpans`, `connectorBars`, synergy bands, the bar render
 - **Gantt** — swim lanes, draggable bars (move + resize), milestone diamonds, today line,
   BAU bars for initiatives with no end date
 - **Portfolio** — outcome/value pillar view
-- **Idéer og boblere** — `idea`-status initiatives, kept out of the Gantt
+- **Idéer og boblere** — `idea`-status initiatives, kept out of the Gantt. Sidebar lists
+  technology and outcome trends with counts; click one or more to toggle them into a filter
+  (OR within a group — e.g. two technologies — AND across groups — tech + outcome combined),
+  with a "Ryd" control to clear. Replaced an earlier hover-to-highlight-one interaction.
 - **Import** — drag-and-drop or file-pick *any* `.xlsx`/`.xls`, parsed client-side via SheetJS
   (loaded from CDN in `index.html`), with per-row validation before committing. There is no
   checked-in spreadsheet — the file always comes from the user.
@@ -169,8 +186,9 @@ Setting it: leave End empty in the drawer, or write `BAU` (also `løbende` / `on
 
 ## Deployment
 
-1. Change code → bump `?v=N` in `index.html` → commit → push to `main`
-2. GitHub Pages updates automatically (~1 min)
+1. Change code → commit → push to `main`
+2. GitHub Pages updates automatically (~1 min) — no manual cache-buster bump needed;
+   see the loader note under **Entry point** above
 3. Clients with a PAT sync board data through `data.json`
 
 ---
