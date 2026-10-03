@@ -412,7 +412,7 @@ function BoardView() {
   const [zoom, setZoom]                           = React.useState(1);
   const [blockerMode, setBlockerMode]             = React.useState(false);
   const [catalogue, setCatalogue]                 = React.useState(false);
-  const [view, setView]                           = React.useState('gantt'); // 'gantt' | 'portfolio' | 'import'
+  const [view, setView]                           = React.useState('gantt'); // 'gantt' | 'portfolio' | 'import' | 'ideas' | 'tech'
   const [milestoneTooltip, setMilestoneTooltip]   = React.useState(null); // {label, date, x, y}
   const [labelW, setLabelW]                       = React.useState(280);
   const labelWRef                                 = React.useRef(280);
@@ -802,6 +802,16 @@ function BoardView() {
     setDrawer(null);
   };
 
+  const setRankOrder = (ids) => setStore((s) => {
+    const rankById = Object.fromEntries(ids.map((id, k) => [id, k + 1]));
+    return {
+      ...s,
+      initiatives: s.initiatives.map((i) => rankById[i.id] === undefined ? i : {
+        ...i, assessment: { ...(i.assessment || {}), rank: rankById[i.id] },
+      }),
+    };
+  });
+
   const handleImport = (rows, extra) => {
     setStore((s) => {
       const newInits = rows.map((row, idx) => ({
@@ -1134,6 +1144,14 @@ function BoardView() {
             background: view === 'ideas' ? 'oklch(0.58 0.13 70)' : 'transparent',
             color: view === 'ideas' ? '#fff' : UI.inkMuted,
           }}>💡 Idea</button>
+          <button onClick={() => setView(view === 'tech' ? 'gantt' : 'tech')} title="Initiativer pr. teknologi med vurdering og prioritet" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            padding: '4px 10px', borderRadius: 5, cursor: 'pointer',
+            border: view === 'tech' ? 'none' : `1px solid ${UI.border}`,
+            fontFamily: UI.mono, fontSize: 10, fontWeight: 600,
+            background: view === 'tech' ? UI.ink : 'transparent',
+            color: view === 'tech' ? '#fff' : UI.inkMuted,
+          }}>◇ Teknologi</button>
           <SyncIndicator />
         </>}
       />
@@ -1165,6 +1183,11 @@ function BoardView() {
       {/* ── Ideas / Boblere view ──────────────────────────────────────────── */}
       {view === 'ideas' && (
         <UiIdeasView store={store} onOpenInit={(i) => setDrawer({ ...i })} />
+      )}
+
+      {/* ── Technology view ───────────────────────────────────────────────── */}
+      {view === 'tech' && (
+        <UiTechInitiativesView store={store} onOpenInit={(i) => setDrawer({ ...i })} onRankOrder={setRankOrder} />
       )}
 
       {/* ── Import view ───────────────────────────────────────────────────── */}

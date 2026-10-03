@@ -200,6 +200,11 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
   const techCats = [...new Set(store.technologies.map((t) => t.category))];
 
   const patch = (k, v) => setD({ ...d, [k]: v });
+  const assess = d.assessment || {};
+  const setAssess = (key, sub) => setD((prev) => ({
+    ...prev,
+    assessment: { ...(prev.assessment || {}), [key]: { ...(prev.assessment?.[key] || {}), ...sub } },
+  }));
   const toggleTech = (id) => {
     const next = d.techIds.includes(id) ? d.techIds.filter((x) => x !== id) : [...d.techIds, id];
     setD({ ...d, techIds: next });
@@ -582,6 +587,53 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
                 background: 'transparent', color: UI.inkMuted, fontFamily: UI.sans, lineHeight: 1,
               }}>+ Tilføj milepæl</button>
           </div>
+        </UiFieldRow>
+
+        <div style={{ height: 1, background: UI.border, margin: '4px 0' }} />
+        <div style={{ fontFamily: UI.mono, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: UI.inkFaint }}>Vurdering</div>
+
+        <UiFieldRow label="01 Værdipotentiale" hint="1 lille · 5 stor gevinst">
+          <UiSegmented
+            value={assess.value?.score ?? 0}
+            options={[0, 1, 2, 3, 4, 5].map((n) => ({ value: n, label: n === 0 ? '–' : String(n) }))}
+            onChange={(v) => setAssess('value', { score: v || null })} />
+          <textarea value={assess.value?.note || ''} placeholder="Gevinst i tid, kr., omsætning eller kundeoplevelse — og hvor mange den rammer"
+            onChange={(e) => setAssess('value', { note: e.target.value })}
+            style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45, marginTop: 6 }} />
+        </UiFieldRow>
+
+        <UiFieldRow label="02 Realiserbarhed og ejerskab">
+          <textarea value={assess.ownership?.note || ''} placeholder="Navngiven forretningsejer, der forpligter sig — og hvilke processer/roller skal ændres"
+            onChange={(e) => setAssess('ownership', { note: e.target.value })}
+            style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
+        </UiFieldRow>
+
+        <UiFieldRow label="03 Strategisk betydning" hint="YouSee-mål / AI-board">
+          <textarea value={assess.strategy?.note || ''} placeholder="Understøtter det strategiske mål — eller en isoleret effektivisering?"
+            onChange={(e) => setAssess('strategy', { note: e.target.value })}
+            style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
+        </UiFieldRow>
+
+        <UiFieldRow label="04 Data, teknologi og governance">
+          <label style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', userSelect: 'none', marginBottom: 6 }}>
+            <input type="checkbox" checked={!!assess.readiness?.ready}
+              onChange={(e) => setAssess('readiness', { ready: e.target.checked })}
+              style={{ width: 14, height: 14, cursor: 'pointer', accentColor: UI.ink }} />
+            <span style={{ fontSize: 12, color: UI.ink, fontWeight: 500 }}>Governance-klar (data tilgængelig og tilladt)</span>
+          </label>
+          <textarea value={assess.readiness?.note || ''} placeholder="Nødvendige data, integrationer og afhængigheder"
+            onChange={(e) => setAssess('readiness', { note: e.target.value })}
+            style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
+        </UiFieldRow>
+
+        <UiFieldRow label="05 Time-to-value og skalerbarhed" hint="1 langsom · 5 hurtig">
+          <UiSegmented
+            value={assess.ttv?.score ?? 0}
+            options={[0, 1, 2, 3, 4, 5].map((n) => ({ value: n, label: n === 0 ? '–' : String(n) }))}
+            onChange={(v) => setAssess('ttv', { score: v || null })} />
+          <textarea value={assess.ttv?.note || ''} placeholder="Hvor hurtigt er der effekt, og kan løsningen genbruges af andre teams?"
+            onChange={(e) => setAssess('ttv', { note: e.target.value })}
+            style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45, marginTop: 6 }} />
         </UiFieldRow>
       </div>
 

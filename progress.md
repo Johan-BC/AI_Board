@@ -20,7 +20,7 @@ GitHub so the board is shared rather than per-browser.
 ReactDOM and Babel standalone from unpkg, then loads the app files in dependency order:
 
 ```
-data.jsx → ui.jsx → import.jsx → ideas.jsx → board.jsx
+data.jsx → ui.jsx → import.jsx → ideas.jsx → tech-view.jsx → board.jsx
 ```
 
 They are **not** loaded via static `<script src>` tags — a small inline loader
@@ -47,6 +47,7 @@ self-resolves without action once the cache entry expires.
 | [`ui.jsx`](project/app/ui.jsx) | ~1167 | Design tokens (`UI`), primitives, initiative drawer, catalogue drawer, portfolio view |
 | [`import.jsx`](project/app/import.jsx) | ~767 | Excel import with a per-row review/validation UI |
 | [`ideas.jsx`](project/app/ideas.jsx) | ~281 | "Idéer og boblere" view for `idea`-status initiatives, with click-to-multi-select tech/outcome trend filters |
+| [`tech-view.jsx`](project/app/tech-view.jsx) | ~210 | "Teknologi" view — initiatives using one technology (dropdown, default Claude), with assessment columns, score sorting and manual priority (↑↓) |
 | [`board.jsx`](project/app/board.jsx) | ~1793 | `BoardView`, filter strips, layout/synergy logic, drag handling, GitHub sync |
 
 ### Data persistence
@@ -119,6 +120,10 @@ memo (`buBands`, `platformSpans`, `connectorBars`, synergy bands, the bar render
 - **Gantt** — swim lanes, draggable bars (move + resize), milestone diamonds, today line,
   BAU bars for initiatives with no end date
 - **Portfolio** — outcome/value pillar view
+- **Teknologi** — all initiatives (any status) that use a chosen technology (dropdown, default
+  Claude). Columns for the five assessment criteria; click 01 Værdi or 05 TTV to sort (desc
+  first, unscored last). Priority is manual: ↑↓ moves an initiative within the technology's
+  list, only active in priority order. Clicking a name opens the drawer.
 - **Idéer og boblere** — `idea`-status initiatives, kept out of the Gantt. Sidebar lists
   technology and outcome trends with counts; click one or more to toggle them into a filter
   (OR within a group — e.g. two technologies — AND across groups — tech + outcome combined),
@@ -126,6 +131,25 @@ memo (`buBands`, `platformSpans`, `connectorBars`, synergy bands, the bar render
 - **Import** — drag-and-drop or file-pick *any* `.xlsx`/`.xls`, parsed client-side via SheetJS
   (loaded from CDN in `index.html`), with per-row validation before committing. There is no
   checked-in spreadsheet — the file always comes from the user.
+
+### Initiative assessment (`assessment`)
+Optional object on each initiative, edited in the drawer's "Vurdering" section. Missing fields
+read as unscored/empty, so no migration is needed.
+
+```js
+assessment: {
+  value:     { score: 1-5 | null, note },  // 01 Værdipotentiale — gevinst + rækkevidde
+  ownership: { note },                      // 02 Navngiven ejer + proces-/rolleændringer
+  strategy:  { note },                      // 03 Strategisk betydning
+  readiness: { ready: bool, note },         // 04 Data/tech/governance (ready = governance-klar)
+  ttv:       { score: 1-5 | null, note },   // 05 Time-to-value + skalerbarhed
+  rank: number | null                       // global priority, 1 = highest
+}
+```
+
+`rank` is global across all initiatives, so an initiative keeps one position regardless of which
+technology view shows it. Reordering in a view swaps the global positions of the two neighbours.
+The first reorder writes `rank` to every initiative (1..N), so that save touches the whole list.
 
 ### BAU / ongoing initiatives
 An initiative with **no end date** is "løbende / BAU" — it runs indefinitely rather than
