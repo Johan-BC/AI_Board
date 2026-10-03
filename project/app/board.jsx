@@ -802,6 +802,13 @@ function BoardView() {
     setDrawer(null);
   };
 
+  const updateAssess = (id, key, sub) => setStore((s) => ({
+    ...s,
+    initiatives: s.initiatives.map((i) => i.id !== id ? i : {
+      ...i, assessment: { ...(i.assessment || {}), [key]: { ...(i.assessment?.[key] || {}), ...sub } },
+    }),
+  }));
+
   const setRankOrder = (ids) => setStore((s) => {
     const rankById = Object.fromEntries(ids.map((id, k) => [id, k + 1]));
     return {
@@ -1187,7 +1194,7 @@ function BoardView() {
 
       {/* ── Technology view ───────────────────────────────────────────────── */}
       {view === 'tech' && (
-        <UiTechInitiativesView store={store} onOpenInit={(i) => setDrawer({ ...i })} onRankOrder={setRankOrder} />
+        <UiTechInitiativesView store={store} onOpenInit={(i) => setDrawer({ ...i })} onRankOrder={setRankOrder} onUpdateAssess={updateAssess} />
       )}
 
       {/* ── Import view ───────────────────────────────────────────────────── */}

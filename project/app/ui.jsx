@@ -435,12 +435,6 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
             style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
         </UiFieldRow>
 
-        <UiFieldRow label="Tags" hint="comma-separated">
-          <input value={(d.tags || []).join(', ')}
-            onChange={(e) => patch('tags', e.target.value.split(',').map((x) => x.trim()).filter(Boolean))}
-            style={uiInputStyle} />
-        </UiFieldRow>
-
         <UiFieldRow label="Technologies" hint={d.techIds.length > 0 ? `${d.techIds.length} valgt` : ''}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center' }}>
             {store.technologies.filter((t) => d.techIds.includes(t.id)).map((t) => (
@@ -670,8 +664,15 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
           </div>
         </UiFieldRow>
 
-        <div style={{ height: 1, background: UI.border, margin: '4px 0' }} />
-        <div style={{ fontFamily: UI.mono, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: UI.inkFaint }}>Vurdering</div>
+        <details style={{ borderTop: `1px solid ${UI.border}` }}>
+          <summary style={{ listStyle: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '11px 0', userSelect: 'none' }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: UI.ink, flexShrink: 0 }}>Vurdering</span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 11, color: UI.inkFaint }}>
+              {[assess.value?.score, assess.ownership?.note, assess.strategy?.note, assess.readiness?.ready, assess.ttv?.score].filter(Boolean).length} af 5 udfyldt
+            </span>
+            <span aria-hidden="true" style={{ fontSize: 10, color: UI.inkFaint }}>▾</span>
+          </summary>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '2px 0 16px' }}>
 
         <UiFieldRow label="01 Værdipotentiale" hint="1 lille · 5 stor gevinst">
           <UiSegmented
@@ -716,6 +717,8 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
             onChange={(e) => setAssess('ttv', { note: e.target.value })}
             style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45, marginTop: 6 }} />
         </UiFieldRow>
+          </div>
+        </details>
       </div>
 
       <div style={{

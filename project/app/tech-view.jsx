@@ -20,28 +20,61 @@ function sortByScore(list, key, dir) {
   });
 }
 
-function UiScoreCell({ score }) {
-  if (score == null) return <span style={{ color: UI.inkFaint }}>–</span>;
+function UiScoreEditor({ score, onChange }) {
   return (
-    <span style={{
-      display: 'inline-block', minWidth: 22, textAlign: 'center',
-      fontFamily: UI.mono, fontSize: 11, fontWeight: 700, lineHeight: '18px',
-      borderRadius: 4, background: UI.panelSoft, border: `1px solid ${UI.border}`, color: UI.ink,
-    }}>{score}</span>
+    <div style={{ display: 'flex', gap: 4, alignItems: 'center', whiteSpace: 'nowrap' }}>
+      {[1, 2, 3, 4, 5].map((n) => {
+        const on = score != null && n <= score;
+        return (
+          <button key={n} type="button" aria-label={`Score ${n}`} onClick={() => onChange(score === n ? null : n)} style={{
+            width: 13, height: 13, borderRadius: 99, padding: 0, cursor: 'pointer',
+            border: `1px solid ${on ? UI.ink : UI.border}`, background: on ? UI.ink : UI.panel,
+          }} />
+        );
+      })}
+    </div>
   );
 }
 
-function UiNoteCell({ text }) {
-  if (!text) return <span style={{ color: UI.inkFaint }}>–</span>;
+function UiNoteEditor({ text, onSave }) {
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState(text || '');
+  const cancelled = React.useRef(false);
+
+  if (editing) {
+    return (
+      <textarea autoFocus value={draft} rows={3}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          if (!cancelled.current && draft !== (text || '')) onSave(draft);
+          cancelled.current = false;
+          setEditing(false);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') { cancelled.current = true; e.currentTarget.blur(); }
+        }}
+        style={{
+          width: 220, boxSizing: 'border-box', resize: 'vertical', padding: '5px 7px',
+          fontFamily: UI.sans, fontSize: 11.5, lineHeight: 1.4, color: UI.ink,
+          border: `1px solid ${UI.border}`, borderRadius: 5, background: '#fff',
+        }} />
+    );
+  }
+
   return (
-    <div title={text} style={{
-      maxWidth: 220, fontSize: 11.5, color: UI.inkMuted, lineHeight: 1.4,
-      overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-    }}>{text}</div>
+    <div role="button" tabIndex={0} title={text || 'Klik for at tilføje'}
+      onClick={() => { setDraft(text || ''); setEditing(true); }}
+      onKeyDown={(e) => { if (e.key === 'Enter') { setDraft(text || ''); setEditing(true); } }}
+      style={{
+        maxWidth: 220, minHeight: 18, cursor: 'text', fontSize: 11.5, color: UI.inkMuted, lineHeight: 1.4,
+        overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+      }}>
+      {text || <span style={{ color: UI.inkFaint }}>+ Tilføj</span>}
+    </div>
   );
 }
 
-function UiTechInitiativesView({ store, onOpenInit, onRankOrder }) {
+function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess }) {
   const techs = store.technologies || [];
   const defaultTech = techs.find((t) => t.name?.trim() === 'Claude') || techs[0];
   const [techId, setTechId]   = React.useState(defaultTech?.id || null);
@@ -103,6 +136,7 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder }) {
             ? 'Rækkefølgen er prioriteten — ↑↓ flytter initiativet.'
             : 'Sorteret efter score — ↑↓ er kun aktive i prioritets-rækkefølgen.'}
         </div>
+        <div style={{ fontSize: 11, color: UI.inkFaint, fontStyle: 'italic' }}>Klik i vurderings-kolonnerne for at redigere.</div>
       </div>
 
       {inTech.length === 0 ? (
@@ -131,8 +165,9 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder }) {
                 const bu = (store.businessUnits || []).find((b) => b.id === i.buId);
                 const a = i.assessment || {};
                 const pos = inTech.indexOf(i);
+                const update = (key, sub) => onUpdateAssess(i.id, key, sub);
                 return (
-                  <tr key={i.id} style={{ cursor: 'default' }}>
+                  <tr key={i.id}>
                     <td style={{ ...td, fontFamily: UI.mono, fontWeight: 700, color: UI.inkMuted }}>
                       {canReorder ? pos + 1 : idx + 1}
                     </td>
@@ -154,15 +189,17 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder }) {
                     </td>
                     <td style={td}><UiStatusPill status={i.status} statuses={store.statuses} size="sm" /></td>
                     <td style={{ ...td, color: UI.inkMuted, whiteSpace: 'nowrap' }}>{i.owner || '–'}</td>
-                    <td style={td}><UiScoreCell score={a.value?.score} /></td>
-                    <td style={td}><UiNoteCell text={a.ownership?.note} /></td>
-                    <td style={td}><UiNoteCell text={a.strategy?.note} /></td>
+                    <td style={td}><UiScoreEditor score={a.value?.score ?? null} onChange={(v) => update('value', { score: v })} /></td>
+                    <td style={td}><UiNoteEditor text={a.ownership?.note} onSave={(v) => update('ownership', { note: v })} /></td>
+                    <td style={td}><UiNoteEditor text={a.strategy?.note} onSave={(v) => update('strategy', { note: v })} /></td>
                     <td style={td}>
-                      {a.readiness?.ready
-                        ? <span title="Governance-klar" style={{ color: 'oklch(0.48 0.13 155)', fontWeight: 700 }}>✓</span>
-                        : <span style={{ color: UI.inkFaint }}>–</span>}
+                      <button type="button" title={a.readiness?.ready ? 'Governance-klar' : 'Klik for at markere governance-klar'}
+                        onClick={() => update('readiness', { ready: !a.readiness?.ready })} style={{
+                          border: 'none', background: 'transparent', padding: 0, cursor: 'pointer',
+                          fontSize: 13, fontWeight: 700, color: a.readiness?.ready ? 'oklch(0.48 0.13 155)' : UI.inkFaint,
+                        }}>{a.readiness?.ready ? '✓' : '–'}</button>
                     </td>
-                    <td style={td}><UiScoreCell score={a.ttv?.score} /></td>
+                    <td style={td}><UiScoreEditor score={a.ttv?.score ?? null} onChange={(v) => update('ttv', { score: v })} /></td>
                   </tr>
                 );
               })}

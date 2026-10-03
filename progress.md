@@ -123,7 +123,9 @@ memo (`buBands`, `platformSpans`, `connectorBars`, synergy bands, the bar render
 - **Teknologi** — all initiatives (any status) that use a chosen technology (dropdown, default
   Claude). Columns for the five assessment criteria; click 01 Værdi or 05 TTV to sort (desc
   first, unscored last). Priority is manual: ↑↓ moves an initiative within the technology's
-  list, only active in priority order. Clicking a name opens the drawer.
+  list, only active in priority order. Clicking a name opens the drawer. The assessment columns
+  are edited inline: click score dots, click a note to edit (saves on blur, Esc cancels), click
+  the governance mark to toggle it.
 - **Idéer og boblere** — `idea`-status initiatives, kept out of the Gantt. Sidebar lists
   technology and outcome trends with counts; click one or more to toggle them into a filter
   (OR within a group — e.g. two technologies — AND across groups — tech + outcome combined),
@@ -180,7 +182,8 @@ Setting it: leave End empty in the drawer, or write `BAU` (also `løbende` / `on
 
 ### Editing
 - **Initiative drawer** — Name → BU → Afdelinger → Platforme → Status → Owner →
-  Start/End → Description → Tags → Technologies → Blockers → Outcomes → Milepæle.
+  Start/End → Description → Technologies → Blockers → Outcomes → Milepæle → Vurdering (folded
+  by default). The Tags field was removed from the UI; the `tags` key remains in the data.
   BU, Afdelinger and Platforme show only the selected value(s) as chips; "Skift ▾" / "+ Tilføj ▾"
   folds out the full option list (single select for BU, multi for the other two).
 - **Catalogue drawer** — full CRUD across tabs: BUs · Afdelinger · Platforme ·
