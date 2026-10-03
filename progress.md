@@ -180,7 +180,9 @@ Setting it: leave End empty in the drawer, or write `BAU` (also `løbende` / `on
 
 ### Editing
 - **Initiative drawer** — Name → BU → Afdelinger → Platforme → Status → Owner →
-  Start/End → Description → Tags → Technologies → Blockers → Outcomes → Milepæle
+  Start/End → Description → Tags → Technologies → Blockers → Outcomes → Milepæle.
+  BU, Afdelinger and Platforme show only the selected value(s) as chips; "Skift ▾" / "+ Tilføj ▾"
+  folds out the full option list (single select for BU, multi for the other two).
 - **Catalogue drawer** — full CRUD across tabs: BUs · Afdelinger · Platforme ·
   Technologies · Blockers · Outcomes, with auto colour assignment and a hue picker
 - **Download JSON** — export the board as `data.json`

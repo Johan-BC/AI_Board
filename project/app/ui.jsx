@@ -189,11 +189,17 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
   const [techOpen, setTechOpen] = React.useState(false);
   const [blockerOpen, setBlockerOpen] = React.useState(false);
   const [outcomeOpen, setOutcomeOpen] = React.useState(false);
+  const [buOpen, setBuOpen] = React.useState(false);
+  const [deptOpen, setDeptOpen] = React.useState(false);
+  const [platOpen, setPlatOpen] = React.useState(false);
   React.useEffect(() => {
     setD(draft);
     setTechOpen(false);
     setBlockerOpen(false);
     setOutcomeOpen(false);
+    setBuOpen(false);
+    setDeptOpen(false);
+    setPlatOpen(false);
   }, [draft?.id, draft?._new]);
   if (!d) return null;
   const bu = store.businessUnits.find((b) => b.id === d.buId) || store.businessUnits[0];
@@ -235,24 +241,45 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
         </UiFieldRow>
 
         <UiFieldRow label="Business Unit">
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-            {store.businessUnits.map((b) => {
-              const hot = d.buId === b.id;
-              return (
-                <button key={b.id} onClick={() => setD(prev => ({ ...prev, buId: b.id }))} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  fontFamily: UI.sans, fontSize: 11, fontWeight: hot ? 600 : 400, lineHeight: 1,
-                  padding: '5px 10px', borderRadius: 5, cursor: 'pointer',
-                  background: hot ? b.accent : UI.panelSoft,
-                  color: hot ? '#fff' : UI.ink,
-                  border: `1.5px solid ${hot ? b.accent : UI.border}`,
-                }}>
-                  <span style={{ width: 6, height: 6, borderRadius: 99, background: hot ? '#fff' : b.accent, opacity: hot ? 0.8 : 1, flex: '0 0 auto' }} />
-                  {b.name}
-                </button>
-              );
-            })}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center' }}>
+            {store.businessUnits.filter((b) => b.id === d.buId).map((b) => (
+              <span key={b.id} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                fontFamily: UI.sans, fontSize: 11, fontWeight: 600, lineHeight: 1,
+                padding: '5px 10px', borderRadius: 5,
+                background: b.accent, color: '#fff', border: `1.5px solid ${b.accent}`,
+              }}>{b.name}</span>
+            ))}
+            <button onClick={() => setBuOpen(!buOpen)} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '3px 9px', borderRadius: 4, cursor: 'pointer',
+              fontFamily: UI.sans, fontSize: 11, fontWeight: 500, lineHeight: 1,
+              background: 'transparent', color: UI.inkMuted, border: `1px dashed ${UI.border}`,
+            }}>Skift {buOpen ? '▲' : '▾'}</button>
           </div>
+          {buOpen && (
+            <div style={{
+              marginTop: 7, padding: '8px 10px', border: `1px solid ${UI.border}`, borderRadius: 6,
+              background: UI.panelSoft, display: 'flex', flexWrap: 'wrap', gap: 5,
+            }}>
+              {store.businessUnits.map((b) => {
+                const hot = d.buId === b.id;
+                return (
+                  <button key={b.id} onClick={() => { setD((prev) => ({ ...prev, buId: b.id })); setBuOpen(false); }} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    fontFamily: UI.sans, fontSize: 11, fontWeight: hot ? 600 : 400, lineHeight: 1,
+                    padding: '5px 10px', borderRadius: 5, cursor: 'pointer',
+                    background: hot ? b.accent : UI.panel,
+                    color: hot ? '#fff' : UI.ink,
+                    border: `1.5px solid ${hot ? b.accent : UI.border}`,
+                  }}>
+                    <span style={{ width: 6, height: 6, borderRadius: 99, background: hot ? '#fff' : b.accent, opacity: hot ? 0.8 : 1, flex: '0 0 auto' }} />
+                    {b.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </UiFieldRow>
 
         {(() => {
@@ -267,20 +294,47 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
           }));
           return (
             <UiFieldRow label="Afdelinger" hint={currentIds.length > 0 ? `${currentIds.length} valgt` : 'ingen'}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                {buDepts.map((dep) => {
-                  const hot = currentIds.includes(dep.id);
-                  return (
-                    <button key={dep.id} onClick={() => toggleDept(dep.id)} style={{
-                      fontFamily: UI.sans, fontSize: 11, padding: '3px 9px', borderRadius: 4, cursor: 'pointer',
-                      background: hot ? UI.inkMuted : UI.panelSoft,
-                      color: hot ? '#fff' : UI.ink,
-                      border: `1px solid ${hot ? UI.inkMuted : UI.border}`,
-                      fontWeight: hot ? 600 : 400,
-                    }}>{dep.name}</button>
-                  );
-                })}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center' }}>
+                {(store.departments || []).filter((dep) => currentIds.includes(dep.id)).map((dep) => (
+                  <span key={dep.id} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    fontFamily: UI.sans, fontSize: 11, fontWeight: 600, lineHeight: 1,
+                    padding: '3px 6px 3px 9px', borderRadius: 4,
+                    background: UI.inkMuted, color: '#fff', border: `1px solid ${UI.inkMuted}`,
+                  }}>
+                    {dep.name}
+                    <button onClick={() => toggleDept(dep.id)} aria-label={`Fjern ${dep.name}`} style={{
+                      background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.7)',
+                      cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0,
+                    }}>×</button>
+                  </span>
+                ))}
+                <button onClick={() => setDeptOpen(!deptOpen)} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  padding: '3px 9px', borderRadius: 4, cursor: 'pointer',
+                  fontFamily: UI.sans, fontSize: 11, fontWeight: 500, lineHeight: 1,
+                  background: 'transparent', color: UI.inkMuted, border: `1px dashed ${UI.border}`,
+                }}>+ Tilføj {deptOpen ? '▲' : '▾'}</button>
               </div>
+              {deptOpen && (
+                <div style={{
+                  marginTop: 7, padding: '8px 10px', border: `1px solid ${UI.border}`, borderRadius: 6,
+                  background: UI.panelSoft, display: 'flex', flexWrap: 'wrap', gap: 5,
+                }}>
+                  {buDepts.map((dep) => {
+                    const hot = currentIds.includes(dep.id);
+                    return (
+                      <button key={dep.id} onClick={() => toggleDept(dep.id)} style={{
+                        fontFamily: UI.sans, fontSize: 11, padding: '3px 9px', borderRadius: 4, cursor: 'pointer',
+                        background: hot ? UI.inkMuted : UI.panel,
+                        color: hot ? '#fff' : UI.ink,
+                        border: `1px solid ${hot ? UI.inkMuted : UI.border}`,
+                        fontWeight: hot ? 600 : 400,
+                      }}>{dep.name}</button>
+                    );
+                  })}
+                </div>
+              )}
             </UiFieldRow>
           );
         })()}
@@ -296,20 +350,47 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
           }));
           return (
             <UiFieldRow label="Platforme" hint={currentIds.length > 0 ? `${currentIds.length} valgt` : 'ingen'}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                {allPlatforms.map((p) => {
-                  const hot = currentIds.includes(p.id);
-                  return (
-                    <button key={p.id} onClick={() => togglePlatform(p.id)} style={{
-                      fontFamily: UI.mono, fontSize: 10.5, padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
-                      background: hot ? UI.ink : UI.panelSoft,
-                      color: hot ? '#fff' : UI.ink,
-                      border: `1px solid ${hot ? UI.ink : UI.border}`,
-                      fontWeight: 500,
-                    }}>{p.name}</button>
-                  );
-                })}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center' }}>
+                {allPlatforms.filter((p) => currentIds.includes(p.id)).map((p) => (
+                  <span key={p.id} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    fontFamily: UI.mono, fontSize: 10.5, fontWeight: 500, lineHeight: 1,
+                    padding: '3px 6px 3px 8px', borderRadius: 4,
+                    background: UI.ink, color: '#fff', border: `1px solid ${UI.ink}`,
+                  }}>
+                    {p.name}
+                    <button onClick={() => togglePlatform(p.id)} aria-label={`Fjern ${p.name}`} style={{
+                      background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.6)',
+                      cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0,
+                    }}>×</button>
+                  </span>
+                ))}
+                <button onClick={() => setPlatOpen(!platOpen)} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  padding: '3px 9px', borderRadius: 4, cursor: 'pointer',
+                  fontFamily: UI.sans, fontSize: 11, fontWeight: 500, lineHeight: 1,
+                  background: 'transparent', color: UI.inkMuted, border: `1px dashed ${UI.border}`,
+                }}>+ Tilføj {platOpen ? '▲' : '▾'}</button>
               </div>
+              {platOpen && (
+                <div style={{
+                  marginTop: 7, padding: '8px 10px', border: `1px solid ${UI.border}`, borderRadius: 6,
+                  background: UI.panelSoft, display: 'flex', flexWrap: 'wrap', gap: 5,
+                }}>
+                  {allPlatforms.map((p) => {
+                    const hot = currentIds.includes(p.id);
+                    return (
+                      <button key={p.id} onClick={() => togglePlatform(p.id)} style={{
+                        fontFamily: UI.mono, fontSize: 10.5, padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
+                        background: hot ? UI.ink : UI.panel,
+                        color: hot ? '#fff' : UI.ink,
+                        border: `1px solid ${hot ? UI.ink : UI.border}`,
+                        fontWeight: 500,
+                      }}>{p.name}</button>
+                    );
+                  })}
+                </div>
+              )}
             </UiFieldRow>
           );
         })()}
