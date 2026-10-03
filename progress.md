@@ -179,8 +179,11 @@ Setting it: leave End empty in the drawer, or write `BAU` (also `løbende` / `on
 - Blocker mode dimming non-blocked initiatives
 
 ### Editing
-- **Initiative drawer** — Name → BU → Afdelinger → Platforme → Status → Owner →
-  Start/End → Description → Tags → Technologies → Blockers → Outcomes → Milepæle
+- **Initiative drawer** — a summary strip (Værdi, Ejerskab, Strategi, Gov., TTV) sits above
+  foldable sections (native `<details>`, via `UiSection`): Grundoplysninger (open by default:
+  Name → BU → Afdelinger → Platforme → Status → Owner → Start/End), Beskrivelse, Relationer
+  (Tags → Technologies → Blockers → Outcomes), Milepæle, Vurdering. Each section's summary line
+  shows a count. Clicking a strip tile opens Vurdering. Scores are set with `UiScoreDots`.
 - **Catalogue drawer** — full CRUD across tabs: BUs · Afdelinger · Platforme ·
   Technologies · Blockers · Outcomes, with auto colour assignment and a hue picker
 - **Download JSON** — export the board as `data.json`

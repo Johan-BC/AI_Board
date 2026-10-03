@@ -183,6 +183,36 @@ function UiSegmented({ value, options, onChange }) {
   );
 }
 
+function UiSection({ id, title, summary, defaultOpen = false, children }) {
+  return (
+    <details id={id} open={defaultOpen} style={{ borderTop: `1px solid ${UI.border}` }}>
+      <summary style={{ listStyle: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '11px 0', userSelect: 'none' }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: UI.ink, flexShrink: 0 }}>{title}</span>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 11, color: UI.inkFaint, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{summary}</span>
+        <span aria-hidden="true" style={{ fontSize: 10, color: UI.inkFaint }}>▾</span>
+      </summary>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '2px 0 16px' }}>{children}</div>
+    </details>
+  );
+}
+
+function UiScoreDots({ value, onChange }) {
+  return (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+      {[1, 2, 3, 4, 5].map((n) => {
+        const on = value != null && n <= value;
+        return (
+          <button key={n} type="button" aria-label={`Score ${n}`} onClick={() => onChange(value === n ? null : n)} style={{
+            width: 22, height: 22, borderRadius: 99, padding: 0, cursor: 'pointer',
+            border: `1px solid ${on ? UI.ink : UI.border}`, background: on ? UI.ink : UI.panel,
+          }} />
+        );
+      })}
+      <span style={{ fontSize: 11, color: UI.inkMuted, fontFamily: UI.mono, marginLeft: 4 }}>{value ?? '–'}</span>
+    </div>
+  );
+}
+
 // Initiative create/edit drawer — slides in from right.
 function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
   const [d, setD] = React.useState(draft);
@@ -201,6 +231,10 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
 
   const patch = (k, v) => setD({ ...d, [k]: v });
   const assess = d.assessment || {};
+  const openSection = (id) => {
+    const el = document.getElementById(id);
+    if (el) { el.open = true; el.scrollIntoView({ block: 'nearest' }); }
+  };
   const setAssess = (key, sub) => setD((prev) => ({
     ...prev,
     assessment: { ...(prev.assessment || {}), [key]: { ...(prev.assessment?.[key] || {}), ...sub } },
@@ -229,7 +263,26 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
         }}>×</button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 6, padding: '12px 18px', borderBottom: `1px solid ${UI.border}`, background: UI.panelSoft }}>
+        {[
+          ['Værdi', assess.value?.score ?? '–'],
+          ['Ejerskab', assess.ownership?.note ? '✓' : '–'],
+          ['Strategi', assess.strategy?.note ? '✓' : '–'],
+          ['Gov.', assess.readiness?.ready ? '✓' : '–'],
+          ['TTV', assess.ttv?.score ?? '–'],
+        ].map(([label, value]) => (
+          <button key={label} type="button" onClick={() => openSection('sec-vurdering')} style={{
+            border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 0', textAlign: 'center', fontFamily: UI.sans,
+          }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: value === '–' ? UI.inkFaint : UI.ink }}>{value}</div>
+            <div style={{ fontSize: 10, color: UI.inkMuted }}>{label}</div>
+          </button>
+        ))}
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 18px', display: 'flex', flexDirection: 'column' }}>
+        <UiSection id="sec-grund" title="Grundoplysninger" defaultOpen
+          summary={`${bu?.name || ''} · ${resolveStatus(d.status, store.statuses).label} · ${d.owner || 'ingen owner'}`}>
         <UiFieldRow label="Name">
           <input value={d.name} onChange={(e) => patch('name', e.target.value)} style={uiInputStyle} />
         </UiFieldRow>
@@ -339,6 +392,10 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
           </UiFieldRow>
         </div>
 
+        </UiSection>
+
+        <UiSection id="sec-beskrivelse" title="Beskrivelse"
+          summary={`${['purpose', 'need', 'solution'].filter((k) => d[k]).length} af 3 udfyldt`}>
         <UiFieldRow label="Formål">
           <textarea value={d.purpose || ''} onChange={(e) => patch('purpose', e.target.value)}
             style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
@@ -354,6 +411,10 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
             style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
         </UiFieldRow>
 
+        </UiSection>
+
+        <UiSection id="sec-relationer" title="Relationer"
+          summary={`${(d.techIds || []).length} tech · ${(d.blockerIds || []).length} blockers · ${(d.outcomeIds || []).length} outcomes`}>
         <UiFieldRow label="Tags" hint="comma-separated">
           <input value={(d.tags || []).join(', ')}
             onChange={(e) => patch('tags', e.target.value.split(',').map((x) => x.trim()).filter(Boolean))}
@@ -559,6 +620,10 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
           )}
         </UiFieldRow>
 
+        </UiSection>
+
+        <UiSection id="sec-milepaele" title="Milepæle"
+          summary={`${(d.milestones || []).length} defineret`}>
         <UiFieldRow label="Milepæle" hint={`${(d.milestones || []).length} defineret`}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 4 }}>
             {(d.milestones || []).map((m, idx) => (
@@ -589,27 +654,25 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
           </div>
         </UiFieldRow>
 
-        <div style={{ height: 1, background: UI.border, margin: '4px 0' }} />
-        <div style={{ fontFamily: UI.mono, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: UI.inkFaint }}>Vurdering</div>
+        </UiSection>
 
-        <UiFieldRow label="01 Værdipotentiale" hint="1 lille · 5 stor gevinst">
-          <UiSegmented
-            value={assess.value?.score ?? 0}
-            options={[0, 1, 2, 3, 4, 5].map((n) => ({ value: n, label: n === 0 ? '–' : String(n) }))}
-            onChange={(v) => setAssess('value', { score: v || null })} />
-          <textarea value={assess.value?.note || ''} placeholder="Gevinst i tid, kr., omsætning eller kundeoplevelse — og hvor mange den rammer"
+        <UiSection id="sec-vurdering" title="Vurdering"
+          summary={`${[assess.value?.score, assess.ownership?.note, assess.strategy?.note, assess.readiness?.ready, assess.ttv?.score].filter(Boolean).length} af 5 udfyldt`}>
+        <UiFieldRow label="01 Værdipotentiale">
+          <UiScoreDots value={assess.value?.score ?? null} onChange={(v) => setAssess('value', { score: v })} />
+          <textarea value={assess.value?.note || ''} placeholder="Gevinst og rækkevidde"
             onChange={(e) => setAssess('value', { note: e.target.value })}
             style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45, marginTop: 6 }} />
         </UiFieldRow>
 
         <UiFieldRow label="02 Realiserbarhed og ejerskab">
-          <textarea value={assess.ownership?.note || ''} placeholder="Navngiven forretningsejer, der forpligter sig — og hvilke processer/roller skal ændres"
+          <textarea value={assess.ownership?.note || ''} placeholder="Ejer, forpligtelse og proces-/rolleændringer"
             onChange={(e) => setAssess('ownership', { note: e.target.value })}
             style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
         </UiFieldRow>
 
-        <UiFieldRow label="03 Strategisk betydning" hint="YouSee-mål / AI-board">
-          <textarea value={assess.strategy?.note || ''} placeholder="Understøtter det strategiske mål — eller en isoleret effektivisering?"
+        <UiFieldRow label="03 Strategisk betydning">
+          <textarea value={assess.strategy?.note || ''} placeholder="Strategisk mål eller isoleret effektivisering"
             onChange={(e) => setAssess('strategy', { note: e.target.value })}
             style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
         </UiFieldRow>
@@ -621,20 +684,18 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
               style={{ width: 14, height: 14, cursor: 'pointer', accentColor: UI.ink }} />
             <span style={{ fontSize: 12, color: UI.ink, fontWeight: 500 }}>Governance-klar (data tilgængelig og tilladt)</span>
           </label>
-          <textarea value={assess.readiness?.note || ''} placeholder="Nødvendige data, integrationer og afhængigheder"
+          <textarea value={assess.readiness?.note || ''} placeholder="Data, integrationer og afhængigheder"
             onChange={(e) => setAssess('readiness', { note: e.target.value })}
             style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
         </UiFieldRow>
 
-        <UiFieldRow label="05 Time-to-value og skalerbarhed" hint="1 langsom · 5 hurtig">
-          <UiSegmented
-            value={assess.ttv?.score ?? 0}
-            options={[0, 1, 2, 3, 4, 5].map((n) => ({ value: n, label: n === 0 ? '–' : String(n) }))}
-            onChange={(v) => setAssess('ttv', { score: v || null })} />
-          <textarea value={assess.ttv?.note || ''} placeholder="Hvor hurtigt er der effekt, og kan løsningen genbruges af andre teams?"
+        <UiFieldRow label="05 Time-to-value og skalerbarhed">
+          <UiScoreDots value={assess.ttv?.score ?? null} onChange={(v) => setAssess('ttv', { score: v })} />
+          <textarea value={assess.ttv?.note || ''} placeholder="Hastighed af effekt og genbrug på tværs"
             onChange={(e) => setAssess('ttv', { note: e.target.value })}
             style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45, marginTop: 6 }} />
         </UiFieldRow>
+        </UiSection>
       </div>
 
       <div style={{
