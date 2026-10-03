@@ -151,9 +151,9 @@ const uiInputStyle = {
   background: '#fff', outline: 'none',
 };
 
-function UiFieldRow({ label, hint, children }) {
+function UiFieldRow({ label, hint, half, children }) {
   return (
-    <div>
+    <div style={{ gridColumn: half ? undefined : '1 / -1' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 5 }}>
         <div style={{ fontSize: 11, fontWeight: 600, color: UI.ink, letterSpacing: 0.1 }}>{label}</div>
         {hint && <div style={{ fontSize: 10, color: UI.inkFaint, fontFamily: UI.mono }}>{hint}</div>}
@@ -212,7 +212,7 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
 
   return (
     <div style={{
-      position: 'absolute', top: 0, right: 0, bottom: 0, width: 380,
+      position: 'absolute', top: 0, right: 0, bottom: 0, width: 'min(760px, calc(100% - 40px))',
       background: UI.panel, borderLeft: `1px solid ${UI.border}`,
       boxShadow: '-10px 0 30px rgba(20,16,12,.08)',
       display: 'flex', flexDirection: 'column', zIndex: 30,
@@ -229,7 +229,7 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
         }}>×</button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', alignContent: 'start', gap: 14 }}>
         <UiFieldRow label="Name">
           <input value={d.name} onChange={(e) => patch('name', e.target.value)} style={uiInputStyle} />
         </UiFieldRow>
@@ -319,7 +319,7 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
         </UiFieldRow>
 
         {d.status === 'idea' && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', userSelect: 'none' }}>
+          <label style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', userSelect: 'none' }}>
             <input type="checkbox" checked={!!d.testing} onChange={(e) => patch('testing', e.target.checked)}
               style={{ width: 14, height: 14, cursor: 'pointer', accentColor: UI.ink }} />
             <span style={{ fontSize: 12, color: UI.ink, fontWeight: 500 }}>Afprøves</span>
@@ -330,21 +330,21 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
           <input value={d.owner} onChange={(e) => patch('owner', e.target.value)} style={uiInputStyle} />
         </UiFieldRow>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <UiFieldRow label="Start">
+        <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <UiFieldRow label="Start" half>
             <input type="date" value={d.start || ''} onChange={(e) => patch('start', e.target.value)} style={uiInputStyle} />
           </UiFieldRow>
-          <UiFieldRow label="End" hint={d.end ? null : 'tom = løbende / BAU'}>
+          <UiFieldRow label="End" hint={d.end ? null : 'tom = løbende / BAU'} half>
             <input type="date" value={d.end || ''} onChange={(e) => patch('end', e.target.value)} style={uiInputStyle} />
           </UiFieldRow>
         </div>
 
-        <UiFieldRow label="Formål">
+        <UiFieldRow label="Formål" half>
           <textarea value={d.purpose || ''} onChange={(e) => patch('purpose', e.target.value)}
             style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
         </UiFieldRow>
 
-        <UiFieldRow label="Behov">
+        <UiFieldRow label="Behov" half>
           <textarea value={d.need || ''} onChange={(e) => patch('need', e.target.value)}
             style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
         </UiFieldRow>
@@ -592,7 +592,7 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
         <div style={{ height: 1, background: UI.border, margin: '4px 0' }} />
         <div style={{ fontFamily: UI.mono, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: UI.inkFaint }}>Vurdering</div>
 
-        <UiFieldRow label="01 Værdipotentiale" hint="1 lille · 5 stor gevinst">
+        <UiFieldRow label="01 Værdipotentiale" hint="1 lille · 5 stor gevinst" half>
           <UiSegmented
             value={assess.value?.score ?? 0}
             options={[0, 1, 2, 3, 4, 5].map((n) => ({ value: n, label: n === 0 ? '–' : String(n) }))}
@@ -602,19 +602,19 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
             style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45, marginTop: 6 }} />
         </UiFieldRow>
 
-        <UiFieldRow label="02 Realiserbarhed og ejerskab">
+        <UiFieldRow label="02 Realiserbarhed og ejerskab" half>
           <textarea value={assess.ownership?.note || ''} placeholder="Navngiven forretningsejer, der forpligter sig — og hvilke processer/roller skal ændres"
             onChange={(e) => setAssess('ownership', { note: e.target.value })}
             style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
         </UiFieldRow>
 
-        <UiFieldRow label="03 Strategisk betydning" hint="YouSee-mål / AI-board">
+        <UiFieldRow label="03 Strategisk betydning" hint="YouSee-mål / AI-board" half>
           <textarea value={assess.strategy?.note || ''} placeholder="Understøtter det strategiske mål — eller en isoleret effektivisering?"
             onChange={(e) => setAssess('strategy', { note: e.target.value })}
             style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
         </UiFieldRow>
 
-        <UiFieldRow label="04 Data, teknologi og governance">
+        <UiFieldRow label="04 Data, teknologi og governance" half>
           <label style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', userSelect: 'none', marginBottom: 6 }}>
             <input type="checkbox" checked={!!assess.readiness?.ready}
               onChange={(e) => setAssess('readiness', { ready: e.target.checked })}
@@ -626,7 +626,7 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
             style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
         </UiFieldRow>
 
-        <UiFieldRow label="05 Time-to-value og skalerbarhed" hint="1 langsom · 5 hurtig">
+        <UiFieldRow label="05 Time-to-value og skalerbarhed" hint="1 langsom · 5 hurtig" half>
           <UiSegmented
             value={assess.ttv?.score ?? 0}
             options={[0, 1, 2, 3, 4, 5].map((n) => ({ value: n, label: n === 0 ? '–' : String(n) }))}
