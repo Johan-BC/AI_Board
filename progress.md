@@ -179,11 +179,8 @@ Setting it: leave End empty in the drawer, or write `BAU` (also `løbende` / `on
 - Blocker mode dimming non-blocked initiatives
 
 ### Editing
-- **Initiative drawer** — 760px wide (capped at the viewport), laid out as a two-column grid so
-  short fields sit side by side. Full-width rows by default; `UiFieldRow` takes `half` for
-  paired fields (Start/End, Formål/Behov, the Vurdering fields). Order: Name → BU → Afdelinger →
-  Platforme → Status → Owner → Start/End → Description → Tags → Technologies → Blockers →
-  Outcomes → Milepæle → Vurdering
+- **Initiative drawer** — Name → BU → Afdelinger → Platforme → Status → Owner →
+  Start/End → Description → Tags → Technologies → Blockers → Outcomes → Milepæle
 - **Catalogue drawer** — full CRUD across tabs: BUs · Afdelinger · Platforme ·
   Technologies · Blockers · Outcomes, with auto colour assignment and a hue picker
 - **Download JSON** — export the board as `data.json`
