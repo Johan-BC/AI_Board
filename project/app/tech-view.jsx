@@ -36,44 +36,6 @@ function UiScoreEditor({ score, onChange }) {
   );
 }
 
-function UiNoteEditor({ text, onSave }) {
-  const [editing, setEditing] = React.useState(false);
-  const [draft, setDraft] = React.useState(text || '');
-  const cancelled = React.useRef(false);
-
-  if (editing) {
-    return (
-      <textarea autoFocus value={draft} rows={3}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => {
-          if (!cancelled.current && draft !== (text || '')) onSave(draft);
-          cancelled.current = false;
-          setEditing(false);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') { cancelled.current = true; e.currentTarget.blur(); }
-        }}
-        style={{
-          width: 220, boxSizing: 'border-box', resize: 'vertical', padding: '5px 7px',
-          fontFamily: UI.sans, fontSize: 11.5, lineHeight: 1.4, color: UI.ink,
-          border: `1px solid ${UI.border}`, borderRadius: 5, background: '#fff',
-        }} />
-    );
-  }
-
-  return (
-    <div role="button" tabIndex={0} title={text || 'Klik for at tilføje'}
-      onClick={() => { setDraft(text || ''); setEditing(true); }}
-      onKeyDown={(e) => { if (e.key === 'Enter') { setDraft(text || ''); setEditing(true); } }}
-      style={{
-        maxWidth: 220, minHeight: 18, cursor: 'text', fontSize: 11.5, color: UI.inkMuted, lineHeight: 1.4,
-        overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-      }}>
-      {text || <span style={{ color: UI.inkFaint }}>+ Tilføj</span>}
-    </div>
-  );
-}
-
 function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess }) {
   const techs = store.technologies || [];
   const defaultTech = techs.find((t) => t.name?.trim() === 'Claude') || techs[0];
@@ -136,7 +98,7 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
             ? 'Rækkefølgen er prioriteten — ↑↓ flytter initiativet.'
             : 'Sorteret efter score — ↑↓ er kun aktive i prioritets-rækkefølgen.'}
         </div>
-        <div style={{ fontSize: 11, color: UI.inkFaint, fontStyle: 'italic' }}>Klik i vurderings-kolonnerne for at redigere.</div>
+        <div style={{ fontSize: 11, color: UI.inkFaint, fontStyle: 'italic' }}>Klik på scorer, + og ✓ i vurderings-kolonnerne for at redigere.</div>
       </div>
 
       {inTech.length === 0 ? (
@@ -145,7 +107,7 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
         </div>
       ) : (
         <div style={{ overflowX: 'auto', border: `1px solid ${UI.border}`, borderRadius: 8, background: UI.panel }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1000 }}>
             <thead>
               <tr>
                 {th('Prio', 'rank', { width: 60 })}
@@ -153,11 +115,11 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
                 {th('Initiativ', null)}
                 {th('Status', null)}
                 {th('Ejer', null)}
-                {th('01 Værdi', 'value')}
-                {th('02 Ejerskab', null)}
-                {th('03 Strategi', null)}
-                {th('04 Gov.', null)}
-                {th('05 TTV', 'ttv')}
+                {th('01 Værdi', 'value', { minWidth: 200 })}
+                {th('02 Ejerskab', null, { minWidth: 200 })}
+                {th('03 Strategi', null, { minWidth: 200 })}
+                {th('04 Gov.', null, { minWidth: 200 })}
+                {th('05 TTV', 'ttv', { minWidth: 200 })}
               </tr>
             </thead>
             <tbody>
@@ -166,6 +128,9 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
                 const a = i.assessment || {};
                 const pos = inTech.indexOf(i);
                 const update = (key, sub) => onUpdateAssess(i.id, key, sub);
+                const comments = (key) => (
+                  <UiComments compact comments={commentsOf(a[key])} onChange={(next) => update(key, { comments: next })} />
+                );
                 return (
                   <tr key={i.id}>
                     <td style={{ ...td, fontFamily: UI.mono, fontWeight: 700, color: UI.inkMuted }}>
@@ -189,17 +154,30 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
                     </td>
                     <td style={td}><UiStatusPill status={i.status} statuses={store.statuses} size="sm" /></td>
                     <td style={{ ...td, color: UI.inkMuted, whiteSpace: 'nowrap' }}>{i.owner || '–'}</td>
-                    <td style={td}><UiScoreEditor score={a.value?.score ?? null} onChange={(v) => update('value', { score: v })} /></td>
-                    <td style={td}><UiNoteEditor text={a.ownership?.note} onSave={(v) => update('ownership', { note: v })} /></td>
-                    <td style={td}><UiNoteEditor text={a.strategy?.note} onSave={(v) => update('strategy', { note: v })} /></td>
                     <td style={td}>
-                      <button type="button" title={a.readiness?.ready ? 'Governance-klar' : 'Klik for at markere governance-klar'}
-                        onClick={() => update('readiness', { ready: !a.readiness?.ready })} style={{
-                          border: 'none', background: 'transparent', padding: 0, cursor: 'pointer',
-                          fontSize: 13, fontWeight: 700, color: a.readiness?.ready ? 'oklch(0.48 0.13 155)' : UI.inkFaint,
-                        }}>{a.readiness?.ready ? '✓' : '–'}</button>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <UiScoreEditor score={a.value?.score ?? null} onChange={(v) => update('value', { score: v })} />
+                        {comments('value')}
+                      </div>
                     </td>
-                    <td style={td}><UiScoreEditor score={a.ttv?.score ?? null} onChange={(v) => update('ttv', { score: v })} /></td>
+                    <td style={td}>{comments('ownership')}</td>
+                    <td style={td}>{comments('strategy')}</td>
+                    <td style={td}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <button type="button" title={a.readiness?.ready ? 'Governance-klar' : 'Klik for at markere governance-klar'}
+                          onClick={() => update('readiness', { ready: !a.readiness?.ready })} style={{
+                            alignSelf: 'flex-start', border: 'none', background: 'transparent', padding: 0, cursor: 'pointer',
+                            fontSize: 13, fontWeight: 700, color: a.readiness?.ready ? 'oklch(0.48 0.13 155)' : UI.inkFaint,
+                          }}>{a.readiness?.ready ? '✓' : '–'}</button>
+                        {comments('readiness')}
+                      </div>
+                    </td>
+                    <td style={td}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <UiScoreEditor score={a.ttv?.score ?? null} onChange={(v) => update('ttv', { score: v })} />
+                        {comments('ttv')}
+                      </div>
+                    </td>
                   </tr>
                 );
               })}

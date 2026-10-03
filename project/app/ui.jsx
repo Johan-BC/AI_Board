@@ -183,6 +183,70 @@ function UiSegmented({ value, options, onChange }) {
   );
 }
 
+// Assessment comments: a list per criterion. A legacy single `note` reads as one comment.
+function commentsOf(block) {
+  if (!block) return [];
+  if (Array.isArray(block.comments)) return block.comments;
+  return block.note ? [{ id: 'legacy', text: block.note, at: null }] : [];
+}
+
+function UiComments({ comments, onChange, compact = false }) {
+  const [adding, setAdding] = React.useState(false);
+  const [draft, setDraft] = React.useState('');
+  const close = () => { setAdding(false); setDraft(''); };
+  const submit = () => {
+    const text = draft.trim();
+    if (text) onChange([...comments, { id: `c_${Date.now()}`, text, at: new Date().toISOString().slice(0, 10) }]);
+    close();
+  };
+  const fs = compact ? 11 : 12;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+      {comments.map((c) => (
+        <div key={c.id} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', fontSize: fs, lineHeight: 1.45 }}>
+          <div style={{ flex: 1, minWidth: 0, color: UI.ink, whiteSpace: 'pre-wrap' }}>
+            {c.text}
+            {c.at && <span style={{ marginLeft: 6, fontFamily: UI.mono, fontSize: 10, color: UI.inkFaint }}>{c.at}</span>}
+          </div>
+          <button onClick={() => onChange(comments.filter((x) => x.id !== c.id))} aria-label="Slet kommentar" style={{
+            border: 'none', background: 'transparent', color: UI.inkFaint, cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '0 2px', flexShrink: 0,
+          }}>×</button>
+        </div>
+      ))}
+
+      {adding ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <textarea autoFocus value={draft} rows={2} onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') close();
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit();
+            }}
+            style={{ ...uiInputStyle, resize: 'vertical', lineHeight: 1.45, fontSize: fs }} />
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={submit} style={{
+              padding: '3px 10px', fontSize: 11, fontWeight: 600, borderRadius: 4, cursor: 'pointer',
+              background: UI.ink, color: '#fff', border: `1px solid ${UI.ink}`, fontFamily: UI.sans,
+            }}>Gem</button>
+            <button onClick={close} style={{
+              padding: '3px 10px', fontSize: 11, borderRadius: 4, cursor: 'pointer',
+              background: 'transparent', color: UI.inkMuted, border: `1px solid ${UI.border}`, fontFamily: UI.sans,
+            }}>Annuller</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setAdding(true)} aria-label="Tilføj kommentar" style={compact ? {
+          alignSelf: 'flex-start', width: 20, height: 20, padding: 0, borderRadius: 99, cursor: 'pointer',
+          border: `1px dashed ${UI.border}`, background: 'transparent', color: UI.inkMuted, fontSize: 13, lineHeight: 1,
+        } : {
+          alignSelf: 'flex-start', padding: '4px 10px', fontSize: 11, fontWeight: 500, borderRadius: 5, cursor: 'pointer',
+          border: `1px dashed ${UI.border}`, background: 'transparent', color: UI.inkMuted, fontFamily: UI.sans, lineHeight: 1,
+        }}>+{compact ? '' : ' Tilføj kommentar'}</button>
+      )}
+    </div>
+  );
+}
+
 // Initiative create/edit drawer — slides in from right.
 function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
   const [d, setD] = React.useState(draft);
@@ -668,7 +732,7 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
           <summary style={{ listStyle: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '11px 0', userSelect: 'none' }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: UI.ink, flexShrink: 0 }}>Vurdering</span>
             <span style={{ flex: 1, minWidth: 0, fontSize: 11, color: UI.inkFaint }}>
-              {[assess.value?.score, assess.ownership?.note, assess.strategy?.note, assess.readiness?.ready, assess.ttv?.score].filter(Boolean).length} af 5 udfyldt
+              {[assess.value?.score, commentsOf(assess.ownership).length, commentsOf(assess.strategy).length, assess.readiness?.ready, assess.ttv?.score].filter(Boolean).length} af 5 udfyldt
             </span>
             <span aria-hidden="true" style={{ fontSize: 10, color: UI.inkFaint }}>▾</span>
           </summary>
@@ -679,21 +743,15 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
             value={assess.value?.score ?? 0}
             options={[0, 1, 2, 3, 4, 5].map((n) => ({ value: n, label: n === 0 ? '–' : String(n) }))}
             onChange={(v) => setAssess('value', { score: v || null })} />
-          <textarea value={assess.value?.note || ''} placeholder="Gevinst i tid, kr., omsætning eller kundeoplevelse — og hvor mange den rammer"
-            onChange={(e) => setAssess('value', { note: e.target.value })}
-            style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45, marginTop: 6 }} />
+          <UiComments comments={commentsOf(assess.value)} onChange={(next) => setAssess('value', { comments: next })} />
         </UiFieldRow>
 
         <UiFieldRow label="02 Realiserbarhed og ejerskab">
-          <textarea value={assess.ownership?.note || ''} placeholder="Navngiven forretningsejer, der forpligter sig — og hvilke processer/roller skal ændres"
-            onChange={(e) => setAssess('ownership', { note: e.target.value })}
-            style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
+          <UiComments comments={commentsOf(assess.ownership)} onChange={(next) => setAssess('ownership', { comments: next })} />
         </UiFieldRow>
 
         <UiFieldRow label="03 Strategisk betydning" hint="YouSee-mål / AI-board">
-          <textarea value={assess.strategy?.note || ''} placeholder="Understøtter det strategiske mål — eller en isoleret effektivisering?"
-            onChange={(e) => setAssess('strategy', { note: e.target.value })}
-            style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
+          <UiComments comments={commentsOf(assess.strategy)} onChange={(next) => setAssess('strategy', { comments: next })} />
         </UiFieldRow>
 
         <UiFieldRow label="04 Data, teknologi og governance">
@@ -703,9 +761,7 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
               style={{ width: 14, height: 14, cursor: 'pointer', accentColor: UI.ink }} />
             <span style={{ fontSize: 12, color: UI.ink, fontWeight: 500 }}>Governance-klar (data tilgængelig og tilladt)</span>
           </label>
-          <textarea value={assess.readiness?.note || ''} placeholder="Nødvendige data, integrationer og afhængigheder"
-            onChange={(e) => setAssess('readiness', { note: e.target.value })}
-            style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45 }} />
+          <UiComments comments={commentsOf(assess.readiness)} onChange={(next) => setAssess('readiness', { comments: next })} />
         </UiFieldRow>
 
         <UiFieldRow label="05 Time-to-value og skalerbarhed" hint="1 langsom · 5 hurtig">
@@ -713,9 +769,7 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
             value={assess.ttv?.score ?? 0}
             options={[0, 1, 2, 3, 4, 5].map((n) => ({ value: n, label: n === 0 ? '–' : String(n) }))}
             onChange={(v) => setAssess('ttv', { score: v || null })} />
-          <textarea value={assess.ttv?.note || ''} placeholder="Hvor hurtigt er der effekt, og kan løsningen genbruges af andre teams?"
-            onChange={(e) => setAssess('ttv', { note: e.target.value })}
-            style={{ ...uiInputStyle, height: 55, resize: 'none', lineHeight: 1.45, marginTop: 6 }} />
+          <UiComments comments={commentsOf(assess.ttv)} onChange={(next) => setAssess('ttv', { comments: next })} />
         </UiFieldRow>
           </div>
         </details>

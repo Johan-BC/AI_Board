@@ -140,11 +140,12 @@ read as unscored/empty, so no migration is needed.
 
 ```js
 assessment: {
-  value:     { score: 1-5 | null, note },  // 01 Værdipotentiale — gevinst + rækkevidde
-  ownership: { note },                      // 02 Navngiven ejer + proces-/rolleændringer
-  strategy:  { note },                      // 03 Strategisk betydning
-  readiness: { ready: bool, note },         // 04 Data/tech/governance (ready = governance-klar)
-  ttv:       { score: 1-5 | null, note },   // 05 Time-to-value + skalerbarhed
+  value:     { score: 1-5 | null, comments: [] },  // 01 Værdipotentiale — gevinst + rækkevidde
+  ownership: { comments: [] },                      // 02 Navngiven ejer + proces-/rolleændringer
+  strategy:  { comments: [] },                      // 03 Strategisk betydning
+  readiness: { ready: bool, comments: [] },         // 04 Data/tech/governance (ready = governance-klar)
+  ttv:       { score: 1-5 | null, comments: [] },   // 05 Time-to-value + skalerbarhed
+  // comment = { id, text, at: 'YYYY-MM-DD' }. A legacy single `note` string reads as one comment.
   rank: number | null                       // global priority, 1 = highest
 }
 ```
