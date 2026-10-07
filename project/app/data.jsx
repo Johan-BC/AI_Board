@@ -1,5 +1,5 @@
 // Data layer: BU → Platform → Initiative hierarchy.
-// GitHub repo (data.json) is the source of truth; localStorage caches live edits.
+// GitHub repo (data.json) is the only store — see sync.jsx.
 
 const BUSINESS_UNITS = [
   { id: 'mkt', name: 'Marketing',      short: 'MK', accent: 'oklch(0.48 0.12 290)', lead: 'Anne Berg' },

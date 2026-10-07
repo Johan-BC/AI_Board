@@ -20,7 +20,7 @@ GitHub so the board is shared rather than per-browser.
 ReactDOM and Babel standalone from unpkg, then loads the app files in dependency order:
 
 ```
-data.jsx → ui.jsx → import.jsx → ideas.jsx → tech-view.jsx → board.jsx
+config.js → data.jsx → sync.jsx → ui.jsx → import.jsx → ideas.jsx → tech-view.jsx → board.jsx
 ```
 
 They are **not** loaded via static `<script src>` tags — a small inline loader
@@ -44,18 +44,48 @@ self-resolves without action once the cache entry expires.
 | File | Lines | Responsibility |
 |---|---|---|
 | [`data.jsx`](project/app/data.jsx) | ~299 | Seed constants, `makeStore`, `parseJSON`, migrations, synergy map |
+| [`sync.jsx`](project/app/sync.jsx) | ~180 | Repo config, GitHub Contents API, three-way merge, commit messages |
 | [`ui.jsx`](project/app/ui.jsx) | ~1167 | Design tokens (`UI`), primitives, initiative drawer, catalogue drawer, portfolio view |
 | [`import.jsx`](project/app/import.jsx) | ~767 | Excel import with a per-row review/validation UI |
 | [`ideas.jsx`](project/app/ideas.jsx) | ~281 | "Idéer og boblere" view for `idea`-status initiatives, with click-to-multi-select tech/outcome trend filters |
 | [`tech-view.jsx`](project/app/tech-view.jsx) | ~210 | "Teknologi" view — initiatives using one technology (dropdown, default Claude), with assessment columns, score sorting and manual priority (↑↓) |
-| [`board.jsx`](project/app/board.jsx) | ~1793 | `BoardView`, filter strips, layout/synergy logic, drag handling, GitHub sync |
+| [`board.jsx`](project/app/board.jsx) | ~1793 | `BoardView`, filter strips, layout/synergy logic, drag handling, save/poll loop |
 
-### Data persistence
-- **Source of truth:** `data.json` in the GitHub repo, read/written via the GitHub API
-- **Load order:** localStorage (`aiboard:store:v4`) → `data.json` → built-in seed
-- **Auto-save:** localStorage after 200 ms, GitHub commit after a 3 s debounce
-- **Auth:** fine-grained PAT (Contents R/W) in localStorage under `aiboard:github-pat`
-- Without a PAT the board still runs read-only from `data.json` / seed ("Brug lokalt")
+### Data persistence & multi-editor sync ([`sync.jsx`](project/app/sync.jsx))
+- **Single store:** `data.json` in the GitHub repo. The browser never keeps a copy of the
+  board (the old `aiboard:store:v4` localStorage cache is no longer read), so an edit can't
+  end up saved in one browser only.
+- **Viewers (no token):** read the published `data.json` next to `index.html`, view-only,
+  re-read every 60 s. "Ny", Import, bar dragging and every save open the connect prompt.
+- **Editors:** fine-grained PAT (Contents R/W on this repo) in localStorage under
+  `aiboard:github-pat`. Each editor uses their own token, so every commit is authored by
+  that person and git history is the audit log. Commit messages name the initiatives
+  touched (`board: AI-Mail, + New initiative`).
+- **Save:** 3 s debounce (flushed immediately when the tab is hidden; closing the tab with
+  unsaved edits warns). On a SHA conflict (someone else saved first) the board re-reads
+  GitHub and does a **three-way merge** (`merge3(base, local, remote)`), then retries:
+  field-level per initiative/catalogue item (matched by `id`), id-lists (`techIds` …)
+  merged as sets, an edit beats a concurrent delete, and only a true same-field clash
+  resolves to "last saver wins".
+- **Drawer saves** apply only the fields changed in the drawer (merged against the
+  initiative as it was when opened), so a colleague's change to another field isn't reverted.
+- **Polling:** editors re-read GitHub every 30 s (and on tab focus) and merge others'
+  changes into their view.
+- **Failures:** a failed save keeps the edits in memory and shows "Ikke gemt · ↺ Prøv igen";
+  a failed load shows the published copy view-only with retry / change token.
+- **Reset to seed** was removed — on a shared board it wiped everyone's work in one click.
+
+### Repo config ([`config.js`](config.js))
+`repo` (`owner/repo`), `branch`, `file`, `apiBase`, optional `pollMs`. A blank `repo` is
+auto-detected from an `<owner>.github.io/<repo>/` URL; set it explicitly for private Pages
+(`*.pages.github.io`), custom domains, or GitHub Enterprise Server
+(`apiBase: 'https://github.company.com/api/v3'`). The token link in the connect prompt is
+derived from `apiBase`.
+
+**Rolling out in an organisation:** editors need write access to the repo; the org must
+allow fine-grained PATs (and may require an admin to approve each one); with SAML SSO the
+token must be SSO-authorised. Every save is a commit to `branch`, which also triggers a
+Pages rebuild — viewers see changes once that finishes (and the Pages cache expires).
 
 ### Migrations
 `migrateStore()` (localStorage path) and `parseJSON()` (data.json path) both normalise
