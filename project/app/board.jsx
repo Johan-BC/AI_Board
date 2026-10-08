@@ -669,14 +669,19 @@ function BoardView() {
 
   const today = new Date();
 
+  // Ideas aren't registered initiatives yet: they stay out of the Gantt and
+  // everything derived from it (filter chips, counts, synergies, time range).
+  const ganttInits = React.useMemo(
+    () => (store ? store.initiatives.filter((i) => i.status !== 'idea') : []),
+    [store]);
+
   const filteredInits = React.useMemo(() => {
     if (!store) return [];
-    return store.initiatives.filter((i) =>
-      i.status !== 'idea' &&
+    return ganttInits.filter((i) =>
       (!statusFilter || i.status === statusFilter) &&
       (!buFilter     || i.buId === buFilter)
     );
-  }, [store, statusFilter, buFilter]);
+  }, [store, ganttInits, statusFilter, buFilter]);
 
   const matchedSet = React.useMemo(() => {
     if (!store) return new Set();
@@ -694,9 +699,9 @@ function BoardView() {
     ).map((i) => i.id));
   }, [filteredInits, selectedBlockers]);
 
-  const techSynergy    = React.useMemo(() => store ? buildSynergyMap(store.initiatives, 'techIds')     : new Map(), [store]);
-  const blockerSynergy = React.useMemo(() => store ? buildSynergyMap(store.initiatives, 'blockerIds')  : new Map(), [store]);
-  const outcomeSynergy = React.useMemo(() => store ? buildSynergyMap(store.initiatives, 'outcomeIds')  : new Map(), [store]);
+  const techSynergy    = React.useMemo(() => store ? buildSynergyMap(ganttInits, 'techIds')     : new Map(), [store, ganttInits]);
+  const blockerSynergy = React.useMemo(() => store ? buildSynergyMap(ganttInits, 'blockerIds')  : new Map(), [store, ganttInits]);
+  const outcomeSynergy = React.useMemo(() => store ? buildSynergyMap(ganttInits, 'outcomeIds')  : new Map(), [store, ganttInits]);
 
   const outcomeMatchedSet = React.useMemo(() => {
     if (!store || selectedOutcomes.size === 0) return new Set();
@@ -727,7 +732,7 @@ function BoardView() {
   const range = React.useMemo(() => {
     const fallback = { start: new Date(today.getFullYear(), today.getMonth() - 2, 1), end: new Date(today.getFullYear(), today.getMonth() + 10, 0) };
     if (!store) return fallback;
-    const inits = store.initiatives || [];
+    const inits = ganttInits;
     // BAU (no end date) initiatives only contribute their start to range, not end.
     const starts = inits.map(i => parseISO(i.start)).filter(d => !isNaN(d));
     const ends   = inits.filter(i => i.end).map(i => parseISO(i.end)).filter(d => !isNaN(d));
@@ -1307,7 +1312,7 @@ function BoardView() {
       {/* ── Filter strip (Tech + Blockers + Outcomes) — Gantt only ──────── */}
       {view === 'gantt' && (
         <FilterStrip
-          store={store}
+          store={{ ...store, initiatives: ganttInits }}
           selectedTechs={selectedTechs} selectedBlockers={selectedBlockers} selectedOutcomes={selectedOutcomes}
           toggleTech={toggleTech} toggleBlocker={toggleBlocker} toggleOutcome={toggleOutcome}
           techSynergy={techSynergy} blockerSynergy={blockerSynergy} outcomeSynergy={outcomeSynergy}
@@ -1394,7 +1399,7 @@ function BoardView() {
               {layout.rows.map((r) => {
                 if (r.kind === 'bu') {
                   const sel = buFilter === r.bu.id;
-                  const blockedInBU = store.initiatives.filter((i) => i.buId === r.bu.id && (i.blockerIds || []).length > 0).length;
+                  const blockedInBU = ganttInits.filter((i) => i.buId === r.bu.id && (i.blockerIds || []).length > 0).length;
                   const hiddenHits = r.collapsed && highlightSet
                     ? r.items.filter((i) => highlightSet.has(i.id)).length
                     : 0;
