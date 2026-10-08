@@ -285,6 +285,13 @@ function parseJSON(text) {
       delete next.platformId;
     }
     if (!next.departmentIds) next.departmentIds = [];
+    // Milepæle: { date, label, done? }. `done: true` sættes ved at klikke på
+    // milepælen på Gantt-boardet ("nået"). Feltet er valgfrit — mangler det,
+    // er milepælen ikke nået, så eksisterende data skal ikke skrives om. Her
+    // sikres kun, at listen findes, og at `done` er en ægte boolean.
+    next.milestones = (Array.isArray(next.milestones) ? next.milestones : [])
+      .filter((m) => m && typeof m === 'object')
+      .map((m) => (m.done === undefined ? m : { ...m, done: m.done === true }));
     return next;
   });
 

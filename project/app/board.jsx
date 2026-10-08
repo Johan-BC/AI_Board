@@ -61,6 +61,7 @@ const PAT_KEY       = 'aiboard:github-pat';      // token (from a link or pasted
 const MODE_KEY      = 'aiboard:access-mode';     // 'view' | 'edit'
 const NAME_KEY      = 'aiboard:editor-name';     // shown in commit messages
 const COLLAPSE_KEY  = 'aiboard:collapsed-bus';
+const LEGEND_KEY    = 'aiboard:legend';          // '0' = legend footer hidden
 const SYNC_CFG      = resolveSyncConfig();
 const SAVE_DEBOUNCE = 3000;
 
@@ -466,16 +467,55 @@ function initTiming(i, today) {
   };
 }
 
+// Milestones not yet marked done (`done: true`, set by clicking the diamond).
 function upcomingMilestones(i, today, withinDays) {
   const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   return (i.milestones || [])
-    .filter((m) => isValidISO(m.date))
+    .filter((m) => isValidISO(m.date) && !m.done)
     .map((m) => ({ ...m, d: parseISO(m.date) }))
     .filter((m) => m.d >= t0 && (withinDays == null || daysBetween(t0, m.d) <= withinDays))
     .sort((a, b) => a.d - b.d);
 }
 
+// 'done' (marked as reached) · 'overdue' (date passed, not marked) ·
+// 'upcoming' · 'none' (no valid date).
+function milestoneState(m, today) {
+  if (m.done) return 'done';
+  if (!isValidISO(m.date)) return 'none';
+  const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return parseISO(m.date) < t0 ? 'overdue' : 'upcoming';
+}
+
+function overdueMilestones(i, today) {
+  return (i.milestones || [])
+    .filter((m) => milestoneState(m, today) === 'overdue')
+    .map((m) => ({ ...m, d: parseISO(m.date) }))
+    .sort((a, b) => a.d - b.d);
+}
+
 const MILESTONE_SOON_DAYS = 30;
+const MILESTONE_LABEL = { done: 'Nået', overdue: 'Overskredet', upcoming: 'Kommende', none: 'Uden dato' };
+
+// Search: every word must appear in the name, owner, departments or platforms.
+function searchWords(query) {
+  return String(query || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+}
+function initMatchesSearch(i, words, store) {
+  if (!words.length) return true;
+  const names = (list, ids) => (ids || []).map((id) => ((list || []).find((x) => x.id === id) || {}).name);
+  const hay = [i.name, i.owner, ...names(store.departments, i.departmentIds), ...names(store.platforms, i.platformIds)]
+    .filter(Boolean).join(' ').toLowerCase();
+  return words.every((w) => hay.includes(w));
+}
+// Wraps the search words found in `text` in <mark>.
+function SearchHighlight({ text, words }) {
+  if (!words || !words.length || !text) return text || null;
+  const esc = words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const parts = String(text).split(new RegExp(`(${esc.join('|')})`, 'gi'));
+  return parts.map((p, k) => k % 2
+    ? <mark key={k} style={{ background: 'oklch(0.9 0.12 95)', color: 'inherit', borderRadius: 2, padding: 0 }}>{p}</mark>
+    : p);
+}
 
 // Counts for one lane: status mix, blocked, end date passed, milestones soon.
 function laneSummary(items, statuses, today) {
@@ -493,6 +533,7 @@ function laneSummary(items, statuses, today) {
     blocked: items.filter((i) => (i.blockerIds || []).length > 0).length,
     overdue: items.filter((i) => initTiming(i, today).overdue).length,
     soon:    items.reduce((n, i) => n + upcomingMilestones(i, today, MILESTONE_SOON_DAYS).length, 0),
+    msOverdue: items.reduce((n, i) => n + overdueMilestones(i, today).length, 0),
   };
 }
 
@@ -502,7 +543,8 @@ function laneSummaryText(sum) {
     ...sum.byStatus.map((x) => `${x.n} ${x.status.label}`),
     sum.blocked ? `${sum.blocked} blokeret` : null,
     sum.overdue ? `${sum.overdue} over slutdato` : null,
-    sum.soon    ? `${sum.soon} milepæl${sum.soon === 1 ? '' : 'e'} inden for ${MILESTONE_SOON_DAYS} dage` : null,
+    sum.msOverdue ? `${sum.msOverdue} milepæl${sum.msOverdue === 1 ? '' : 'e'} overskredet` : null,
+    sum.soon   ? `${sum.soon} milepæl${sum.soon === 1 ? '' : 'e'} inden for ${MILESTONE_SOON_DAYS} dage` : null,
   ].filter(Boolean).join(' · ');
 }
 
@@ -527,6 +569,7 @@ function LaneSummaryChips({ sum, sticky }) {
       </>, null, `${x.n} i status ${x.status.label}`))}
       {sum.blocked > 0 && chip('blk', `⚠ ${sum.blocked} blokeret`, BLOCKER_RED, `${sum.blocked} initiativ${sum.blocked === 1 ? '' : 'er'} har mindst én blocker`)}
       {sum.overdue > 0 && chip('od', `⏱ ${sum.overdue} over slutdato`, OVERDUE_AMBER, 'Slutdatoen er passeret, men status er ikke Prod')}
+      {sum.msOverdue > 0 && chip('mso', `◆ ${sum.msOverdue} overskredet`, OVERDUE_AMBER, 'Milepæle hvor datoen er passeret, men som ikke er markeret som nået')}
       {sum.soon > 0 && chip('ms', `◆ ${sum.soon} milepæl${sum.soon === 1 ? '' : 'e'} ≤ ${MILESTONE_SOON_DAYS} d`, null, `Milepæle inden for de næste ${MILESTONE_SOON_DAYS} dage`)}
     </div>
   );
@@ -564,6 +607,9 @@ function BarHoverCard({ tip, store, today, canEdit }) {
   const blockers  = names(store.blockers, i.blockerIds);
   const outcomes  = names(store.outcomes, i.outcomeIds);
   const nextMs    = upcomingMilestones(i, today)[0];
+  const lateMs    = overdueMilestones(i, today);
+  const msTotal   = (i.milestones || []).filter((m) => isValidISO(m.date)).length;
+  const msDone    = (i.milestones || []).filter((m) => m.done && isValidISO(m.date)).length;
 
   const period = t.s && t.e ? `${fmtDate(t.s)} – ${fmtDate(t.e)}`
                : t.s        ? `${fmtDate(t.s)} – løbende (BAU)`
@@ -606,7 +652,11 @@ function BarHoverCard({ tip, store, today, canEdit }) {
       <div style={{ marginTop: 6 }}>
         {row('Periode', `${period}${t.duration > 0 ? ` (${fmtDuration(t.duration)})` : ''}`)}
         {row('Status', when, whenColor)}
-        {row('Milepæl', nextMs ? `${nextMs.label || 'Milepæl'} · ${fmtDay(nextMs.d)} (${fmtInDays(daysBetween(new Date(today.getFullYear(), today.getMonth(), today.getDate()), nextMs.d))})` : null)}
+        {row('Overskredet', lateMs.length
+          ? lateMs.map((m) => `${m.label || 'Milepæl'} (${fmtDay(m.d)})`).join(', ')
+          : null, 'oklch(0.85 0.12 70)')}
+        {row('Milepæle', msTotal > 1 || msDone ? `${msDone} af ${msTotal} nået` : null)}
+        {row('Næste', nextMs ?`${nextMs.label || 'Milepæl'} · ${fmtDay(nextMs.d)} (${fmtInDays(daysBetween(new Date(today.getFullYear(), today.getMonth(), today.getDate()), nextMs.d))})` : null)}
         {row('Blockers', blockers.length ? `⚠ ${blockers.join(', ')}` : null, 'oklch(0.8 0.12 20)')}
         {row('Afdeling', depts.join(', '))}
         {row('Platform', platforms.join(', '))}
@@ -616,6 +666,77 @@ function BarHoverCard({ tip, store, today, canEdit }) {
       <div style={{ marginTop: 8, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.45)', fontFamily: UI.mono, fontSize: 9.5 }}>
         {canEdit ? 'Klik for at åbne · træk for at flytte' : 'Klik for at åbne'}
       </div>
+    </div>
+  );
+}
+
+// ── Legend footer: what the colours and symbols on the Gantt mean ────────────
+// Drawn with the same styles as the board itself, so the samples match.
+function GanttLegend({ statuses, onClose }) {
+  const list = (statuses && statuses.length ? statuses : STATUSES).filter((s) => s.id !== 'idea');
+  const item = (key, sample, label, title) => (
+    <span key={key} title={title} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
+      {sample}<span>{label}</span>
+    </span>
+  );
+  const bar = (color, extra) => (
+    <span style={{
+      width: 22, height: 11, borderRadius: 3, flex: '0 0 auto', boxSizing: 'border-box',
+      background: `color-mix(in oklch, ${color} 14%, ${UI.panel})`,
+      border: `1px solid color-mix(in oklch, ${color} 35%, transparent)`,
+      borderLeft: `3px solid ${color}`, ...extra,
+    }} />
+  );
+  const diamond = (look, size = 8) => (
+    <span style={{ width: size, height: size, flex: '0 0 auto', boxSizing: 'border-box', transform: 'rotate(45deg)', margin: '0 2px', ...look }} />
+  );
+  const sep = (k) => <span key={k} style={{ width: 1, height: 14, background: UI.border, flex: '0 0 auto' }} />;
+  const group = (k, label) => (
+    <span key={k} style={{ fontFamily: UI.mono, fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: UI.inkFaint }}>{label}</span>
+  );
+  const kbd = (t) => (
+    <kbd style={{ fontFamily: UI.mono, fontSize: 9, padding: '0 4px', border: `1px solid ${UI.border}`, borderBottomWidth: 2, borderRadius: 3, background: UI.panel, color: UI.inkMuted }}>{t}</kbd>
+  );
+  return (
+    <div role="note" aria-label="Forklaring" style={{
+      flex: '0 0 auto', borderTop: `1px solid ${UI.border}`, background: UI.panelSoft,
+      padding: '6px 12px 6px 20px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+      fontFamily: UI.sans, fontSize: 11, color: UI.inkMuted, rowGap: 5,
+    }}>
+      {group('g1', 'Status')}
+      {list.map((s) => item(s.id, bar(s.color), s.label))}
+      {sep('s1')}
+      {item('blk', <span style={{ fontFamily: UI.mono, fontSize: 9, color: '#fff', background: BLOCKER_RED, fontWeight: 700, lineHeight: 1, padding: '2px 4px', borderRadius: 3 }}>⚠ 2</span>,
+        'Blocker', 'Antal blockers — bjælken får også en rød understregning')}
+      {item('od', bar(list[0] ? list[0].color : UI.inkFaint, { borderRight: `3px solid ${OVERDUE_AMBER}` }),
+        'Over slutdato', 'Slutdatoen er passeret, men status er ikke Prod')}
+      {item('bau', bar(list[0] ? list[0].color : UI.inkFaint, {
+        borderRadius: '3px 0 0 3px', width: 28,
+        WebkitMaskImage: 'linear-gradient(to right, #000 40%, transparent)', maskImage: 'linear-gradient(to right, #000 40%, transparent)',
+      }), 'Løbende (BAU)', 'Ingen slutdato — bjælken toner ud mod højre')}
+      {item('ns', <span style={{ fontSize: 9, fontWeight: 700, color: UI.inkMuted }}>◀</span>, 'Ingen startdato')}
+      {sep('s2')}
+      {group('g2', 'Milepæle')}
+      {item('mu', diamond({ background: UI.panel, border: `1.5px solid ${UI.inkMuted}` }), 'Kommende')}
+      {item('md', diamond({ background: UI.ink, border: `1.5px solid ${UI.panel}`, boxShadow: `0 0 0 1px ${UI.ink}` }), 'Nået')}
+      {item('mo', diamond({ background: OVERDUE_AMBER, border: `1.5px solid ${UI.panel}`, boxShadow: `0 0 0 1.5px ${OVERDUE_AMBER}` }, 9), 'Overskredet',
+        'Datoen er passeret, men milepælen er ikke markeret som nået. Redaktører klikker på milepælen for at markere den.')}
+      {sep('s3')}
+      {item('today', <span style={{ width: 2, height: 14, background: UI.accent, flex: '0 0 auto' }} />, 'I dag')}
+      {item('tech', <span style={{ width: 16, height: 16, borderRadius: 4, fontFamily: UI.mono, fontSize: 8, fontWeight: 700, border: `1px solid ${UI.border}`, background: UI.panel, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>CL</span>,
+        'Teknologi', 'Klik på et teknologimærke for at filtrere')}
+      {item('syn', <span style={{ display: 'inline-flex', gap: 3 }}>
+        <span style={{ width: 6, height: 6, borderRadius: 99, background: 'oklch(0.62 0.14 70)' }} />
+        <span style={{ width: 6, height: 6, borderRadius: 99, background: 'oklch(0.52 0.13 150)' }} />
+      </span>, 'Synergi: 2 / 3+ enheder', 'Prikken på et filter viser, at det går igen i flere forretningsenheder')}
+      <div style={{ flex: 1 }} />
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: UI.inkFaint, whiteSpace: 'nowrap' }}>
+        {kbd('T')} i dag {kbd('←')}{kbd('→')} måned {kbd('+')}{kbd('−')} zoom {kbd('/')} søg {kbd('?')} forklaring
+      </span>
+      <button onClick={onClose} title="Skjul forklaringen (?)" style={{
+        border: 'none', background: 'transparent', color: UI.inkFaint, cursor: 'pointer',
+        fontSize: 15, lineHeight: 1, padding: '0 2px',
+      }}>×</button>
     </div>
   );
 }
@@ -642,7 +763,11 @@ function BoardView() {
   const [blockerMode, setBlockerMode]             = React.useState(false);
   const [catalogue, setCatalogue]                 = React.useState(false);
   const [view, setView]                           = React.useState('gantt'); // 'gantt' | 'portfolio' | 'import' | 'ideas' | 'tech'
-  const [milestoneTooltip, setMilestoneTooltip]   = React.useState(null); // {label, date, x, y}
+  const [milestoneTooltip, setMilestoneTooltip]   = React.useState(null); // {initId, idx, x, y}
+  const [query, setQuery]                         = React.useState('');   // name/owner search
+  const searchRef                                 = React.useRef(null);
+  // The legend footer is a view preference, like collapsed lanes.
+  const [legendOpen, setLegendOpen]               = React.useState(() => { try { return localStorage.getItem(LEGEND_KEY) !== '0'; } catch (_) { return true; } });
   const [hoverTip, setHoverTip]                   = React.useState(null); // {init, bu, x, y}
   const draggingRef                               = React.useRef(false);
   const [labelW, setLabelW]                       = React.useState(280);
@@ -871,13 +996,23 @@ function BoardView() {
     () => (store ? store.initiatives.filter((i) => i.status !== 'idea') : []),
     [store]);
 
-  const filteredInits = React.useMemo(() => {
+  // Status + BU filter only — the base the search count is shown against
+  const scopeInits = React.useMemo(() => {
     if (!store) return [];
     return ganttInits.filter((i) =>
       (!statusFilter || i.status === statusFilter) &&
       (!buFilter     || i.buId === buFilter)
     );
   }, [store, ganttInits, statusFilter, buFilter]);
+
+  const qWords = React.useMemo(() => searchWords(query), [query]);
+  const searching = qWords.length > 0;
+
+  // The search filters (rather than dims), so lane counts, summaries and the
+  // corner totals all describe exactly what's on screen.
+  const filteredInits = React.useMemo(
+    () => (searching ? scopeInits.filter((i) => initMatchesSearch(i, qWords, store)) : scopeInits),
+    [scopeInits, qWords, store]);
 
   const matchedSet = React.useMemo(() => {
     if (!store) return new Set();
@@ -914,6 +1049,10 @@ function BoardView() {
   React.useEffect(() => {
     try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsedBUs])); } catch (_) {}
   }, [collapsedBUs]);
+
+  React.useEffect(() => {
+    try { localStorage.setItem(LEGEND_KEY, legendOpen ? '1' : '0'); } catch (_) {}
+  }, [legendOpen]);
 
   // Which set is currently driving the highlight, mirroring getBarStyle's
   // precedence — null when nothing is filtering. Used to tell the user how many
@@ -971,7 +1110,10 @@ function BoardView() {
 
     for (const bu of visibleBUs) {
       const items = filteredInits.filter((i) => i.buId === bu.id);
-      const collapsed = collapsedBUs.has(bu.id);
+      // While searching: lanes without hits are left out, and folded lanes
+      // open, so a hit is never hidden inside a collapsed lane.
+      if (searching && !items.length) continue;
+      const collapsed = !searching && collapsedBUs.has(bu.id);
       rows.push({ kind: 'bu', bu, y, h: BU_H, count: items.length, collapsed, items });
       y += BU_H;
 
@@ -1022,7 +1164,7 @@ function BoardView() {
       y += LANE_GAP;
     }
     return { rows, totalH: y };
-  }, [store, filteredInits, buFilter, collapsedBUs]);
+  }, [store, filteredInits, buFilter, collapsedBUs, searching]);
 
   const buBands = React.useMemo(() => {
     const buRows = layout.rows.filter((r) => r.kind === 'bu');
@@ -1134,7 +1276,7 @@ function BoardView() {
   React.useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
-    const onScroll = () => setHoverTip((t) => t ? null : t);
+    const onScroll = () => { setHoverTip((t) => t ? null : t); setMilestoneTooltip((t) => t ? null : t); };
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => el.removeEventListener('scroll', onScroll);
   }, [view, !!store]);
@@ -1167,6 +1309,7 @@ function BoardView() {
     if (isNew) {
       setStatusFilter(null);
       setBuFilter(null);
+      setQuery('');
     }
   };
 
@@ -1330,7 +1473,10 @@ function BoardView() {
     else if (e.key === 'ArrowRight')         scrollByMonths(e.shiftKey ? 3 : 1);
     else if (e.key === '+' || e.key === '=') { if (zi < ZOOMS.length - 1) changeZoom(ZOOMS[zi + 1]); }
     else if (e.key === '-')                  { if (zi > 0) changeZoom(ZOOMS[zi - 1]); }
+    else if (e.key === '/')                  { if (searchRef.current) { searchRef.current.focus(); searchRef.current.select(); } }
+    else if (e.key === '?')                  setLegendOpen((o) => !o);
     else if (e.key === 'Escape' && hoverTip) setHoverTip(null);
+    else if (e.key === 'Escape' && query)    setQuery('');
     else return;
     e.preventDefault();
   };
@@ -1415,6 +1561,16 @@ function BoardView() {
     document.addEventListener('pointermove', onMove);
     document.addEventListener('pointerup', onUp);
   };
+  // Click on a milestone diamond (editors): mark it reached / not reached.
+  // `done` is only written when true, so untouched milestones stay { date, label }.
+  const toggleMilestoneDone = (init, idx) => updateInit(init.id, {
+    milestones: (init.milestones || []).map((m, k) => {
+      if (k !== idx) return m;
+      if (!m.done) return { ...m, done: true };
+      const { done, ...rest } = m;
+      return rest;
+    }),
+  });
   const onBarClick = (init) => { if (dragSuppressRef.current === init.id) return; setHoverTip(null); setDrawer({ ...init }); };
 
   const getBarStyle = (init, bu) => {
@@ -1703,13 +1859,48 @@ function BoardView() {
               display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 5,
               padding: '0 14px 9px 20px', background: UI.panelSoft, overflow: 'hidden',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontFamily: UI.mono, fontSize: 10, color: UI.inkMuted }}>
-                <span style={{ color: UI.ink, fontWeight: 700, fontSize: 11 }}>{boardSum.total} initiativer</span>
-                {boardSum.blocked > 0 && <span style={{ color: BLOCKER_RED, fontWeight: 700 }}>⚠ {boardSum.blocked} blokeret</span>}
-                {boardSum.overdue > 0 && <span style={{ color: OVERDUE_AMBER, fontWeight: 700 }}>⏱ {boardSum.overdue} over slutdato</span>}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', overflow: 'hidden', whiteSpace: 'nowrap', fontFamily: UI.mono, fontSize: 10, color: UI.inkMuted }}>
+                <span style={{ color: UI.ink, fontWeight: 700, fontSize: 11 }}>
+                  {boardSum.total}{searching ? ` af ${scopeInits.length}` : ''} initiativer
+                </span>
+                {boardSum.blocked > 0 && <span title="Initiativer med mindst én blocker" style={{ color: BLOCKER_RED, fontWeight: 700 }}>⚠ {boardSum.blocked}</span>}
+                {boardSum.overdue > 0 && <span title="Over slutdato — slutdatoen er passeret, men status er ikke Prod" style={{ color: OVERDUE_AMBER, fontWeight: 700 }}>⏱ {boardSum.overdue}</span>}
+                {boardSum.msOverdue > 0 && <span title="Overskredne milepæle — datoen er passeret, men milepælen er ikke markeret som nået" style={{ color: OVERDUE_AMBER, fontWeight: 700 }}>◆ {boardSum.msOverdue}</span>}
               </div>
-              <div style={{ fontFamily: UI.mono, fontSize: 9.5, letterSpacing: 1, textTransform: 'uppercase', color: UI.inkFaint }}>Forretningsenhed / Initiativ</div>
+              {/* Search — filters the board by name, owner, department or platform */}
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <span style={{ position: 'absolute', left: 7, fontSize: 11, color: UI.inkFaint, pointerEvents: 'none' }}>⌕</span>
+                <input
+                  ref={searchRef}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') { e.preventDefault(); if (query) setQuery(''); else e.currentTarget.blur(); }
+                    if (e.key === 'Enter') e.currentTarget.blur();
+                  }}
+                  placeholder="Søg navn, ejer, afdeling…  ( / )"
+                  aria-label="Søg i initiativer"
+                  style={{
+                    width: '100%', boxSizing: 'border-box', height: 24, padding: '0 24px 0 22px',
+                    borderRadius: 5, outline: 'none', fontFamily: UI.sans, fontSize: 11.5, color: UI.ink,
+                    border: `1px solid ${searching ? UI.accent : UI.border}`,
+                    background: searching ? `color-mix(in oklch, ${UI.accent} 6%, ${UI.panel})` : UI.panel,
+                  }} />
+                {query && (
+                  <button onClick={() => { setQuery(''); searchRef.current && searchRef.current.focus(); }} title="Ryd søgning (Esc)" style={{
+                    position: 'absolute', right: 3, width: 18, height: 18, padding: 0, border: 'none', borderRadius: 3,
+                    background: 'transparent', color: UI.inkMuted, cursor: 'pointer', fontSize: 13, lineHeight: 1,
+                  }}>×</button>
+                )}
+              </div>
             </div>
+            {searching && !filteredInits.length && (
+              <div style={{ padding: '18px 20px', fontSize: 12, color: UI.inkMuted, lineHeight: 1.5 }}>
+                Ingen initiativer matcher »{query.trim()}«
+                {scopeInits.length < ganttInits.length && <> med de valgte status- og enhedsfiltre</>}.
+                <div><button onClick={() => setQuery('')} style={{ marginTop: 6, border: 'none', background: 'transparent', padding: 0, color: UI.accent, cursor: 'pointer', fontSize: 12, fontFamily: UI.sans }}>Ryd søgning</button></div>
+              </div>
+            )}
 
             <div style={{ position: 'relative', height: layout.totalH }}>
               {buBands.map((b) => {
@@ -1840,7 +2031,12 @@ function BoardView() {
                       <div style={{
                         flex: 1, minWidth: 0, fontSize: 12, fontWeight: 500, color: UI.ink,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      }}>{r.init.name}</div>
+                      }}><SearchHighlight text={r.init.name} words={qWords} />
+                        {searching && r.init.owner && qWords.some((w) => r.init.owner.toLowerCase().includes(w)) && (
+                          <span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 400, color: UI.inkMuted }}>
+                            · <SearchHighlight text={r.init.owner} words={qWords} />
+                          </span>
+                        )}</div>
                       {/* Only the first department and platform get a chip, capped in
                           width, so the name always keeps room; the rest become "+N". */}
                       {initDepts.slice(0, 1).map((dep) => (
@@ -2120,6 +2316,8 @@ function BoardView() {
                 const padR  = noEnd ? Math.round(fadeW + 14) : 10;
                 const { status, hasBlockers, dim, isHot, borderLeftColor, bgOverride, boxShadow } = getBarStyle(i, r.bu);
                 const showChips = barW >= 72;
+                // End date passed but not in production: amber right edge
+                const pastEnd = initTiming(i, today).overdue;
                 const dateRange = noStart && noEnd ? 'løbende'
                                : noStart           ? `◀ – ${fmtDay(e)}`
                                : noEnd             ? `${fmtDay(s)} – ▶ BAU`
@@ -2141,6 +2339,7 @@ function BoardView() {
                       background: bgOverride || `color-mix(in oklch, ${status.color} ${i.status === 'prod' ? 18 : 12}%, ${UI.panel})`,
                       border: `1px solid color-mix(in oklch, ${status.color} 35%, transparent)`,
                       borderLeft: `3px solid ${borderLeftColor}`,
+                      ...(pastEnd ? { borderRight: `3px solid ${OVERDUE_AMBER}` } : null),
                       boxShadow, opacity: dim ? 0.22 : 1,
                       transition: 'opacity .15s, box-shadow .15s',
                       display: 'flex', alignItems: 'center',
@@ -2175,7 +2374,7 @@ function BoardView() {
                     {barW >= 90 && (i.platformIds || []).length > 2 && (
                       <span style={{ fontSize: 8, color: r.bu.accent, fontFamily: UI.mono, marginRight: 3 }}>+{i.platformIds.length - 2}</span>
                     )}
-                    <div style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 11.5, fontWeight: 600, color: UI.ink }}>{i.name}</div>
+                    <div style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 11.5, fontWeight: 600, color: UI.ink }}><SearchHighlight text={i.name} words={qWords} /></div>
                     {showChips && (i.outcomeIds || []).length > 0 && (() => {
                       const myPillars = [...new Set((i.outcomeIds || []).map((oid) => outcomeById[oid]?.category).filter(Boolean))];
                       return myPillars.length > 0 ? (
@@ -2215,24 +2414,42 @@ function BoardView() {
                         )}
                       </div>
                     )}
+                    {/* Milestones: ◇ upcoming · ◆ reached (done) · amber ◆ overdue.
+                        Every dated milestone is drawn — also one on the end
+                        date or outside the bar, which used to be dropped. */}
                     {(i.milestones || []).map((m, idx) => {
+                      if (!isValidISO(m.date)) return null;
                       const mx = dateToX(parseISO(m.date)) - x;
-                      if (mx < 4 || mx > barW - 4) return null;
+                      const st = milestoneState(m, today);
+                      const size = st === 'overdue' ? 11 : 9;
+                      const look = st === 'done'
+                        ? { background: UI.ink, border: `1.5px solid ${UI.panel}`, boxShadow: `0 0 0 1px ${UI.ink}` }
+                        : st === 'overdue'
+                        ? { background: OVERDUE_AMBER, border: `1.5px solid ${UI.panel}`, boxShadow: `0 0 0 1.5px ${OVERDUE_AMBER}, 0 0 0 4px color-mix(in oklch, ${OVERDUE_AMBER} 22%, transparent)` }
+                        : { background: UI.panel, border: `1.5px solid ${status.color}`, boxShadow: '0 1px 2px rgba(20,16,12,.15)' };
                       return (
                         <span key={idx}
                           data-no-drag
+                          role={connected ? 'button' : undefined}
+                          aria-label={`Milepæl ${m.label || ''} · ${MILESTONE_LABEL[st]}`}
                           onPointerDown={(ev) => ev.stopPropagation()}
+                          onClick={(ev) => {
+                            if (!connected) return; // viewers: the click opens the drawer as on the bar
+                            ev.stopPropagation();
+                            toggleMilestoneDone(i, idx);
+                          }}
                           onMouseEnter={(ev) => {
-                            const r = ev.currentTarget.getBoundingClientRect();
-                            setMilestoneTooltip({ label: m.label, date: m.date, x: r.left + r.width / 2, y: r.top });
+                            ev.stopPropagation();
+                            const rc = ev.currentTarget.getBoundingClientRect();
+                            setMilestoneTooltip({ initId: i.id, idx, x: rc.left + rc.width / 2, y: rc.top });
                           }}
                           onMouseLeave={() => setMilestoneTooltip(null)}
                           style={{
-                            position: 'absolute', top: '50%', left: mx, width: 9, height: 9,
+                            position: 'absolute', top: '50%', left: mx, width: size, height: size,
+                            boxSizing: 'border-box',
                             transform: 'translate(-50%, -50%) rotate(45deg)',
-                            background: '#fff', border: `1.5px solid ${status.color}`,
-                            boxShadow: '0 1px 2px rgba(20,16,12,.15)',
-                            pointerEvents: 'auto', cursor: 'default', zIndex: 2,
+                            ...look,
+                            pointerEvents: 'auto', cursor: connected ? 'pointer' : 'default', zIndex: 2,
                           }} />
                       );
                     })}
@@ -2278,6 +2495,16 @@ function BoardView() {
         </div>
       </div>}
 
+      {/* Legend footer — or, when hidden, a small button to bring it back */}
+      {view === 'gantt' && (legendOpen
+        ? <GanttLegend statuses={store.statuses} onClose={() => setLegendOpen(false)} />
+        : <button onClick={() => setLegendOpen(true)} title="Vis forklaring på farver og symboler (?)" style={{
+            position: 'absolute', right: 16, bottom: 14, zIndex: 6,
+            padding: '5px 10px', borderRadius: 99, cursor: 'pointer',
+            border: `1px solid ${UI.border}`, background: UI.panel, color: UI.inkMuted,
+            fontFamily: UI.mono, fontSize: 10, boxShadow: UI.shadow,
+          }}>? Forklaring</button>)}
+
       {/* Initiative drawer */}
       {drawer && (
         <UiInitiativeDrawer store={store} draft={drawer}
@@ -2299,21 +2526,42 @@ function BoardView() {
       )}
 
       {/* Milestone tooltip */}
-      {milestoneTooltip && (
-        <div style={{
-          position: 'fixed', zIndex: 9999, pointerEvents: 'none',
-          left: milestoneTooltip.x, top: milestoneTooltip.y - 8,
-          transform: 'translate(-50%, -100%)',
-          background: UI.ink, color: '#fff',
-          fontSize: 11, fontFamily: UI.sans, lineHeight: 1.4,
-          padding: '4px 8px', borderRadius: 5,
-          boxShadow: '0 2px 8px rgba(0,0,0,.25)',
-          whiteSpace: 'nowrap',
-        }}>
-          {milestoneTooltip.label}
-          <span style={{ opacity: 0.6, marginLeft: 5 }}>{isValidISO(milestoneTooltip.date) ? fmtDate(parseISO(milestoneTooltip.date)) : milestoneTooltip.date}</span>
-        </div>
-      )}
+      {/* Read from the store on every render, so it updates right after a click
+          marks the milestone reached. */}
+      {milestoneTooltip && (() => {
+        const init = store.initiatives.find((x) => x.id === milestoneTooltip.initId);
+        const m = init && (init.milestones || [])[milestoneTooltip.idx];
+        if (!m) return null;
+        const st = milestoneState(m, today);
+        const d  = isValidISO(m.date) ? parseISO(m.date) : null;
+        const rel = d ? fmtInDays(daysBetween(new Date(today.getFullYear(), today.getMonth(), today.getDate()), d)) : '';
+        const stateText = st === 'done'    ? 'Nået ✓'
+                        : st === 'overdue' ? `Overskredet · ${rel}`
+                        :                    `Kommende · ${rel}`;
+        return (
+          <div style={{
+            position: 'fixed', zIndex: 9999, pointerEvents: 'none',
+            left: milestoneTooltip.x, top: milestoneTooltip.y - 8,
+            transform: 'translate(-50%, -100%)',
+            background: UI.ink, color: '#fff',
+            fontSize: 11, fontFamily: UI.sans, lineHeight: 1.45,
+            padding: '5px 9px', borderRadius: 5,
+            boxShadow: '0 2px 8px rgba(0,0,0,.25)',
+            whiteSpace: 'nowrap', textAlign: 'center',
+          }}>
+            <div>
+              <strong>{m.label || 'Milepæl'}</strong>
+              <span style={{ opacity: 0.6, marginLeft: 5 }}>{d ? fmtDate(d) : m.date}</span>
+            </div>
+            <div style={{ color: st === 'overdue' ? 'oklch(0.85 0.12 70)' : st === 'done' ? 'oklch(0.85 0.1 150)' : 'rgba(255,255,255,0.75)' }}>{stateText}</div>
+            {connected && (
+              <div style={{ marginTop: 2, color: 'rgba(255,255,255,0.45)', fontFamily: UI.mono, fontSize: 9.5 }}>
+                {st === 'done' ? 'Klik for at fjerne markeringen' : 'Klik for at markere som nået'}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Initiative hover card — yields to the milestone tooltip and to drawers */}
       {hoverTip && view === 'gantt' && !milestoneTooltip && !anyModalOpen && (
