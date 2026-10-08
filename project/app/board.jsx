@@ -4,8 +4,28 @@
 // ── Date helpers ──────────────────────────────────────────────────────────────
 const D_MS = 86400000;
 function parseISO(s) { const [y, m, d] = String(s || '').split('-').map(Number); return new Date(y, m - 1, d); }
-function fmtMon(d) { return d.toLocaleString('en-US', { month: 'short' }); }
-function fmtDay(d) { return d.toLocaleString('en-US', { month: 'short', day: 'numeric' }); }
+// Danish month names, spelled out here rather than via toLocaleString so the
+// board reads the same in every browser locale.
+const DA_MONTHS = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+function fmtMon(d) { return DA_MONTHS[d.getMonth()]; }
+function fmtDay(d) { return `${d.getDate()}. ${DA_MONTHS[d.getMonth()]}`; }
+function fmtDate(d) { return `${fmtDay(d)} ${d.getFullYear()}`; }
+// A 'YYYY-MM-DD' string that parses to a real local date (BAU '' / null → false).
+function isValidISO(s) { return !!s && !isNaN(parseISO(s)); }
+// Whole calendar days from a to b; rounding absorbs the 23/25 h DST days.
+function daysBetween(a, b) { return Math.round((b - a) / D_MS); }
+// "3 mdr." / "1 år 2 mdr." — rough duration for tooltips.
+function fmtDuration(days) {
+  const months = Math.max(1, Math.round(days / 30.44));
+  if (months < 12) return `${months} md${months === 1 ? '.' : 'r.'}`;
+  const y = Math.floor(months / 12), m = months % 12;
+  return m ? `${y} år ${m} md${m === 1 ? '.' : 'r.'}` : `${y} år`;
+}
+function fmtInDays(n) {
+  if (n === 0) return 'i dag';
+  if (n > 0)   return `om ${n} dag${n === 1 ? '' : 'e'}`;
+  return `for ${-n} dag${n === -1 ? '' : 'e'} siden`;
+}
 function quarterOf(d) { return Math.floor(d.getMonth() / 3) + 1; }
 function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 function endOfMonth(d)   { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
@@ -31,6 +51,7 @@ function techHue(item) {
 const BLOCKER_RED    = 'oklch(0.52 0.2 15)';
 const BLOCKER_RED_BG = 'oklch(0.97 0.04 15)';
 const OUTCOME_TEAL   = 'oklch(0.48 0.13 175)';
+const OVERDUE_AMBER  = 'oklch(0.55 0.14 60)';
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 // data.json on GitHub is the only store. The browser keeps just the PAT and
@@ -425,6 +446,180 @@ function FilterStrip({
   );
 }
 
+// ── Initiative timing & lane summary ─────────────────────────────────────────
+// Where an initiative stands relative to today — shared by the hover card and
+// the per-lane summary so the two never disagree. Missing / BAU dates are null.
+function initTiming(i, today) {
+  const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const s = isValidISO(i.start) ? parseISO(i.start) : null;
+  const e = isValidISO(i.end)   ? parseISO(i.end)   : null;
+  const total = s && e ? daysBetween(s, e) : null;
+  return {
+    s, e, bau: !i.end,
+    notStarted:  !!(s && s > t0),
+    daysToStart: s ? daysBetween(t0, s) : null,
+    daysLeft:    e ? daysBetween(t0, e) : null,
+    // End date passed while the initiative isn't in production — worth a look.
+    overdue:     !!(e && e < t0 && i.status !== 'prod'),
+    pct: total > 0 ? Math.min(100, Math.max(0, Math.round(daysBetween(s, t0) / total * 100))) : null,
+    duration: total,
+  };
+}
+
+function upcomingMilestones(i, today, withinDays) {
+  const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return (i.milestones || [])
+    .filter((m) => isValidISO(m.date))
+    .map((m) => ({ ...m, d: parseISO(m.date) }))
+    .filter((m) => m.d >= t0 && (withinDays == null || daysBetween(t0, m.d) <= withinDays))
+    .sort((a, b) => a.d - b.d);
+}
+
+const MILESTONE_SOON_DAYS = 30;
+
+// Counts for one lane: status mix, blocked, end date passed, milestones soon.
+function laneSummary(items, statuses, today) {
+  const list = (statuses && statuses.length ? statuses : STATUSES).filter((s) => s.id !== 'idea');
+  const byStatus = list
+    .map((s) => ({ status: s, n: items.filter((i) => i.status === s.id).length }))
+    .filter((x) => x.n > 0);
+  // Statuses not in the catalogue still count, so the numbers add up
+  const known = new Set(list.map((s) => s.id));
+  const other = items.filter((i) => !known.has(i.status)).length;
+  if (other) byStatus.push({ status: { id: '_other', label: 'Andet', color: UI.inkFaint }, n: other });
+  return {
+    total:   items.length,
+    byStatus,
+    blocked: items.filter((i) => (i.blockerIds || []).length > 0).length,
+    overdue: items.filter((i) => initTiming(i, today).overdue).length,
+    soon:    items.reduce((n, i) => n + upcomingMilestones(i, today, MILESTONE_SOON_DAYS).length, 0),
+  };
+}
+
+function laneSummaryText(sum) {
+  return [
+    `${sum.total} initiativer`,
+    ...sum.byStatus.map((x) => `${x.n} ${x.status.label}`),
+    sum.blocked ? `${sum.blocked} blokeret` : null,
+    sum.overdue ? `${sum.overdue} over slutdato` : null,
+    sum.soon    ? `${sum.soon} milepæl${sum.soon === 1 ? '' : 'e'} inden for ${MILESTONE_SOON_DAYS} dage` : null,
+  ].filter(Boolean).join(' · ');
+}
+
+// Compact chips for a lane's numbers. `sticky` = left offset (px) at which the
+// row stays pinned while the timeline scrolls sideways.
+function LaneSummaryChips({ sum, sticky }) {
+  const chip = (key, content, color, title) => (
+    <span key={key} title={title} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
+      fontFamily: UI.mono, fontSize: 9.5, fontWeight: 600, lineHeight: 1, color: color || UI.inkMuted,
+      background: UI.panel, border: `1px solid ${color ? `color-mix(in oklch, ${color} 30%, transparent)` : UI.border}`,
+      borderRadius: 4, padding: '3px 6px',
+    }}>{content}</span>
+  );
+  return (
+    <div style={{
+      position: 'sticky', left: sticky, display: 'inline-flex', alignItems: 'center', gap: 5,
+      pointerEvents: 'auto', paddingRight: 10,
+    }}>
+      {sum.byStatus.map((x) => chip(x.status.id, <>
+        <span style={{ width: 6, height: 6, borderRadius: 99, background: x.status.color }} />{x.n} {x.status.label}
+      </>, null, `${x.n} i status ${x.status.label}`))}
+      {sum.blocked > 0 && chip('blk', `⚠ ${sum.blocked} blokeret`, BLOCKER_RED, `${sum.blocked} initiativ${sum.blocked === 1 ? '' : 'er'} har mindst én blocker`)}
+      {sum.overdue > 0 && chip('od', `⏱ ${sum.overdue} over slutdato`, OVERDUE_AMBER, 'Slutdatoen er passeret, men status er ikke Prod')}
+      {sum.soon > 0 && chip('ms', `◆ ${sum.soon} milepæl${sum.soon === 1 ? '' : 'e'} ≤ ${MILESTONE_SOON_DAYS} d`, null, `Milepæle inden for de næste ${MILESTONE_SOON_DAYS} dage`)}
+    </div>
+  );
+}
+
+// ── Hover card for an initiative (bar or label row) ──────────────────────────
+// Follows the mouse on its own (a document listener + direct style writes), so
+// moving the pointer never re-renders the whole board.
+function BarHoverCard({ tip, store, today, canEdit }) {
+  const ref = React.useRef(null);
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const place = (x, y) => {
+      const w = el.offsetWidth, h = el.offsetHeight, gap = 14;
+      let left = x + gap, top = y + gap;
+      if (left + w > window.innerWidth - 8)  left = x - w - gap;
+      if (top + h > window.innerHeight - 8)  top  = y - h - gap;
+      el.style.left = `${Math.max(8, left)}px`;
+      el.style.top  = `${Math.max(8, top)}px`;
+    };
+    place(tip.x, tip.y);
+    const onMove = (ev) => place(ev.clientX, ev.clientY);
+    document.addEventListener('mousemove', onMove);
+    return () => document.removeEventListener('mousemove', onMove);
+  }, [tip]);
+
+  const i = tip.init;
+  const status = resolveStatus(i.status, store.statuses);
+  const t = initTiming(i, today);
+  const names = (list, ids) => (ids || []).map((id) => (list || []).find((x) => x.id === id)).filter(Boolean).map((x) => x.name);
+  const depts     = names(store.departments, i.departmentIds);
+  const platforms = names(store.platforms, i.platformIds);
+  const techs     = names(store.technologies, i.techIds);
+  const blockers  = names(store.blockers, i.blockerIds);
+  const outcomes  = names(store.outcomes, i.outcomeIds);
+  const nextMs    = upcomingMilestones(i, today)[0];
+
+  const period = t.s && t.e ? `${fmtDate(t.s)} – ${fmtDate(t.e)}`
+               : t.s        ? `${fmtDate(t.s)} – løbende (BAU)`
+               : t.e        ? `ingen start – ${fmtDate(t.e)}`
+               :              'løbende, ingen datoer';
+  let when = null, whenColor = 'rgba(255,255,255,0.75)';
+  if (t.notStarted)                  when = `Starter ${fmtInDays(t.daysToStart)}`;
+  else if (t.overdue)              { when = `Slutdato passeret ${fmtInDays(t.daysLeft)} — status er stadig ${status.label}`; whenColor = 'oklch(0.85 0.12 70)'; }
+  else if (t.e && t.daysLeft < 0)    when = `Afsluttet ${fmtInDays(t.daysLeft)}`;
+  else if (t.pct != null)            when = `${t.pct} % af perioden forløbet · slutter ${fmtInDays(t.daysLeft)}`;
+  else if (t.bau && t.s)             when = 'Løbende drift — ingen slutdato';
+
+  const row = (label, value, color) => value ? (
+    <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+      <span style={{ flex: '0 0 74px', color: 'rgba(255,255,255,0.5)', fontFamily: UI.mono, fontSize: 9.5, textTransform: 'uppercase', letterSpacing: 0.6, paddingTop: 1 }}>{label}</span>
+      <span style={{ flex: 1, minWidth: 0, color: color || '#fff' }}>{value}</span>
+    </div>
+  ) : null;
+
+  return (
+    <div ref={ref} role="tooltip" style={{
+      position: 'fixed', left: -9999, top: -9999, zIndex: 9998, pointerEvents: 'none',
+      width: 300, maxWidth: 'calc(100vw - 16px)', boxSizing: 'border-box',
+      background: UI.ink, color: '#fff', borderRadius: 8, padding: '10px 12px',
+      fontFamily: UI.sans, fontSize: 11.5, lineHeight: 1.45,
+      boxShadow: '0 8px 24px rgba(20,16,12,.3)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ width: 8, height: 8, borderRadius: 99, background: status.color, flex: '0 0 auto' }} />
+        <span style={{ fontWeight: 700, fontSize: 13, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.name || 'Uden navn'}</span>
+      </div>
+      <div style={{ color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>
+        {[tip.bu && tip.bu.name, status.label, i.owner].filter(Boolean).join(' · ')}
+      </div>
+      {t.pct != null && !t.overdue && (
+        <div style={{ height: 3, borderRadius: 99, background: 'rgba(255,255,255,0.15)', marginTop: 7, overflow: 'hidden' }}>
+          <div style={{ width: `${t.pct}%`, height: '100%', background: status.color }} />
+        </div>
+      )}
+      <div style={{ marginTop: 6 }}>
+        {row('Periode', `${period}${t.duration > 0 ? ` (${fmtDuration(t.duration)})` : ''}`)}
+        {row('Status', when, whenColor)}
+        {row('Milepæl', nextMs ? `${nextMs.label || 'Milepæl'} · ${fmtDay(nextMs.d)} (${fmtInDays(daysBetween(new Date(today.getFullYear(), today.getMonth(), today.getDate()), nextMs.d))})` : null)}
+        {row('Blockers', blockers.length ? `⚠ ${blockers.join(', ')}` : null, 'oklch(0.8 0.12 20)')}
+        {row('Afdeling', depts.join(', '))}
+        {row('Platform', platforms.join(', '))}
+        {row('Teknologi', techs.join(', '))}
+        {row('Outcomes', outcomes.join(', '))}
+      </div>
+      <div style={{ marginTop: 8, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.45)', fontFamily: UI.mono, fontSize: 9.5 }}>
+        {canEdit ? 'Klik for at åbne · træk for at flytte' : 'Klik for at åbne'}
+      </div>
+    </div>
+  );
+}
+
 // ── Main board component ──────────────────────────────────────────────────────
 function BoardView() {
   const [store, setStoreRaw]                      = React.useState(null);
@@ -448,6 +643,8 @@ function BoardView() {
   const [catalogue, setCatalogue]                 = React.useState(false);
   const [view, setView]                           = React.useState('gantt'); // 'gantt' | 'portfolio' | 'import' | 'ideas' | 'tech'
   const [milestoneTooltip, setMilestoneTooltip]   = React.useState(null); // {label, date, x, y}
+  const [hoverTip, setHoverTip]                   = React.useState(null); // {init, bu, x, y}
+  const draggingRef                               = React.useRef(false);
   const [labelW, setLabelW]                       = React.useState(280);
   const labelWRef                                 = React.useRef(280);
   // Collapsed BU lanes — a view preference, kept out of the store so it never
@@ -755,6 +952,14 @@ function BoardView() {
   const dayPx     = timelineW / ((range.end - range.start) / D_MS + 1);
   const dateToX   = (d) => ((d - range.start) / D_MS) * dayPx;
 
+  // Horizontal extent of an initiative's bar — the same rules the bar renderer
+  // uses: no start → from the timeline's left edge, BAU → to its right edge.
+  // (parseISO on a missing date gives an Invalid Date, i.e. NaN coordinates.)
+  const barX = (i) => ({
+    x1: isValidISO(i.start) ? dateToX(parseISO(i.start)) : 0,
+    x2: isValidISO(i.end)   ? dateToX(parseISO(i.end))   : timelineW,
+  });
+
   const BU_H = 40, DEPT_H = 34, PLAT_H = 28, ROW_H = 44, LANE_GAP = 8;
 
   const layout = React.useMemo(() => {
@@ -793,7 +998,7 @@ function BoardView() {
       for (const dept of deptsHere) {
         const deptItems = items.filter((i) => hasSingleDept(i) && i.departmentIds[0] === dept.id);
         rows.push({ kind: 'department', department: dept, bu, y, h: DEPT_H });
-        y += PLAT_H;
+        y += DEPT_H; // (was PLAT_H — the header then overlapped its first row by 6 px)
         for (const init of deptItems) {
           rows.push({ kind: 'init', init, bu, department: dept, platform: null, y, h: ROW_H });
           y += ROW_H;
@@ -835,7 +1040,7 @@ function BoardView() {
     if (buSet.size < 2) return null;
     const matched = layout.rows.filter((r) => r.kind === 'init' && r.init.techIds.includes(techId));
     if (matched.length < 2) return null;
-    const xs = matched.flatMap((r) => [dateToX(parseISO(r.init.start)), dateToX(parseISO(r.init.end))]);
+    const xs = matched.flatMap((r) => { const b = barX(r.init); return [b.x1, b.x2]; });
     const tech = (store.technologies || []).find((t) => t.id === techId);
     return { x1: Math.min(...xs), x2: Math.max(...xs), hue: tech ? techHue(tech) : 250, buCount: buSet.size, kind: 'tech' };
   }, [selectedTechs, selectedBlockers, techSynergy, layout, dayPx, store]);
@@ -847,7 +1052,7 @@ function BoardView() {
     if (buSet.size < 2) return null;
     const matched = layout.rows.filter((r) => r.kind === 'init' && (r.init.blockerIds || []).includes(blockerId));
     if (matched.length < 2) return null;
-    const xs = matched.flatMap((r) => [dateToX(parseISO(r.init.start)), dateToX(parseISO(r.init.end))]);
+    const xs = matched.flatMap((r) => { const b = barX(r.init); return [b.x1, b.x2]; });
     return { x1: Math.min(...xs), x2: Math.max(...xs), hue: 15, buCount: buSet.size, kind: 'blocker' };
   }, [selectedBlockers, blockerSynergy, layout, dayPx]);
 
@@ -874,15 +1079,65 @@ function BoardView() {
     if (litTechId) {
       return layout.rows
         .filter((r) => r.kind === 'init' && r.init.techIds.includes(litTechId))
-        .map((r) => ({ id: r.init.id, buId: r.bu.id, x1: dateToX(parseISO(r.init.start)), x2: dateToX(parseISO(r.init.end)), y: r.y + r.h / 2, isBlocker: false }));
+        .map((r) => ({ id: r.init.id, buId: r.bu.id, ...barX(r.init), y: r.y + r.h / 2, isBlocker: false }));
     }
     if (litBlockerId) {
       return layout.rows
         .filter((r) => r.kind === 'init' && (r.init.blockerIds || []).includes(litBlockerId))
-        .map((r) => ({ id: r.init.id, buId: r.bu.id, x1: dateToX(parseISO(r.init.start)), x2: dateToX(parseISO(r.init.end)), y: r.y + r.h / 2, isBlocker: true }));
+        .map((r) => ({ id: r.init.id, buId: r.bu.id, ...barX(r.init), y: r.y + r.h / 2, isBlocker: true }));
     }
     return [];
   }, [litTechId, litBlockerId, layout, dayPx]);
+
+  // ── Scroll position: open on today, keep the centre when zooming ───────────
+  // The label column is sticky over the left `labelW` px of the scroller, so
+  // timeline x is visible at screen offset labelW + x - scrollLeft.
+  const visibleTimelineW = () => {
+    const el = scrollerRef.current;
+    return el ? Math.max(0, el.clientWidth - labelWRef.current) : 0;
+  };
+  const leftForDate = (d) => Math.max(0, dateToX(d) - Math.min(2 * monthW, visibleTimelineW() / 3));
+
+  // Opening the Gantt (first load, or back from another view) starts at today
+  // instead of three months before the oldest initiative.
+  const didInitialScrollRef = React.useRef(false);
+  React.useEffect(() => {
+    if (view !== 'gantt') { didInitialScrollRef.current = false; return; }
+    const el = scrollerRef.current;
+    if (!store || !el || didInitialScrollRef.current) return;
+    didInitialScrollRef.current = true;
+    el.scrollLeft = leftForDate(today);
+  }, [view, store]);
+
+  const zoomAnchorRef = React.useRef(null); // day offset at the centre of the view
+  const changeZoom = (z) => {
+    const el = scrollerRef.current;
+    if (el && z !== zoom) zoomAnchorRef.current = (el.scrollLeft + visibleTimelineW() / 2) / dayPx;
+    setZoom(z);
+  };
+  React.useLayoutEffect(() => {
+    const el = scrollerRef.current, day = zoomAnchorRef.current;
+    zoomAnchorRef.current = null;
+    if (el && day != null) el.scrollLeft = Math.max(0, day * dayPx - visibleTimelineW() / 2);
+  }, [zoom]);
+
+  // Keyboard shortcuts on the Gantt. The handler is rebuilt every render (so it
+  // sees current state) and read through a ref by one stable listener.
+  const keyHandlerRef = React.useRef(null);
+  React.useEffect(() => {
+    const onKey = (e) => keyHandlerRef.current && keyHandlerRef.current(e);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  // A scroll moves bars away under a still pointer without a mouseleave
+  React.useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const onScroll = () => setHoverTip((t) => t ? null : t);
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [view, !!store]);
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
   const updateInit = (id, patch) => setStore((s) => ({
@@ -1054,12 +1309,35 @@ function BoardView() {
 
   const scrollTo = (date) => {
     if (!scrollerRef.current) return;
-    scrollerRef.current.scrollTo({ left: Math.max(0, dateToX(date) + labelW - 120), behavior: 'smooth' });
+    // (Was dateToX + labelW - 120, which parked the date behind the sticky label column.)
+    scrollerRef.current.scrollTo({ left: leftForDate(date), behavior: 'smooth' });
   };
   const scrollByMonths = (delta) => {
     if (!scrollerRef.current) return;
     scrollerRef.current.scrollBy({ left: delta * monthW, behavior: 'smooth' });
   };
+
+  const ZOOMS = [0.75, 1, 1.5];
+  const anyModalOpen = !!(drawer || catalogue || showPatSetup || (connected && (askName || !editorName)));
+  keyHandlerRef.current = (e) => {
+    if (view !== 'gantt' || anyModalOpen || !scrollerRef.current) return;
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    const zi = ZOOMS.indexOf(zoom);
+    if (e.key === 't' || e.key === 'T')      scrollTo(today);
+    else if (e.key === 'ArrowLeft')          scrollByMonths(e.shiftKey ? -3 : -1);
+    else if (e.key === 'ArrowRight')         scrollByMonths(e.shiftKey ? 3 : 1);
+    else if (e.key === '+' || e.key === '=') { if (zi < ZOOMS.length - 1) changeZoom(ZOOMS[zi + 1]); }
+    else if (e.key === '-')                  { if (zi > 0) changeZoom(ZOOMS[zi - 1]); }
+    else if (e.key === 'Escape' && hoverTip) setHoverTip(null);
+    else return;
+    e.preventDefault();
+  };
+
+  // Hover card handlers shared by bars and label rows
+  const showTip = (ev, init, bu) => { if (!draggingRef.current) setHoverTip({ init, bu, x: ev.clientX, y: ev.clientY }); };
+  const hideTip = () => setHoverTip(null);
 
   const downloadJSON = () => {
     const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' });
@@ -1088,34 +1366,45 @@ function BoardView() {
 
   const startBarDrag = (e, init, mode) => {
     if (!connectedRef.current) return; // view-only: a click still opens the drawer
+    // A missing start / BAU end stays missing: only real dates move. (Before,
+    // dragging a BAU bar wrote end: "NaN-NaN-NaN" from parseISO(null).)
+    const hasStart = isValidISO(init.start), hasEnd = isValidISO(init.end);
+    if ((mode === 'move' && !hasStart && !hasEnd) || (mode === 'rL' && !hasStart) || (mode === 'rR' && !hasEnd)) return;
     e.stopPropagation(); e.preventDefault();
+    setHoverTip(null);
     const startX = e.clientX;
-    const origStart = parseISO(init.start), origEnd = parseISO(init.end);
+    const origStart = hasStart ? parseISO(init.start) : null, origEnd = hasEnd ? parseISO(init.end) : null;
+    const datesPatch = (ns, ne) => ({
+      ...(hasStart ? { start: dateToISO(ns) } : null),
+      ...(hasEnd   ? { end:   dateToISO(ne) } : null),
+    });
     let dragged = false;
     const apply = (dx) => {
       const dxDays = Math.round(dx / dayPx);
-      if (dxDays === 0) { updateInit(init.id, { start: dateToISO(origStart), end: dateToISO(origEnd) }); return; }
+      if (dxDays === 0) { updateInit(init.id, datesPatch(origStart, origEnd)); return; }
       let ns = origStart, ne = origEnd;
       if (mode === 'move') {
-        ns = addDays(origStart, dxDays);
-        ne = addDays(origEnd,   dxDays);
+        if (hasStart) ns = addDays(origStart, dxDays);
+        if (hasEnd)   ne = addDays(origEnd,   dxDays);
       } else if (mode === 'rR') {
         ne = addDays(origEnd, dxDays);
-        if (ne <= addDays(origStart, 6)) ne = addDays(origStart, 7);
+        if (hasStart && ne <= addDays(origStart, 6)) ne = addDays(origStart, 7);
       } else if (mode === 'rL') {
         ns = addDays(origStart, dxDays);
-        if (ns >= addDays(origEnd, -6)) ns = addDays(origEnd, -7);
+        if (hasEnd && ns >= addDays(origEnd, -6)) ns = addDays(origEnd, -7);
       }
-      const patch = { start: dateToISO(ns), end: dateToISO(ne) };
+      const patch = datesPatch(ns, ne);
       if (mode === 'move' && init.milestones && init.milestones.length) {
-        patch.milestones = init.milestones.map((m) => ({
-          ...m, date: dateToISO(addDays(parseISO(m.date), dxDays)),
-        }));
+        patch.milestones = init.milestones.map((m) => isValidISO(m.date)
+          ? { ...m, date: dateToISO(addDays(parseISO(m.date), dxDays)) }
+          : m);
       }
       updateInit(init.id, patch);
     };
+    draggingRef.current = true;
     const onMove = (ev) => { const dx = ev.clientX - startX; if (Math.abs(dx) > 3) dragged = true; if (dragged) apply(dx); };
     const onUp   = () => {
+      draggingRef.current = false;
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
       if (dragged) {
@@ -1126,7 +1415,7 @@ function BoardView() {
     document.addEventListener('pointermove', onMove);
     document.addEventListener('pointerup', onUp);
   };
-  const onBarClick = (init) => { if (dragSuppressRef.current === init.id) return; setDrawer({ ...init }); };
+  const onBarClick = (init) => { if (dragSuppressRef.current === init.id) return; setHoverTip(null); setDrawer({ ...init }); };
 
   const getBarStyle = (init, bu) => {
     const status      = resolveStatus(init.status, store.statuses);
@@ -1148,9 +1437,14 @@ function BoardView() {
       dim = !hasBlockers;
       if (hasBlockers) { borderLeftColor = BLOCKER_RED; bgOverride = `color-mix(in oklch, ${BLOCKER_RED} 6%, ${UI.panel})`; }
     }
-    const boxShadow = isHot && glowColor
+    const baseShadow = isHot && glowColor
       ? `0 0 0 2px ${glowColor}, 0 0 0 4px color-mix(in oklch, ${glowColor} 25%, transparent), 0 6px 16px rgba(20,16,12,.1)`
       : UI.shadow;
+    // Blocked bars always carry a red underline, so blockers read at a glance
+    // without switching blocker mode on.
+    const boxShadow = hasBlockers
+      ? `inset 0 -3px 0 color-mix(in oklch, ${BLOCKER_RED} 75%, transparent), ${baseShadow}`
+      : baseShadow;
     return { status, hasBlockers, dim, isHot, borderLeftColor, bgOverride, boxShadow };
   };
 
@@ -1223,7 +1517,31 @@ function BoardView() {
     return null;
   };
 
-  const CAL_H = 56;
+  // Calendar header: quarter row + month row + a row for the "I dag" marker
+  const CAL_Q_H = 22, CAL_M_H = 26, CAL_T_H = 20;
+  const CAL_H = CAL_Q_H + CAL_M_H + CAL_T_H;
+  const todayX  = dateToX(today);
+  const todayIn = todayX >= 0 && todayX <= timelineW;
+  const boardSum = laneSummary(filteredInits, store.statuses, today);
+
+  const months = monthList.map((d) => ({
+    key: `${d.getFullYear()}-${d.getMonth()}`, d,
+    x1: dateToX(d),
+    x2: Math.min(timelineW, dateToX(new Date(d.getFullYear(), d.getMonth() + 1, 1))),
+    qStart: d.getMonth() % 3 === 0,
+    current: d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth(),
+  }));
+  const quarters = [];
+  for (const m of months) {
+    const q = quarterOf(m.d), y = m.d.getFullYear();
+    const last = quarters[quarters.length - 1];
+    if (last && last.q === q && last.year === y) { last.x2 = m.x2; continue; }
+    quarters.push({
+      key: `${y}-Q${q}`, q, year: y, label: `Q${q}`, x1: m.x1, x2: m.x2,
+      start: new Date(y, (q - 1) * 3, 1),
+      current: y === today.getFullYear() && q === quarterOf(today),
+    });
+  }
 
   return (
     <div className="ai-board" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: UI.bg, position: 'relative' }}>
@@ -1263,11 +1581,11 @@ function BoardView() {
           </div>
           <div style={{ width: 1, height: 22, background: UI.border, margin: '0 2px' }} />
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <button onClick={() => scrollByMonths(-1)} style={chipBtn(false, true)} disabled={view !== 'gantt'}>‹</button>
-            <button onClick={() => scrollTo(today)} style={chipBtn(false, true)} disabled={view !== 'gantt'}>I dag</button>
-            <button onClick={() => scrollByMonths(1)} style={chipBtn(false, true)} disabled={view !== 'gantt'}>›</button>
-            {[0.75, 1, 1.5].map((z) => (
-              <button key={z} onClick={() => setZoom(z)} style={chipBtn(zoom === z, true)} disabled={view !== 'gantt'}>
+            <button onClick={() => scrollByMonths(-1)} title="En måned tilbage (←, Shift+← = kvartal)" style={chipBtn(false, true)} disabled={view !== 'gantt'}>‹</button>
+            <button onClick={() => scrollTo(today)} title="Gå til i dag (T)" style={chipBtn(false, true)} disabled={view !== 'gantt'}>I dag</button>
+            <button onClick={() => scrollByMonths(1)} title="En måned frem (→, Shift+→ = kvartal)" style={chipBtn(false, true)} disabled={view !== 'gantt'}>›</button>
+            {ZOOMS.map((z) => (
+              <button key={z} onClick={() => changeZoom(z)} title="Zoom (+ / −)" style={chipBtn(zoom === z, true)} disabled={view !== 'gantt'}>
                 {z === 0.75 ? 'S' : z === 1 ? 'M' : 'L'}
               </button>
             ))}
@@ -1377,12 +1695,21 @@ function BoardView() {
                 transition: 'opacity .15s', pointerEvents: 'none',
               }} />
             </div>
-            <div style={{
-              height: CAL_H, borderBottom: `1px solid ${UI.border}`,
-              display: 'flex', alignItems: 'flex-end', padding: '0 14px 10px 20px',
-              fontFamily: UI.mono, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: UI.inkFaint,
-              background: UI.panelSoft,
-            }}>Forretningsenhed / Initiativ</div>
+            {/* Corner header — sticky on top too, so the board totals stay in
+                view while scrolling a long list of lanes. */}
+            <div title={laneSummaryText(boardSum)} style={{
+              height: CAL_H, borderBottom: `1px solid ${UI.border}`, boxSizing: 'border-box',
+              position: 'sticky', top: 0, zIndex: 5,
+              display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 5,
+              padding: '0 14px 9px 20px', background: UI.panelSoft, overflow: 'hidden',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontFamily: UI.mono, fontSize: 10, color: UI.inkMuted }}>
+                <span style={{ color: UI.ink, fontWeight: 700, fontSize: 11 }}>{boardSum.total} initiativer</span>
+                {boardSum.blocked > 0 && <span style={{ color: BLOCKER_RED, fontWeight: 700 }}>⚠ {boardSum.blocked} blokeret</span>}
+                {boardSum.overdue > 0 && <span style={{ color: OVERDUE_AMBER, fontWeight: 700 }}>⏱ {boardSum.overdue} over slutdato</span>}
+              </div>
+              <div style={{ fontFamily: UI.mono, fontSize: 9.5, letterSpacing: 1, textTransform: 'uppercase', color: UI.inkFaint }}>Forretningsenhed / Initiativ</div>
+            </div>
 
             <div style={{ position: 'relative', height: layout.totalH }}>
               {buBands.map((b) => {
@@ -1436,7 +1763,7 @@ function BoardView() {
                         borderRadius: 4, padding: '1px 5px',
                       }}>{r.count}</span>
                       {blockedInBU > 0 && (
-                        <span style={{ fontFamily: UI.mono, fontSize: 9, color: BLOCKER_RED, fontWeight: 700, flex: '0 0 auto' }}>⚠{blockedInBU}</span>
+                        <span title={`${blockedInBU} initiativ${blockedInBU === 1 ? '' : 'er'} med blockers`} style={{ fontFamily: UI.mono, fontSize: 9, color: BLOCKER_RED, fontWeight: 700, flex: '0 0 auto' }}>⚠{blockedInBU}</span>
                       )}
                       {hiddenHits > 0 && (
                         <span title={`${hiddenHits} match(es) skjult i denne enhed`} style={{
@@ -1500,15 +1827,15 @@ function BoardView() {
                     ? (r.init.departmentIds || []).map((did) => (store.departments || []).find((d) => d.id === did)).filter(Boolean)
                     : [];
                   return (
-                    <div key={r.init.id} onClick={() => setDrawer({ ...r.init })} style={{
+                    <div key={r.init.id} onClick={() => { hideTip(); setDrawer({ ...r.init }); }} style={{
                       position: 'absolute', top: r.y, left: 0, right: 0, height: r.h,
                       padding: `0 12px 0 ${isGrouped ? 40 : 28}px`, display: 'flex', alignItems: 'center', gap: 7,
                       cursor: 'pointer', opacity: dim ? 0.35 : 1, transition: 'opacity .15s',
                       borderBottom: `1px solid color-mix(in oklch, ${UI.border} 60%, transparent)`,
                       borderLeft: isGrouped ? `3px solid color-mix(in oklch, ${r.bu.accent} 45%, transparent)` : 'none',
                     }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = UI.panelSoft}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                      onMouseEnter={(e) => { e.currentTarget.style.background = UI.panelSoft; showTip(e, r.init, r.bu); }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; hideTip(); }}>
                       <UiStatusPill status={r.init.status} statuses={store.statuses} size="sm" />
                       <div style={{
                         flex: 1, minWidth: 0, fontSize: 12, fontWeight: 500, color: UI.ink,
@@ -1559,62 +1886,62 @@ function BoardView() {
           {/* ── Timeline area ──────────────────────────────────────────── */}
           <div style={{ flex: 1, position: 'relative' }}>
             {/* Calendar header */}
-            <div style={{ height: CAL_H, position: 'sticky', top: 0, zIndex: 3, background: UI.panelSoft, borderBottom: `1px solid ${UI.border}` }}>
-              <div style={{ display: 'flex', height: 22 }}>
-                {(() => {
-                  const out = []; let i = 0;
-                  while (i < monthList.length) {
-                    const m = monthList[i]; const q = quarterOf(m), y = m.getFullYear();
-                    let span = 1;
-                    while (i + span < monthList.length && quarterOf(monthList[i + span]) === q && monthList[i + span].getFullYear() === y) span++;
-                    out.push(
-                      <button key={`${y}-Q${q}`} onClick={() => scrollTo(new Date(y, (q - 1) * 3, 1))} style={{
-                        width: span * monthW, padding: '0 10px',
-                        display: 'flex', alignItems: 'center', gap: 6,
-                        fontFamily: UI.mono, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: UI.inkMuted,
-                        background: 'transparent', border: 'none', borderRight: `1px solid ${UI.border}`,
-                        cursor: 'pointer', height: '100%',
-                      }}>Q{q} <span style={{ color: UI.inkFaint }}>{y}</span></button>
-                    );
-                    i += span;
-                  }
-                  return out;
-                })()}
-              </div>
-              <div style={{ display: 'flex', height: 34, alignItems: 'flex-end', paddingBottom: 6 }}>
-                {monthList.map((m, idx) => {
-                  const isToday = m.getMonth() === today.getMonth() && m.getFullYear() === today.getFullYear();
-                  return (
-                    <div key={idx} style={{
-                      width: monthW, padding: '0 10px',
-                      borderRight: `1px dashed ${UI.border}`,
-                      fontFamily: UI.mono, fontSize: 11,
-                      color: isToday ? UI.ink : UI.inkMuted,
-                      fontWeight: isToday ? 600 : 400,
-                    }}>{fmtMon(m)}</div>
-                  );
-                })}
-              </div>
+            {/* Months and quarters sit at their real date positions (dateToX),
+                so the grid, the bars and the today line always agree. */}
+            <div style={{ height: CAL_H, position: 'sticky', top: 0, zIndex: 3, background: UI.panelSoft, borderBottom: `1px solid ${UI.border}`, width: timelineW }}>
+              {quarters.map((q) => (
+                <button key={q.key} onClick={() => scrollTo(q.start)} title={`Gå til ${q.label} ${q.year}`} style={{
+                  position: 'absolute', top: 0, left: q.x1, width: q.x2 - q.x1, height: CAL_Q_H,
+                  padding: '0 10px', display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden', whiteSpace: 'nowrap',
+                  fontFamily: UI.mono, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase',
+                  color: q.current ? UI.accent : UI.inkMuted, fontWeight: q.current ? 700 : 400,
+                  background: q.current ? `color-mix(in oklch, ${UI.accent} 9%, transparent)` : 'transparent',
+                  border: 'none', borderLeft: q.x1 > 0 ? `1px solid ${UI.borderStrong}` : 'none',
+                  cursor: 'pointer',
+                }}>{q.label} <span style={{ color: q.current ? UI.accent : UI.inkFaint, opacity: q.current ? 0.75 : 1 }}>{q.year}</span>
+                  {q.current && <span style={{ fontSize: 8.5, letterSpacing: 0.6 }}>· nu</span>}</button>
+              ))}
+              {months.map((m) => (
+                <div key={m.key} style={{
+                  position: 'absolute', top: CAL_Q_H, left: m.x1, width: m.x2 - m.x1, height: CAL_M_H,
+                  padding: '0 8px', display: 'flex', alignItems: 'center', overflow: 'hidden', whiteSpace: 'nowrap',
+                  borderLeft: m.x1 > 0 ? `1px ${m.qStart ? 'solid' : 'dashed'} ${m.qStart ? UI.borderStrong : UI.border}` : 'none',
+                  fontFamily: UI.mono, fontSize: 11,
+                  color: m.current ? UI.accent : UI.inkMuted,
+                  fontWeight: m.current ? 700 : 400,
+                }}>{fmtMon(m.d)}{m.d.getMonth() === 0 && <span style={{ color: UI.inkFaint, fontSize: 9, marginLeft: 4 }}>{m.d.getFullYear()}</span>}</div>
+              ))}
+              {todayIn && (<>
+                <div style={{ position: 'absolute', left: todayX - 1, top: CAL_Q_H + CAL_M_H - 4, bottom: -1, width: 2, background: UI.accent }} />
+                <div title={`I dag: ${fmtDate(today)}`} style={{
+                  position: 'absolute', top: CAL_Q_H + CAL_M_H + 1, left: todayX, transform: 'translateX(-50%)',
+                  padding: '2px 7px', background: UI.accent, color: '#fff', borderRadius: 99, whiteSpace: 'nowrap',
+                  fontFamily: UI.mono, fontSize: 9, fontWeight: 700, letterSpacing: 0.5, lineHeight: 1.3,
+                }}>I DAG · {fmtDay(today).toUpperCase()}</div>
+              </>)}
             </div>
 
             {/* Timeline body */}
             <div style={{ position: 'relative', height: layout.totalH, width: timelineW }}>
-              {monthList.map((_, idx) => (
-                <div key={idx} style={{ position: 'absolute', top: 0, left: idx * monthW, bottom: 0, width: 1, background: idx === 0 ? 'transparent' : UI.border, opacity: 0.5 }} />
+              {/* Month lines; quarter starts are drawn stronger */}
+              {months.map((m) => m.x1 > 0 && (
+                <div key={'ml:' + m.key} style={{
+                  position: 'absolute', top: 0, left: m.x1, bottom: 0, width: 1, pointerEvents: 'none',
+                  background: m.qStart ? UI.borderStrong : UI.border, opacity: m.qStart ? 0.9 : 0.5,
+                }} />
               ))}
 
-              {(() => {
-                const bands = []; let i = 0;
-                while (i < monthList.length) {
-                  const q = quarterOf(monthList[i]); let span = 1;
-                  while (i + span < monthList.length && quarterOf(monthList[i + span]) === q && monthList[i + span].getFullYear() === monthList[i].getFullYear()) span++;
-                  if ((q + monthList[i].getFullYear()) % 2 === 0) {
-                    bands.push(<div key={'q' + i} style={{ position: 'absolute', top: 0, left: i * monthW, width: span * monthW, bottom: 0, background: 'color-mix(in oklch, oklch(0.6 0.04 80) 3%, transparent)', pointerEvents: 'none' }} />);
-                  }
-                  i += span;
-                }
-                return bands;
-              })()}
+              {quarters.map((q) => (q.q + q.year) % 2 === 0 && (
+                <div key={'qb:' + q.key} style={{ position: 'absolute', top: 0, left: q.x1, width: q.x2 - q.x1, bottom: 0, background: 'color-mix(in oklch, oklch(0.6 0.04 80) 3%, transparent)', pointerEvents: 'none' }} />
+              ))}
+
+              {/* The current quarter gets a faint accent wash, the past a grey veil */}
+              {quarters.filter((q) => q.current).map((q) => (
+                <div key={'qc:' + q.key} style={{ position: 'absolute', top: 0, left: q.x1, width: q.x2 - q.x1, bottom: 0, background: `color-mix(in oklch, ${UI.accent} 3%, transparent)`, pointerEvents: 'none' }} />
+              ))}
+              {todayX > 0 && (
+                <div style={{ position: 'absolute', top: 0, left: 0, width: Math.min(todayX, timelineW), bottom: 0, background: 'color-mix(in oklch, oklch(0.45 0.01 80) 4%, transparent)', pointerEvents: 'none' }} />
+              )}
 
               {buBands.map((b) => {
                 const bu = buById[b.buId]; if (!bu) return null;
@@ -1629,14 +1956,23 @@ function BoardView() {
                 );
               })}
 
-              {layout.rows.filter((r) => r.kind === 'bu').map((r) => (
-                <div key={'lbg:' + r.bu.id} style={{
-                  position: 'absolute', top: r.y, left: 0, width: timelineW, height: r.h,
-                  borderBottom: `1px solid ${UI.border}`,
-                  background: `color-mix(in oklch, ${r.bu.accent} 5%, transparent)`,
-                  pointerEvents: 'none',
-                }} />
-              ))}
+              {layout.rows.filter((r) => r.kind === 'bu').map((r) => {
+                // Expanded lanes show their key numbers in the otherwise empty
+                // header row, pinned just right of the label column while
+                // scrolling sideways. (Collapsed lanes show them on the roll-up.)
+                const sum = !r.collapsed && r.items.length ? laneSummary(r.items, store.statuses, today) : null;
+                return (
+                  <div key={'lbg:' + r.bu.id} style={{
+                    position: 'absolute', top: r.y, left: 0, width: timelineW, height: r.h,
+                    borderBottom: `1px solid ${UI.border}`,
+                    background: `color-mix(in oklch, ${r.bu.accent} 5%, transparent)`,
+                    // Above the today line (z 2), so the line never cuts through the chips
+                    pointerEvents: 'none', display: 'flex', alignItems: 'center', zIndex: 3,
+                  }}>
+                    {sum && <LaneSummaryChips sum={sum} sticky={labelW + 10} />}
+                  </div>
+                );
+              })}
 
               {layout.rows.filter((r) => r.kind === 'department').map((r) => (
                 <div key={'deptbg:' + r.department.id + ':' + r.y} style={{
@@ -1693,9 +2029,14 @@ function BoardView() {
               )}
 
               {/* Today line */}
-              <div style={{ position: 'absolute', top: 0, bottom: 0, width: 2, left: dateToX(today), background: UI.accent, zIndex: 2, pointerEvents: 'none' }}>
-                <div style={{ position: 'absolute', top: -2, left: -20, padding: '2px 6px', background: UI.accent, color: '#fff', borderRadius: 3, fontFamily: UI.mono, fontSize: 9, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase' }}>I dag</div>
-              </div>
+              {/* (Its "I dag" label lives in the sticky calendar header, so it
+                  stays visible however far down the board is scrolled.) */}
+              {todayIn && (
+                <div style={{
+                  position: 'absolute', top: 0, bottom: 0, width: 2, left: todayX - 1, zIndex: 2, pointerEvents: 'none',
+                  background: UI.accent, boxShadow: `0 0 0 3px color-mix(in oklch, ${UI.accent} 12%, transparent)`,
+                }} />
+              )}
 
               {/* Synergy connectors */}
               {connectorBars.length > 1 && (
@@ -1733,10 +2074,11 @@ function BoardView() {
                               : (ends.length ? dateToX(ends.reduce((a, b) => a > b ? a : b)) : timelineW);
                 const barW  = Math.max(24, x2 - x);
                 const fadeW = bau ? Math.min(80, Math.max(36, barW * 0.25)) : 0;
+                const sumText = laneSummaryText(laneSummary(r.items, store.statuses, today));
                 return (
                   <div key={'rollup:' + r.bu.id}
                     onClick={() => toggleBUCollapse(r.bu.id)}
-                    title={`${r.bu.name} — ${r.count} initiativer · klik for at folde ud`}
+                    title={`${r.bu.name} — ${sumText} · klik for at folde ud`}
                     style={{
                       position: 'absolute', top: r.y + 12, left: x, width: barW, height: 16,
                       borderRadius: bau ? '5px 0 0 5px' : 5, cursor: 'pointer', zIndex: 1,
@@ -1753,7 +2095,7 @@ function BoardView() {
                     <span style={{
                       fontFamily: UI.mono, fontSize: 9, fontWeight: 700, letterSpacing: 0.4,
                       color: `color-mix(in oklch, ${r.bu.accent} 75%, ${UI.ink})`, whiteSpace: 'nowrap',
-                    }}>{r.count} initiativer</span>
+                    }}>{sumText}</span>
                   </div>
                 );
               })}
@@ -1786,10 +2128,12 @@ function BoardView() {
                   <div key={i.id}
                     onPointerDown={(ev) => { if (ev.target.closest('[data-no-drag]')) return; startBarDrag(ev, i, 'move'); }}
                     onClick={() => onBarClick(i)}
-                    title={`${i.name} · ${dateRange}${hasBlockers ? ` · ⚠ ${(i.blockerIds || []).length} blocker(s)` : ''}`}
+                    onMouseEnter={(ev) => showTip(ev, i, r.bu)}
+                    onMouseLeave={hideTip}
+                    aria-label={`${i.name} · ${dateRange}${hasBlockers ? ` · ${(i.blockerIds || []).length} blocker(s)` : ''}`}
                     style={{
                       position: 'absolute', top: r.y + 7, left: x, width: barW, height: r.h - 14,
-                      borderRadius: noEnd ? '6px 0 0 6px' : 6, cursor: 'grab',
+                      borderRadius: noEnd ? '6px 0 0 6px' : 6, cursor: connected ? 'grab' : 'pointer',
                       ...(noEnd ? {
                         WebkitMaskImage: `linear-gradient(to right, #000 calc(100% - ${fadeW}px), transparent 100%)`,
                         maskImage:       `linear-gradient(to right, #000 calc(100% - ${fadeW}px), transparent 100%)`,
@@ -1804,11 +2148,17 @@ function BoardView() {
                       overflow: 'visible', zIndex: isHot ? 3 : 1,
                       userSelect: 'none', touchAction: 'none',
                     }}>
-                    <div data-no-drag onPointerDown={(ev) => startBarDrag(ev, i, 'rL')} style={{ position: 'absolute', left: -3, top: 0, bottom: 0, width: 8, cursor: 'ew-resize' }} />
+                    {/* Likewise no left handle without a start date */}
+                    {!noStart && <div data-no-drag onPointerDown={(ev) => startBarDrag(ev, i, 'rL')} style={{ position: 'absolute', left: -3, top: 0, bottom: 0, width: 8, cursor: 'ew-resize' }} />}
                     {/* No right resize handle on BAU bars — dragging it would
                         silently turn "løbende" into a fixed end date. */}
                     {!noEnd && <div data-no-drag onPointerDown={(ev) => startBarDrag(ev, i, 'rR')} style={{ position: 'absolute', right: -3, top: 0, bottom: 0, width: 8, cursor: 'ew-resize' }} />}
-                    {hasBlockers && <span style={{ fontSize: 9, color: BLOCKER_RED, fontWeight: 700, flex: '0 0 auto', marginRight: 4, lineHeight: 1 }}>⚠</span>}
+                    {hasBlockers && (
+                      <span style={{
+                        fontFamily: UI.mono, fontSize: 9, color: '#fff', background: BLOCKER_RED, fontWeight: 700,
+                        flex: '0 0 auto', marginRight: 5, lineHeight: 1, padding: '2px 4px', borderRadius: 3, whiteSpace: 'nowrap',
+                      }}>⚠{barW >= 60 ? ` ${(i.blockerIds || []).length}` : ''}</span>
+                    )}
                     {barW >= 90 && (i.platformIds || []).slice(0, 2).map((pid) => {
                       const plat = (store.platforms || []).find((p) => p.id === pid);
                       if (!plat) return null;
@@ -1961,8 +2311,13 @@ function BoardView() {
           whiteSpace: 'nowrap',
         }}>
           {milestoneTooltip.label}
-          <span style={{ opacity: 0.6, marginLeft: 5 }}>{milestoneTooltip.date}</span>
+          <span style={{ opacity: 0.6, marginLeft: 5 }}>{isValidISO(milestoneTooltip.date) ? fmtDate(parseISO(milestoneTooltip.date)) : milestoneTooltip.date}</span>
         </div>
+      )}
+
+      {/* Initiative hover card — yields to the milestone tooltip and to drawers */}
+      {hoverTip && view === 'gantt' && !milestoneTooltip && !anyModalOpen && (
+        <BarHoverCard tip={hoverTip} store={store} today={today} canEdit={connected} />
       )}
 
       {/* GitHub PAT setup overlay */}
