@@ -27,13 +27,16 @@
   <!-- SheetJS for Excel parsing -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 
-  <!-- App source files (order matters: data → ui → import → board).
+  <!-- Which repo the board saves to — edit config.js when copying the board. -->
+  <script src="./config.js"></script>
+
+  <!-- App source files (order matters: data → sync → ui → import → board).
        Loaded with a cache-busting timestamp query so every page load always
        gets the latest deployed code, without ever needing a manual ?v= bump. -->
   <script>
     (function () {
       var v = Date.now();
-      ['data', 'ui', 'import', 'ideas', 'tech-view', 'board'].forEach(function (name) {
+      ['data', 'sync', 'ui', 'import', 'ideas', 'tech-view', 'board'].forEach(function (name) {
         document.write('<script type="text/babel" src="./project/app/' + name + '.jsx?v=' + v + '"><\/script>');
       });
     })();

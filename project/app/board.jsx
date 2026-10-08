@@ -34,97 +34,15 @@ const BLOCKER_RED_BG = 'oklch(0.97 0.04 15)';
 const OUTCOME_TEAL   = 'oklch(0.48 0.13 175)';
 
 // ── Persistence ───────────────────────────────────────────────────────────────
-const STORE_KEY    = 'aiboard:store:v4';
-const PAT_KEY      = 'aiboard:github-pat';
-const COLLAPSE_KEY = 'aiboard:collapsed-bus';
-
-function migrateStore(p) {
-  // Ensure departments array exists
-  if (!p.departments || !p.departments.length) {
-    p.departments = JSON.parse(JSON.stringify(DEPARTMENTS));
-  }
-  // Migrate initiatives: platformId → platformIds, add departmentIds
-  p.initiatives = (p.initiatives || []).map((i) => {
-    const next = { ...i };
-    if (!next.platformIds) {
-      next.platformIds = next.platformId ? [next.platformId] : [];
-      delete next.platformId;
-    }
-    if (!next.departmentIds) next.departmentIds = [];
-    return next;
-  });
-  // Rename the legacy 'live' status → 'prod' (catalogue + initiatives)
-  const mig = migrateLiveToProd(p.statuses, p.initiatives);
-  p.statuses    = mig.statuses;
-  p.initiatives = mig.initiatives;
-  return p;
-}
-
-function readLocalStore() {
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (!raw) return null;
-    const p = JSON.parse(raw);
-    if (p && p.initiatives && p.technologies && p.businessUnits && p.blockers) return migrateStore(p);
-  } catch (e) {}
-  return null;
-}
-
-// ── GitHub sync ───────────────────────────────────────────────────────────────
-const GITHUB_REPO   = 'Johan-BC/AI_Board';
-const GITHUB_FILE   = 'data.json';
-const GITHUB_BRANCH = 'main';
-
-function ghHeaders(pat) {
-  return { Authorization: `token ${pat}`, Accept: 'application/vnd.github.v3+json' };
-}
-
-// UTF-8 safe base64 encode/decode
-function b64Encode(str) {
-  const bytes = new TextEncoder().encode(str);
-  let bin = ''; bytes.forEach((b) => { bin += String.fromCharCode(b); });
-  return btoa(bin);
-}
-function b64Decode(b64) {
-  const bin = atob(b64.replace(/\n/g, ''));
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return new TextDecoder().decode(bytes);
-}
-
-async function readFromGitHub(pat) {
-  const res = await fetch(
-    `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}?ref=${GITHUB_BRANCH}&t=${Date.now()}`,
-    { headers: ghHeaders(pat) }
-  );
-  if (!res.ok) {
-    const err = Object.assign(new Error(`GitHub ${res.status}`), { status: res.status });
-    throw err;
-  }
-  const { content, sha } = await res.json();
-  return { store: parseJSON(b64Decode(content)), sha };
-}
-
-async function writeToGitHub(pat, store, sha) {
-  const body = {
-    message: `board: save ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`,
-    content: b64Encode(JSON.stringify(store, null, 2)),
-    branch: GITHUB_BRANCH,
-  };
-  if (sha) body.sha = sha;
-  const res = await fetch(
-    `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`,
-    {
-      method: 'PUT',
-      headers: { ...ghHeaders(pat), 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    }
-  );
-  if (res.status === 409) throw Object.assign(new Error('SHA conflict'), { code: 'conflict' });
-  if (!res.ok) throw new Error(`GitHub write ${res.status}`);
-  const data = await res.json();
-  return data.content.sha;
-}
+// data.json on GitHub is the only store. The browser keeps just the PAT and
+// view preferences — never a copy of the board, so no edit can end up saved
+// in one browser only. GitHub helpers + merge live in sync.jsx.
+const PAT_KEY       = 'aiboard:github-pat';      // token (from a link or pasted)
+const MODE_KEY      = 'aiboard:access-mode';     // 'view' | 'edit'
+const NAME_KEY      = 'aiboard:editor-name';     // shown in commit messages
+const COLLAPSE_KEY  = 'aiboard:collapsed-bus';
+const SYNC_CFG      = resolveSyncConfig();
+const SAVE_DEBOUNCE = 3000;
 
 // ── Loading screen ────────────────────────────────────────────────────────────
 function LoadingScreen({ message }) {
@@ -145,23 +63,109 @@ function LoadingScreen({ message }) {
   );
 }
 
+// ── Shared modal shell ────────────────────────────────────────────────────────
+function Modal({ children, width = 440 }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      background: 'rgba(20,16,12,0.55)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{
+        background: UI.bg, borderRadius: 14, padding: '32px 36px', width, maxWidth: '90vw',
+        boxShadow: '0 24px 64px rgba(20,16,12,.25)', fontFamily: UI.sans,
+        border: `1px solid ${UI.border}`,
+      }}>{children}</div>
+    </div>
+  );
+}
+
+const contactLine = () => SYNC_CFG.contact
+  ? <>Kontakt <strong>{SYNC_CFG.contact}</strong>.</>
+  : 'Kontakt den, der administrerer boardet.';
+
+// ── No access (link mode without a working link) ─────────────────────────────
+function NoAccessScreen({ kind }) {
+  const text = {
+    none:  'Boardet åbnes via det link, du har fået tilsendt. Klik på linket i mailen eller beskeden — så husker browseren det.',
+    bad:   'Dit link virker ikke længere — det er udløbet eller udskiftet. Bed om et nyt link.',
+    error: 'Boardet kunne ikke hentes lige nu. Tjek din forbindelse og prøv igen.',
+  }[kind];
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: UI.bg, fontFamily: UI.sans, padding: 16 }}>
+      <div style={{ maxWidth: 420, textAlign: 'center' }}>
+        <div style={{ fontFamily: UI.mono, fontSize: 10, color: UI.inkFaint, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>AI Board</div>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: UI.ink, margin: '0 0 12px' }}>
+          {kind === 'error' ? 'Kunne ikke hente boardet' : 'Du skal bruge dit link'}
+        </h1>
+        <p style={{ fontSize: 14, color: UI.inkMuted, lineHeight: 1.6, margin: '0 0 8px' }}>{text}</p>
+        {kind !== 'error' && <p style={{ fontSize: 13, color: UI.inkFaint, lineHeight: 1.6, margin: 0 }}>{contactLine()}</p>}
+        {kind === 'error' && (
+          <button onClick={() => location.reload()} style={{
+            marginTop: 12, padding: '8px 18px', borderRadius: 7, border: 'none',
+            background: UI.ink, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: UI.sans,
+          }}>Prøv igen</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Editor name prompt ────────────────────────────────────────────────────────
+function NamePrompt({ initial, onSave, onCancel }) {
+  const [val, setVal] = React.useState(initial || '');
+  const ok = val.trim().length > 0;
+  const save = () => ok && onSave(val.trim());
+  return (
+    <Modal width={400}>
+      <div style={{ fontFamily: UI.mono, fontSize: 10, color: UI.inkFaint, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>Redigering</div>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: UI.ink, margin: '0 0 10px' }}>Hvad hedder du?</h2>
+      <p style={{ fontSize: 13, color: UI.inkMuted, lineHeight: 1.6, margin: '0 0 16px' }}>
+        Dit navn gemmes sammen med dine ændringer, så man kan se hvem der har rettet hvad.
+      </p>
+      <input autoFocus value={val} onChange={(e) => setVal(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && save()} placeholder="Fornavn Efternavn"
+        style={{ width: '100%', padding: '9px 12px', borderRadius: 7, boxSizing: 'border-box', border: `1.5px solid ${UI.border}`, fontFamily: UI.sans, fontSize: 14, color: UI.ink, background: UI.panel, outline: 'none' }} />
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+        {onCancel && <button onClick={onCancel} style={{ padding: '8px 18px', borderRadius: 7, border: `1px solid ${UI.border}`, background: 'transparent', color: UI.inkMuted, cursor: 'pointer', fontSize: 13, fontFamily: UI.sans }}>Annullér</button>}
+        <button onClick={save} disabled={!ok} style={{
+          padding: '8px 18px', borderRadius: 7, border: 'none', background: UI.ink, color: '#fff',
+          cursor: ok ? 'pointer' : 'not-allowed', opacity: ok ? 1 : 0.45, fontSize: 13, fontWeight: 600, fontFamily: UI.sans,
+        }}>Gem</button>
+      </div>
+    </Modal>
+  );
+}
+
 // ── PAT setup overlay ─────────────────────────────────────────────────────────
 function PatSetupOverlay({ onConnect, onSkip }) {
   const [val, setVal]     = React.useState('');
   const [phase, setPhase] = React.useState('idle'); // idle | busy | err
+  const [errMsg, setErrMsg] = React.useState('');
+  // In link mode editors get access from their link — the token field is for the admin
+  const [showToken, setShowToken] = React.useState(!SYNC_CFG.linkMode);
 
   const connect = async () => {
     const pat = val.trim();
-    if (!pat) return;
+    if (!pat || !SYNC_CFG.repo) return;
     setPhase('busy');
     try {
-      const result = await readFromGitHub(pat);
+      const result = await readFromGitHub(SYNC_CFG, pat);
       localStorage.setItem(PAT_KEY, pat);
       onConnect(pat, result.store, result.sha);
     } catch (e) {
+      setErrMsg(
+        e.status === 401 ? 'Tokenet blev afvist — det er ugyldigt eller udløbet.' :
+        e.status === 403 ? 'Adgang nægtet — tokenet mangler adgang, afventer godkendelse i organisationen, eller skal SSO-autoriseres.' :
+        e.status === 404 ? `Fandt ikke ${SYNC_CFG.file} i ${SYNC_CFG.repo} — tjek at tokenet har adgang til netop dette repo.` :
+        'Kunne ikke forbinde til GitHub.');
       setPhase('err');
     }
   };
+
+  const code = (t) => (
+    <code style={{ fontFamily: UI.mono, fontSize: 12, background: UI.panelSoft, padding: '1px 6px', borderRadius: 3, border: `1px solid ${UI.border}` }}>{t}</code>
+  );
 
   return (
     <div style={{
@@ -170,54 +174,79 @@ function PatSetupOverlay({ onConnect, onSkip }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{
-        background: UI.bg, borderRadius: 14, padding: '32px 36px', width: 440, maxWidth: '90vw',
+        background: UI.bg, borderRadius: 14, padding: '32px 36px', width: 460, maxWidth: '90vw',
         boxShadow: '0 24px 64px rgba(20,16,12,.25)', fontFamily: UI.sans,
         border: `1px solid ${UI.border}`,
       }}>
-        <div style={{ fontFamily: UI.mono, fontSize: 10, color: UI.inkFaint, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>Opsætning</div>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: UI.ink, marginBottom: 10, margin: '0 0 10px' }}>Forbind til GitHub</h2>
-        <p style={{ fontSize: 13, color: UI.inkMuted, lineHeight: 1.65, margin: '0 0 24px' }}>
-          Board-data gemmes i{' '}
-          <code style={{ fontFamily: UI.mono, fontSize: 12, background: UI.panelSoft, padding: '1px 6px', borderRadius: 3, border: `1px solid ${UI.border}` }}>data.json</code>{' '}
-          i <strong>Johan-BC/AI_Board</strong>. Opret et{' '}
-          <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener"
-            style={{ color: UI.accent, textDecoration: 'none', borderBottom: `1px solid ${UI.accent}` }}>
-            Fine-grained PAT
-          </a>{' '}
-          med <em>Contents: Read &amp; Write</em>-adgang til dette repo.
-        </p>
-        <input
-          autoFocus
-          type="password"
-          value={val}
-          onChange={(e) => { setVal(e.target.value); setPhase('idle'); }}
-          onKeyDown={(e) => e.key === 'Enter' && connect()}
-          placeholder="github_pat_…"
-          style={{
-            width: '100%', padding: '9px 12px', borderRadius: 7, boxSizing: 'border-box',
-            border: `1.5px solid ${phase === 'err' ? BLOCKER_RED : UI.border}`,
-            fontFamily: UI.mono, fontSize: 13, color: UI.ink, background: UI.panel,
-            outline: 'none', marginBottom: phase === 'err' ? 6 : 0,
-          }}
-        />
-        {phase === 'err' && (
-          <p style={{ fontSize: 12, color: BLOCKER_RED, margin: '0 0 0' }}>
-            Kunne ikke forbinde — kontrollér at tokenet har Contents Read &amp; Write adgang til dette repo.
+        <div style={{ fontFamily: UI.mono, fontSize: 10, color: UI.inkFaint, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>Redigering</div>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: UI.ink, margin: '0 0 10px' }}>
+          {SYNC_CFG.linkMode ? 'Du kan kun se boardet' : 'Forbind til GitHub for at redigere'}
+        </h2>
+        {SYNC_CFG.linkMode && (
+          <p style={{ fontSize: 13, color: UI.inkMuted, lineHeight: 1.65, margin: '0 0 12px' }}>
+            Du har åbnet boardet med et visningslink. For at oprette og rette initiativer skal du bruge
+            redigeringslinket. {contactLine()}
           </p>
         )}
+        {SYNC_CFG.linkMode && !showToken && (
+          <button onClick={() => setShowToken(true)} style={{ border: 'none', background: 'transparent', padding: 0, color: UI.inkFaint, fontSize: 11, fontFamily: UI.mono, cursor: 'pointer' }}>
+            Har du et GitHub-token? ›
+          </button>
+        )}
+        {!showToken ? null : !SYNC_CFG.repo ? (
+          <p style={{ fontSize: 13, color: BLOCKER_RED, lineHeight: 1.65, margin: '0 0 8px' }}>
+            Repo er ikke konfigureret. Sæt {code('repo')} i {code('config.js')} (fx {code('org/AI_Board')}).
+          </p>
+        ) : (<>
+          <p style={{ fontSize: 13, color: UI.inkMuted, lineHeight: 1.65, margin: '0 0 12px' }}>
+            {SYNC_CFG.linkMode ? 'Med et token' : 'Alle kan se boardet. For at oprette og redigere initiativer'} skal du have skriveadgang til{' '}
+            <strong>{SYNC_CFG.repo}</strong> og et{' '}
+            <a href={SYNC_CFG.tokenUrl} target="_blank" rel="noopener"
+              style={{ color: UI.accent, textDecoration: 'none', borderBottom: `1px solid ${UI.accent}` }}>
+              fine-grained token
+            </a>:
+          </p>
+          <ul style={{ fontSize: 12.5, color: UI.inkMuted, lineHeight: 1.7, margin: '0 0 20px', paddingLeft: 18 }}>
+            <li>Resource owner: ejeren af {code(SYNC_CFG.repo.split('/')[0])}</li>
+            <li>Repository access: kun {code(SYNC_CFG.repo.split('/')[1])}</li>
+            <li>Permissions → Contents: <em>Read and write</em></li>
+          </ul>
+          <input
+            autoFocus
+            type="password"
+            value={val}
+            onChange={(e) => { setVal(e.target.value); setPhase('idle'); }}
+            onKeyDown={(e) => e.key === 'Enter' && connect()}
+            placeholder="github_pat_…"
+            style={{
+              width: '100%', padding: '9px 12px', borderRadius: 7, boxSizing: 'border-box',
+              border: `1.5px solid ${phase === 'err' ? BLOCKER_RED : UI.border}`,
+              fontFamily: UI.mono, fontSize: 13, color: UI.ink, background: UI.panel,
+              outline: 'none', marginBottom: phase === 'err' ? 6 : 0,
+            }}
+          />
+          {phase === 'err' && (
+            <p style={{ fontSize: 12, color: BLOCKER_RED, margin: 0, lineHeight: 1.5 }}>{errMsg}</p>
+          )}
+          <p style={{ fontSize: 11, color: UI.inkFaint, lineHeight: 1.5, margin: '10px 0 0' }}>
+            Tokenet gemmes kun i denne browser. Dine ændringer gemmes som commits i dit navn.
+          </p>
+        </>)}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
           <button onClick={onSkip} style={{
             padding: '8px 18px', borderRadius: 7, border: `1px solid ${UI.border}`,
             background: 'transparent', color: UI.inkMuted, cursor: 'pointer',
             fontSize: 13, fontFamily: UI.sans,
-          }}>Brug lokalt</button>
-          <button onClick={connect} disabled={!val.trim() || phase === 'busy'} style={{
-            padding: '8px 18px', borderRadius: 7, border: 'none',
-            background: UI.ink, color: '#fff',
-            cursor: val.trim() && phase !== 'busy' ? 'pointer' : 'not-allowed',
-            fontSize: 13, fontWeight: 600, fontFamily: UI.sans,
-            opacity: val.trim() && phase !== 'busy' ? 1 : 0.45,
-          }}>{phase === 'busy' ? 'Forbinder…' : 'Forbind'}</button>
+          }}>{SYNC_CFG.linkMode ? 'OK' : 'Kun se'}</button>
+          {SYNC_CFG.repo && showToken && (
+            <button onClick={connect} disabled={!val.trim() || phase === 'busy'} style={{
+              padding: '8px 18px', borderRadius: 7, border: 'none',
+              background: UI.ink, color: '#fff',
+              cursor: val.trim() && phase !== 'busy' ? 'pointer' : 'not-allowed',
+              fontSize: 13, fontWeight: 600, fontFamily: UI.sans,
+              opacity: val.trim() && phase !== 'busy' ? 1 : 0.45,
+            }}>{phase === 'busy' ? 'Forbinder…' : 'Forbind'}</button>
+          )}
         </div>
       </div>
     </div>
@@ -399,8 +428,14 @@ function FilterStrip({
 
 // ── Main board component ──────────────────────────────────────────────────────
 function BoardView() {
-  const [store, setStore]                         = React.useState(null);
+  const [store, setStoreRaw]                      = React.useState(null);
   const [syncStatus, setSyncStatus]               = React.useState('loading');
+  const [connected, setConnected]                 = React.useState(false);
+  const [noAccess, setNoAccess]                   = React.useState(null); // null | 'none' | 'bad' | 'error'
+  const [editorName, setEditorName]               = React.useState(() => { try { return localStorage.getItem(NAME_KEY) || ''; } catch (_) { return ''; } });
+  const [askName, setAskName]                     = React.useState(false);
+  const nameRef = React.useRef(editorName);
+  nameRef.current = editorName;
   const [showPatSetup, setShowPatSetup]           = React.useState(false);
   const [statusFilter, setStatusFilter]           = React.useState(null);
   const [buFilter, setBuFilter]                   = React.useState(null);
@@ -422,138 +457,214 @@ function BoardView() {
     try { return new Set(JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '[]')); } catch (_) { return new Set(); }
   });
 
-  const shaRef      = React.useRef(null);   // current SHA of data.json on GitHub
-  const ghTimerRef  = React.useRef(null);   // debounce timer for GitHub writes
+  // Sync state lives in a ref: async saves/polls must see the latest values.
+  //   base = the store as last read from / written to GitHub (at `sha`)
+  const syncRef = React.useRef({ pat: null, base: null, sha: null, timer: null, inflight: false, again: false });
+  const storeRef     = React.useRef(null);   // latest store, readable from async code
+  const connectedRef = React.useRef(false);
+  storeRef.current = store;
   const dragSuppressRef = React.useRef(null);
   const scrollerRef     = React.useRef(null);
 
+  // Every edit goes through here: without a GitHub connection the board is
+  // view-only, so a change can never end up saved in one browser only.
+  // Returns false when the edit was refused.
+  const setStore = (updater) => {
+    if (!connectedRef.current) { setShowPatSetup(true); return false; }
+    setStoreRaw(updater);
+    return true;
+  };
+
   const applyStore = (s) => {
-    setStore(s);
+    setStoreRaw(s);
     setSelectedTechs(new Set()); setSelectedBlockers(new Set()); setSelectedOutcomes(new Set());
     setStatusFilter(null); setBuFilter(null); setDrawer(null);
     setBlockerMode(false);
   };
 
+  // Published copy served next to index.html — what view-only visitors see.
+  const loadStatic = () => {
+    const tryFetch = ([url, ...rest]) => url
+      ? fetch(`${url}?t=${Date.now()}`, { cache: 'no-store' })
+          .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); })
+          .catch(() => tryFetch(rest))
+      : Promise.reject(new Error('not found'));
+    return tryFetch([`./${SYNC_CFG.file}`, `../${SYNC_CFG.file}`]).then(parseJSON).catch(() => makeStore());
+  // (Not used in link mode: there data.json is private and only reachable with a token.)
+  };
+
+  const connectWith = (pat, s, sha) => {
+    Object.assign(syncRef.current, { pat, base: s, sha });
+    connectedRef.current = true;
+    setConnected(true);
+    setSyncStatus('idle');
+  };
+
+  const disconnect = () => {
+    const sy = syncRef.current;
+    clearTimeout(sy.timer);
+    Object.assign(sy, { pat: null, base: null, sha: null, timer: null });
+    connectedRef.current = false;
+    setConnected(false);
+    setSyncStatus('readonly');
+  };
+
+  // mode 'edit' → editable; 'view' → read through the API with a read-only token
+  const loadFromGitHub = (pat, mode, initial) => {
+    setSyncStatus('loading');
+    readFromGitHub(SYNC_CFG, pat)
+      .then(({ store: s, sha }) => {
+        setNoAccess(null);
+        applyStore(s);
+        if (mode === 'edit') connectWith(pat, s, sha);
+        else { Object.assign(syncRef.current, { pat, base: s, sha }); setSyncStatus('readonly'); }
+      })
+      .catch((err) => {
+        const rejected = err.status === 401 || err.status === 403 || err.status === 404;
+        if (SYNC_CFG.linkMode) {
+          // No public copy to fall back to
+          if (initial || !storeRef.current) { setNoAccess(rejected ? 'bad' : 'error'); return; }
+        } else if (initial) {
+          // Show the published copy, view-only, until GitHub answers
+          loadStatic().then(applyStore);
+        }
+        setSyncStatus(rejected ? 'auth-error' : 'load-error');
+      });
+  };
+
   // ── Initial load ────────────────────────────────────────────────────────────
   React.useEffect(() => {
-    const pat = localStorage.getItem(PAT_KEY);
-
-    const loadFromStaticJson = () => {
-      const tryFetch = (urls) => {
-        const [url, ...rest] = urls;
-        if (!url) return Promise.reject(new Error('not found'));
-        return fetch(url).then((r) => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.text();
-        }).catch(() => tryFetch(rest));
-      };
-      tryFetch(['./data.json', '../data.json'])
-        .then((text) => {
-          const s = parseJSON(text);
-          applyStore(s);
-          try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (_) {}
-        })
-        .catch(() => applyStore(makeStore()));
-    };
-
-    if (pat) {
-      setSyncStatus('loading');
-      readFromGitHub(pat)
-        .then(({ store: s, sha }) => {
-          shaRef.current = sha;
-          applyStore(s);
-          setSyncStatus('idle');
-          try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (_) {}
-        })
-        .catch((err) => {
-          // 404 = data.json doesn't exist yet; create it from local cache or seed
-          if (err.status === 404) {
-            const seed = readLocalStore() || makeStore();
-            writeToGitHub(pat, seed, null)
-              .then((sha) => {
-                shaRef.current = sha;
-                applyStore(seed);
-                setSyncStatus('idle');
-                try { localStorage.setItem(STORE_KEY, JSON.stringify(seed)); } catch (_) {}
-              })
-              .catch(() => { applyStore(readLocalStore() || makeStore()); setSyncStatus('error'); });
-            return;
-          }
-          // Other error — use local cache
-          const saved = readLocalStore();
-          if (saved) { applyStore(saved); setSyncStatus('error'); return; }
-          loadFromStaticJson();
-          setSyncStatus('error');
-        });
-    } else {
-      setSyncStatus('no-pat');
-      setShowPatSetup(true);
-      const saved = readLocalStore();
-      if (saved) { applyStore(saved); return; }
-      loadFromStaticJson();
+    const link = takeLinkToken();
+    if (link) {
+      try { localStorage.setItem(PAT_KEY, link.token); localStorage.setItem(MODE_KEY, link.mode); } catch (_) {}
     }
+    const pat  = localStorage.getItem(PAT_KEY);
+    const mode = localStorage.getItem(MODE_KEY) || 'edit'; // a pasted token is an editor's
+    if (pat && SYNC_CFG.repo) { loadFromGitHub(pat, mode, true); return; }
+    if (SYNC_CFG.linkMode) { setNoAccess('none'); return; }
+    loadStatic().then((s) => { applyStore(s); setSyncStatus('readonly'); });
   }, []);
 
-  // ── Auto-save: localStorage (200 ms) + GitHub (3 s debounce) ───────────────
-  React.useEffect(() => {
-    if (!store) return;
+  // ── Save: commit to GitHub, merging if someone else saved in between ───────
+  const markSaved = () => {
+    setSyncStatus('saved');
+    setTimeout(() => setSyncStatus((st) => st === 'saved' ? 'idle' : st), 2500);
+  };
 
-    // Always persist locally
-    const lsTimer = setTimeout(() => {
-      try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (_) {}
-    }, 200);
+  const flush = async () => {
+    const sy = syncRef.current;
+    clearTimeout(sy.timer); sy.timer = null;
+    if (sy.inflight) { sy.again = true; return; }
+    const sent0 = storeRef.current;
+    if (!connectedRef.current || !sent0 || deepEq(sent0, sy.base)) return;
 
-    // GitHub save if PAT + SHA available
-    const pat = localStorage.getItem(PAT_KEY);
-    if (!pat || !shaRef.current) return () => clearTimeout(lsTimer);
-
+    sy.inflight = true;
     setSyncStatus('saving');
-    clearTimeout(ghTimerRef.current);
-    ghTimerRef.current = setTimeout(() => {
-      writeToGitHub(pat, store, shaRef.current)
-        .then((newSha) => {
-          shaRef.current = newSha;
-          setSyncStatus('saved');
-          setTimeout(() => setSyncStatus((s) => s === 'saved' ? 'idle' : s), 2500);
-        })
-        .catch((err) => {
-          if (err.code === 'conflict') {
-            // Re-fetch latest SHA and retry once
-            readFromGitHub(pat)
-              .then(({ sha }) => {
-                shaRef.current = sha;
-                return writeToGitHub(pat, store, sha);
-              })
-              .then((newSha) => {
-                shaRef.current = newSha;
-                setSyncStatus('saved');
-                setTimeout(() => setSyncStatus((s) => s === 'saved' ? 'idle' : s), 2500);
-              })
-              .catch(() => setSyncStatus('error'));
-          } else {
-            setSyncStatus('error');
-          }
-        });
-    }, 3000);
+    let sent = sent0;
+    try {
+      for (let attempt = 0; ; attempt++) {
+        try {
+          sy.sha = await writeToGitHub(SYNC_CFG, sy.pat, sent, sy.sha, describeChange(sy.base, sent, nameRef.current));
+          sy.base = sent;
+          break;
+        } catch (err) {
+          if (err.code !== 'conflict' || attempt >= 4) throw err;
+          const remote = await readFromGitHub(SYNC_CFG, sy.pat);
+          sent = merge3(sy.base, sent, remote.store);
+          sy.base = remote.store; sy.sha = remote.sha;
+        }
+      }
+      if (sent !== sent0) {
+        // Others' changes were merged in — show them, keeping edits made meanwhile
+        const next = merge3(sent0, storeRef.current, sent);
+        storeRef.current = next;
+        setStoreRaw(next);
+      }
+      markSaved();
+    } catch (err) {
+      sy.inflight = false; sy.again = false;
+      // Edits stay in memory; "Prøv igen" re-runs flush()
+      setSyncStatus(err.status === 401 || err.status === 403 ? 'auth-error' : 'error');
+      return;
+    }
+    sy.inflight = false;
+    if (sy.again || !deepEq(storeRef.current, sy.base)) {
+      sy.again = false;
+      sy.timer = setTimeout(flush, SAVE_DEBOUNCE);
+      setSyncStatus('saving');
+    }
+  };
 
-    return () => clearTimeout(lsTimer);
+  React.useEffect(() => {
+    const sy = syncRef.current;
+    if (!store || !connectedRef.current || sy.inflight || deepEq(store, sy.base)) return;
+    setSyncStatus('saving');
+    clearTimeout(sy.timer);
+    sy.timer = setTimeout(flush, SAVE_DEBOUNCE);
   }, [store]);
+
+  // ── Pick up others' changes ─────────────────────────────────────────────────
+  // Editors poll the API and merge; view-link holders re-read through the API;
+  // anyone else re-reads the published copy.
+  const refresh = async () => {
+    const sy = syncRef.current;
+    if (document.hidden) return;
+    if (!connectedRef.current) {
+      if (sy.pat) {
+        try {
+          const remote = await readFromGitHub(SYNC_CFG, sy.pat);
+          if (connectedRef.current || remote.sha === sy.sha) return;
+          sy.base = remote.store; sy.sha = remote.sha;
+          setStoreRaw(remote.store);
+        } catch (_) {}
+        return;
+      }
+      if (SYNC_CFG.linkMode) return;
+      const s = await loadStatic();
+      if (!connectedRef.current && !deepEq(s, storeRef.current)) setStoreRaw(s);
+      return;
+    }
+    if (sy.inflight || sy.timer) return; // a pending save merges on its own
+    try {
+      const remote = await readFromGitHub(SYNC_CFG, sy.pat);
+      if (sy.inflight || remote.sha === sy.sha) return;
+      const cur  = storeRef.current;
+      const next = merge3(sy.base, cur, remote.store);
+      sy.base = remote.store; sy.sha = remote.sha;
+      if (!deepEq(next, cur)) { storeRef.current = next; setStoreRaw(next); }
+    } catch (_) { /* transient — next tick retries */ }
+  };
+
+  React.useEffect(() => {
+    if (syncStatus === 'loading') return;
+    // API readers (editors + view links) poll often; the published copy changes slowly
+    const id = setInterval(refresh, connected || syncRef.current.pat ? SYNC_CFG.pollMs : 60000);
+    const onVisible = () => {
+      if (document.hidden) { if (syncRef.current.timer) flush(); } // save before the tab is left
+      else refresh();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVisible); };
+  }, [connected, syncStatus === 'loading']);
+
+  // Warn before closing the tab with unsaved edits
+  React.useEffect(() => {
+    const onBeforeUnload = (e) => {
+      const sy = syncRef.current;
+      if (sy.timer || sy.inflight || (connectedRef.current && storeRef.current && !deepEq(storeRef.current, sy.base))) {
+        e.preventDefault(); e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, []);
 
   // ── PAT connect callback (from overlay) ────────────────────────────────────
   const onPatConnect = (pat, ghStore, sha) => {
-    shaRef.current = sha;
+    try { localStorage.setItem(MODE_KEY, 'edit'); } catch (_) {}
     setShowPatSetup(false);
-    applyStore(ghStore);
-    setSyncStatus('idle');
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(ghStore)); } catch (_) {}
-  };
-
-  const resetToSeed = () => {
-    if (!confirm('Nulstil til seed-data? Alle ændringer mistes — også på GitHub.')) return;
-    try { localStorage.removeItem(STORE_KEY); } catch (_) {}
-    shaRef.current = null; // forces a SHA re-fetch before next GitHub write
-    applyStore(makeStore());
-    setSyncStatus(localStorage.getItem(PAT_KEY) ? 'saving' : 'no-pat');
+    setStoreRaw(ghStore); // keep the current view/filters
+    connectWith(pat, ghStore, sha);
   };
 
   const today = new Date();
@@ -774,21 +885,24 @@ function BoardView() {
     ...s, initiatives: s.initiatives.map((i) => i.id === id ? { ...i, ...patch } : i),
   }));
 
-  const saveInit = (d) => {
+  // `orig` is the initiative as it was when the drawer opened. Only the fields
+  // changed in the drawer are applied, so a colleague's concurrent edit to
+  // another field (picked up while the drawer was open) isn't reverted.
+  const saveInit = (d, orig) => {
     const isNew = !!d._new;
-    setStore((s) => {
-      const exists = s.initiatives.some((i) => i.id === d.id);
+    const ok = setStore((s) => {
       const cleaned = { ...d }; delete cleaned._new;
       if (!cleaned.milestones)     cleaned.milestones     = [];
       if (!cleaned.blockerIds)     cleaned.blockerIds     = [];
       if (!cleaned.outcomeIds)     cleaned.outcomeIds     = [];
       if (!cleaned.platformIds)    cleaned.platformIds    = [];
       if (!cleaned.departmentIds)  cleaned.departmentIds  = [];
-      const next = exists
-        ? s.initiatives.map((i) => i.id === d.id ? cleaned : i)
-        : [...s.initiatives, cleaned];
-      return { ...s, initiatives: next };
+      const cur = s.initiatives.find((i) => i.id === d.id);
+      if (!cur) return { ...s, initiatives: [...s.initiatives, cleaned] };
+      const next = orig && !orig._new ? merge3(orig, cleaned, cur) : cleaned;
+      return { ...s, initiatives: s.initiatives.map((i) => i.id === d.id ? next : i) };
     });
+    if (!ok) return; // view-only: keep the drawer open while the user connects
     setDrawer(null);
     // Clear filters so a newly created initiative is always visible
     if (isNew) {
@@ -798,7 +912,7 @@ function BoardView() {
   };
 
   const delInit = (id) => {
-    setStore((s) => ({ ...s, initiatives: s.initiatives.filter((i) => i.id !== id) }));
+    if (!setStore((s) => ({ ...s, initiatives: s.initiatives.filter((i) => i.id !== id) }))) return;
     setDrawer(null);
   };
 
@@ -902,7 +1016,8 @@ function BoardView() {
     initiatives: s.initiatives.map((i) => ({ ...i, outcomeIds: (i.outcomeIds || []).filter((x) => x !== id) })),
   }));
 
-  const newInit = (buId) => setDrawer({
+  const newInit = (buId) => connectedRef.current ? openNewInit(buId) : setShowPatSetup(true);
+  const openNewInit = (buId) => setDrawer({
     _new: true, id: 'i_' + Math.random().toString(36).slice(2, 7),
     buId: buId || (store.businessUnits[0] && store.businessUnits[0].id) || 'mkt',
     platformIds: [], departmentIds: [],
@@ -920,6 +1035,7 @@ function BoardView() {
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
 
+  if (noAccess) return <NoAccessScreen kind={noAccess} />;
   if (!store) return <LoadingScreen message="Henter data…" />;
 
   const techById    = _byId(store.technologies);
@@ -967,6 +1083,7 @@ function BoardView() {
   };
 
   const startBarDrag = (e, init, mode) => {
+    if (!connectedRef.current) return; // view-only: a click still opens the drawer
     e.stopPropagation(); e.preventDefault();
     const startX = e.clientX;
     const origStart = parseISO(init.start), origEnd = parseISO(init.end);
@@ -1036,43 +1153,68 @@ function BoardView() {
   // ── Sync status indicator ─────────────────────────────────────────────────
   const SyncIndicator = () => {
     const dot = (color) => <span style={{ width: 6, height: 6, borderRadius: 99, background: color, flex: '0 0 auto' }} />;
+    const smallBtn = (color, label, onClick, title) => (
+      <button onClick={onClick} title={title} style={{ border: `1px solid ${color}`, background: 'transparent', color, borderRadius: 4, cursor: 'pointer', padding: '1px 6px', fontSize: 9.5, fontFamily: UI.mono }}>{label}</button>
+    );
     const wrap = (color, label, onClick) => (
       <span onClick={onClick} style={{
         display: 'inline-flex', alignItems: 'center', gap: 4,
         fontFamily: UI.mono, fontSize: 10, color,
         cursor: onClick ? 'pointer' : 'default',
         userSelect: 'none',
-      }} title={onClick ? 'Klik for at afbryde GitHub-forbindelsen' : undefined}>
+      }} title={onClick ? `Gemmer i ${SYNC_CFG.repo} — klik for at afbryde forbindelsen` : undefined}>
         {dot(color)}{label}
       </span>
     );
 
-    const disconnect = () => {
-      if (!confirm('Afbryd GitHub-forbindelsen? Data gemmes kun lokalt fremover.')) return;
+    const askDisconnect = () => {
+      const sy = syncRef.current;
+      const unsaved = sy.timer || sy.inflight || !deepEq(storeRef.current, sy.base);
+      if (!confirm(unsaved
+        ? 'Du har ændringer der ikke er gemt endnu — de går tabt. Afbryd GitHub-forbindelsen alligevel?'
+        : 'Afbryd GitHub-forbindelsen? Boardet bliver skrivebeskyttet i denne browser.')) return;
       localStorage.removeItem(PAT_KEY);
-      shaRef.current = null;
-      setSyncStatus('no-pat');
+      disconnect();
     };
-
-    if (syncStatus === 'loading') return wrap(UI.inkFaint, 'Henter…');
-    if (syncStatus === 'saving')  return wrap('oklch(0.62 0.14 70)',  'Gemmer…');
-    if (syncStatus === 'saved')   return wrap('oklch(0.52 0.13 150)', 'Gemt ✓', disconnect);
-    if (syncStatus === 'idle')    return wrap(UI.inkFaint,            'GitHub',  disconnect);
-    if (syncStatus === 'error')   return (
+    const changePat = () => { localStorage.removeItem(PAT_KEY); disconnect(); setShowPatSetup(true); };
+    const errorRow = (label, ...buttons) => (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: UI.mono, fontSize: 10 }}>
-        {dot(BLOCKER_RED)}
-        <span style={{ color: BLOCKER_RED }}>Sync-fejl</span>
-        <button onClick={() => { setSyncStatus('loading'); const pat = localStorage.getItem(PAT_KEY); if (!pat) return; readFromGitHub(pat).then(({ store: s, sha }) => { shaRef.current = sha; applyStore(s); setSyncStatus('idle'); }).catch(() => setSyncStatus('error')); }} style={{ border: `1px solid ${BLOCKER_RED}`, background: 'transparent', color: BLOCKER_RED, borderRadius: 4, cursor: 'pointer', padding: '1px 6px', fontSize: 9.5, fontFamily: UI.mono }}>↺ Prøv igen</button>
-        <button onClick={() => { localStorage.removeItem(PAT_KEY); shaRef.current = null; setSyncStatus('no-pat'); setShowPatSetup(true); }} style={{ border: `1px solid ${UI.border}`, background: 'transparent', color: UI.inkMuted, borderRadius: 4, cursor: 'pointer', padding: '1px 6px', fontSize: 9.5, fontFamily: UI.mono }}>Skift PAT</button>
+        {dot(BLOCKER_RED)}<span style={{ color: BLOCKER_RED }}>{label}</span>{buttons}
       </span>
     );
-    if (syncStatus === 'no-pat') return (
-      <button onClick={() => setShowPatSetup(true)} style={{
+
+    // In link mode the connection comes from the link — no disconnect, no token talk
+    const onStatus = SYNC_CFG.linkMode ? undefined : askDisconnect;
+    const nameChip = connected && editorName ? (
+      <button key="n" onClick={() => setAskName(true)} title="Skift navn" style={{
+        border: 'none', background: 'transparent', cursor: 'pointer', padding: '0 2px',
+        fontFamily: UI.mono, fontSize: 10, color: UI.inkMuted,
+      }}>✎ {editorName}</button>
+    ) : null;
+    const withName = (el) => nameChip
+      ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{nameChip}{el}</span>
+      : el;
+
+    if (syncStatus === 'loading') return wrap(UI.inkFaint, 'Henter…');
+    if (syncStatus === 'saving')  return withName(wrap('oklch(0.62 0.14 70)',  'Gemmer…'));
+    if (syncStatus === 'saved')   return withName(wrap('oklch(0.52 0.13 150)', 'Gemt ✓', onStatus));
+    if (syncStatus === 'idle')    return withName(wrap(UI.inkFaint, SYNC_CFG.linkMode ? 'Gemmes automatisk' : 'GitHub', onStatus));
+    if (syncStatus === 'error')   return withName(errorRow('Ikke gemt',
+      <React.Fragment key="r">{smallBtn(BLOCKER_RED, '↺ Prøv igen', flush, 'Dine ændringer er stadig her — prøv at gemme igen')}</React.Fragment>));
+    if (syncStatus === 'load-error') return errorRow('Kan ikke hente — kun visning',
+      <React.Fragment key="r">{smallBtn(BLOCKER_RED, '↺ Prøv igen', () => loadFromGitHub(localStorage.getItem(PAT_KEY), localStorage.getItem(MODE_KEY) || 'edit', false))}</React.Fragment>,
+      SYNC_CFG.linkMode ? null : <React.Fragment key="p">{smallBtn(UI.inkMuted, 'Skift token', changePat)}</React.Fragment>);
+    if (syncStatus === 'auth-error') return SYNC_CFG.linkMode
+      ? errorRow(connected ? 'Linket virker ikke længere — ændringer er ikke gemt' : 'Linket virker ikke længere')
+      : errorRow(connected ? 'Token afvist — ikke gemt' : 'Token afvist — kun visning',
+          <React.Fragment key="p">{smallBtn(BLOCKER_RED, 'Skift token', changePat, 'Tokenet er udløbet eller mangler adgang')}</React.Fragment>);
+    if (syncStatus === 'readonly') return (
+      <button onClick={() => setShowPatSetup(true)} title={SYNC_CFG.linkMode ? 'Du har et visningslink' : 'Forbind til GitHub for at oprette og redigere initiativer'} style={{
         display: 'inline-flex', alignItems: 'center', gap: 4,
         padding: '4px 9px', borderRadius: 5, cursor: 'pointer',
         border: `1px solid ${UI.border}`, background: 'transparent',
         color: UI.inkMuted, fontFamily: UI.mono, fontSize: 10,
-      }}>⚡ Forbind GitHub</button>
+      }}>{SYNC_CFG.linkMode ? 'Kun visning' : 'Kun visning · ✎ Redigér'}</button>
     );
     return null;
   };
@@ -1128,7 +1270,6 @@ function BoardView() {
           </div>
           <UiButton variant="primary" onClick={() => newInit()} icon={<span style={{ fontSize: 14, lineHeight: 0 }}>+</span>}>Ny</UiButton>
           <div style={{ width: 1, height: 22, background: UI.border, margin: '0 2px' }} />
-          <button onClick={resetToSeed} style={{ border: 'none', background: 'transparent', color: UI.inkFaint, cursor: 'pointer', padding: '5px 6px', fontSize: 10, fontFamily: UI.mono, letterSpacing: 0.5, lineHeight: 1, textTransform: 'uppercase' }}>Reset</button>
           <UiButton size="sm" variant="soft" onClick={() => { setCatalogue(true); setDrawer(null); }} icon={<span style={{ fontSize: 13, lineHeight: 0 }}>⊞</span>}>Catalogue</UiButton>
           <button onClick={downloadJSON} title="Download board-data som data.json" style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -1136,7 +1277,7 @@ function BoardView() {
             border: `1px solid ${UI.border}`, background: 'transparent',
             color: UI.inkMuted, fontFamily: UI.mono, fontSize: 10,
           }}>↓ JSON</button>
-          <button onClick={() => setView('import')} title="Importer initiativer fra Excel" style={{
+          <button onClick={() => connectedRef.current ? setView('import') : setShowPatSetup(true)} title="Importer initiativer fra Excel" style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
             padding: '4px 10px', borderRadius: 5, cursor: 'pointer',
             border: 'none', fontFamily: UI.mono, fontSize: 10, fontWeight: 600,
@@ -1773,7 +1914,7 @@ function BoardView() {
       {/* Initiative drawer */}
       {drawer && (
         <UiInitiativeDrawer store={store} draft={drawer}
-          onClose={() => setDrawer(null)} onSave={saveInit} onDelete={delInit} />
+          onClose={() => setDrawer(null)} onSave={(d) => saveInit(d, drawer)} onDelete={delInit} />
       )}
 
       {/* Catalogue drawer */}
@@ -1808,6 +1949,13 @@ function BoardView() {
       )}
 
       {/* GitHub PAT setup overlay */}
+      {/* Editors name themselves once, so history shows who changed what */}
+      {connected && (askName || !editorName) && (
+        <NamePrompt initial={editorName}
+          onSave={(n) => { try { localStorage.setItem(NAME_KEY, n); } catch (_) {} setEditorName(n); setAskName(false); }}
+          onCancel={editorName ? () => setAskName(false) : null} />
+      )}
+
       {showPatSetup && (
         <PatSetupOverlay
           onConnect={onPatConnect}

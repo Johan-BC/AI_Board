@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>AI Board — Overblik</title>
+  <!-- Admin overview. Contains no secrets: tokens are pasted in and kept only in
+       this browser's localStorage, never in the repo. -->
+  <script src="./config.js"></script>
+  <style>
+    :root {
+      --bg: oklch(0.985 0.004 80);
+      --panel: #fff;
+      --panel-soft: oklch(0.975 0.005 80);
+      --border: oklch(0.93 0.006 80);
+      --border-strong: oklch(0.86 0.008 80);
+      --ink: oklch(0.22 0.008 80);
+      --ink-muted: oklch(0.48 0.006 80);
+      --ink-faint: oklch(0.65 0.006 80);
+      --accent: oklch(0.55 0.13 250);
+      --ok: oklch(0.52 0.13 150);
+      --warn: oklch(0.62 0.14 70);
+      --bad: oklch(0.52 0.2 15);
+      --sans: 'Geist', 'Söhne', ui-sans-serif, system-ui, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.55; }
+    main { max-width: 880px; margin: 0 auto; padding: 40px 16px 80px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { font-family: var(--mono); font-size: 12px; background: var(--panel-soft); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; }
+    .kicker { font-family: var(--mono); font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--ink-faint); }
+    h1 { font-size: 26px; margin: 6px 0 8px; letter-spacing: -0.01em; }
+    h2 { font-size: 15px; margin: 0 0 4px; }
+    .lead { color: var(--ink-muted); margin: 0; max-width: 640px; }
+    section { margin-top: 36px; }
+    .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .section-head p { margin: 0; color: var(--ink-muted); font-size: 13px; }
+    .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(20,16,12,.04); }
+    .card h3 { font-size: 15px; margin: 0 0 2px; display: flex; align-items: center; gap: 8px; }
+    .who { font-size: 12px; color: var(--ink-faint); font-family: var(--mono); margin-bottom: 10px; }
+    .card p { margin: 0 0 12px; color: var(--ink-muted); font-size: 13px; }
+    .linkbox { font-family: var(--mono); font-size: 11.5px; color: var(--ink-muted); background: var(--panel-soft); border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 10px; }
+    .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    button, .btn { font: 500 12px var(--sans); padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel); color: var(--ink); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
+    button:hover, .btn:hover { border-color: var(--border-strong); background: var(--panel-soft); text-decoration: none; }
+    button.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+    button.primary:hover { background: oklch(0.32 0.008 80); }
+    button:disabled, .btn.disabled { opacity: .45; pointer-events: none; }
+    .pill { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 99px; border: 1px solid currentColor; white-space: nowrap; }
+    .pill.ok { color: var(--ok); } .pill.bad { color: var(--bad); } .pill.warn { color: var(--warn); } .pill.none { color: var(--ink-faint); }
+    .links { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .links a.item { display: grid; grid-template-columns: 200px 1fr; gap: 16px; padding: 12px 18px; border-top: 1px solid var(--border); color: var(--ink); }
+    .links a.item:first-child { border-top: none; }
+    .links a.item:hover { background: var(--panel-soft); text-decoration: none; }
+    .links .name { font-weight: 600; font-size: 13.5px; }
+    .links .name::after { content: ' ↗'; color: var(--ink-faint); font-weight: 400; }
+    .links .desc { color: var(--ink-muted); font-size: 13px; }
+    @media (max-width: 600px) { .links a.item { grid-template-columns: 1fr; gap: 2px; } }
+    .changes { list-style: none; margin: 0; padding: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .changes li { display: grid; grid-template-columns: 130px 1fr; gap: 14px; padding: 9px 18px; border-top: 1px solid var(--border); font-size: 13px; }
+    .changes li:first-child { border-top: none; }
+    .changes time { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); padding-top: 2px; }
+    .changes .empty { display: block; color: var(--ink-faint); }
+    label { display: block; font-size: 12px; font-weight: 600; margin: 0 0 4px; }
+    label span { font-weight: 400; color: var(--ink-faint); }
+    input[type=password], input[type=text] { width: 100%; font: 13px var(--mono); padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 7px; background: var(--panel); color: var(--ink); outline: none; margin-bottom: 14px; }
+    input:focus { border-color: var(--border-strong); }
+    details { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 0 20px; margin-bottom: 10px; }
+    summary { cursor: pointer; padding: 14px 0; font-weight: 600; list-style: none; display: flex; justify-content: space-between; }
+    summary::after { content: '+'; color: var(--ink-faint); font-family: var(--mono); }
+    details[open] summary::after { content: '−'; }
+    details ol, details ul { margin: 0 0 18px; padding-left: 20px; color: var(--ink-muted); }
+    details li { margin-bottom: 8px; }
+    details li strong { color: var(--ink); }
+    .notice { border: 1px solid var(--warn); background: oklch(0.97 0.03 80); color: var(--ink); border-radius: 10px; padding: 12px 16px; font-size: 13px; margin-top: 20px; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<main>
+  <div class="kicker">AI Board</div>
+  <h1>Overblik</h1>
+  <p class="lead">Dit samlede sted for boardets links, adgang og opsætning. Siden er kun til dig — brugerne
+    skal bare have deres link. Den indeholder ingen hemmeligheder: tokens gemmes kun i denne browser.</p>
+  <div id="notice"></div>
+
+  <!-- ── Links to share ───────────────────────────────────────────────── -->
+  <section>
+    <div class="section-head"><h2>Links du deler</h2><p>Det eneste brugerne skal bruge</p></div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Visningslink <span class="pill none" id="view-status">–</span></h3>
+        <div class="who">Til: ledelse, interessenter, alle der skal følge med</div>
+        <p>Åbner boardet med alle initiativer. Man kan filtrere og se detaljer, men ikke rette.
+          Kan sendes bredt internt.</p>
+        <div class="linkbox" id="view-link">Indsæt visnings-token under <a href="#adgang">Adgang</a></div>
+        <div class="row">
+          <button data-copy="view">Kopiér link</button>
+          <button data-msg="view">Kopiér besked</button>
+          <a class="btn" id="view-open" target="_blank" rel="noopener">Åbn ↗</a>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Redigeringslink <span class="pill none" id="edit-status">–</span></h3>
+        <div class="who">Til: de ~10 redaktører — og kun dem</div>
+        <p>Som visningslinket, men man kan også oprette, rette og slette initiativer. Første gang
+          skriver man sit navn, så historikken viser hvem der rettede hvad. <strong>Alle med linket kan rette</strong> —
+          send det personligt, ikke i store kanaler.</p>
+        <div class="linkbox" id="edit-link">Indsæt redigerings-token under <a href="#adgang">Adgang</a></div>
+        <div class="row">
+          <button data-copy="edit">Kopiér link</button>
+          <button data-msg="edit">Kopiér besked</button>
+          <a class="btn" id="edit-open" target="_blank" rel="noopener">Åbn ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Your links ───────────────────────────────────────────────────── -->
+  <section>
+    <div class="section-head"><h2>Dine links</h2><p>Til administration — ikke til brugerne</p></div>
+    <nav class="links" id="admin-links"></nav>
+  </section>
+
+  <!-- ── Recent changes ──────────────────────────────────────────────── -->
+  <section>
+    <div class="section-head"><h2>Seneste ændringer</h2><p><a id="history-all" target="_blank" rel="noopener">Hele historikken ↗</a></p></div>
+    <ul class="changes" id="changes"><li><span class="empty">Indsæt et token under Adgang for at se ændringerne.</span></li></ul>
+  </section>
+
+  <!-- ── Access ───────────────────────────────────────────────────────── -->
+  <section id="adgang">
+    <div class="section-head"><h2>Adgang</h2><p>Gemmes kun i denne browser</p></div>
+    <div class="card">
+      <label for="tok-view">Visnings-token <span>— Contents: Read-only på data-repoet</span></label>
+      <input type="password" id="tok-view" placeholder="github_pat_…" autocomplete="off" />
+      <label for="tok-edit">Redigerings-token <span>— Contents: Read and write på data-repoet</span></label>
+      <input type="password" id="tok-edit" placeholder="github_pat_…" autocomplete="off" />
+      <div class="row">
+        <button class="primary" id="save-tokens">Gem og test</button>
+        <button id="toggle-tokens">Vis tokens</button>
+        <button id="clear-tokens">Glem tokens i denne browser</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Guides ───────────────────────────────────────────────────────── -->
+  <section>
+    <div class="section-head"><h2>Vejledning</h2><p>Åbn det du skal bruge</p></div>
+
+    <details id="guide-setup">
+      <summary>Første opsætning</summary>
+      <ol>
+        <li><strong>Opret to repos</strong> i organisationen: <code>ai-board</code> (boardets kode — må gerne være
+          offentligt, der er ingen data i det) og <code>ai-board-data</code> (<em>privat</em>).</li>
+        <li><strong>Kopiér filerne</strong> til <code>ai-board</code> — alt <em>undtagen</em> <code>data.json</code>.
+          Læg <code>data.json</code> i roden af <code>ai-board-data</code>.</li>
+        <li><strong>Slå Pages til</strong> for <code>ai-board</code>: Settings → Pages → Deploy from a branch →
+          <code>main</code> / root. Kan du vælge synlighed, så vælg <em>Public</em> — ellers skal brugerne have en GitHub-konto.</li>
+        <li><strong>Ret <code>config.js</code></strong> i <code>ai-board</code>: sæt <code>dataRepo</code> til
+          <code>org/ai-board-data</code> og <code>contact</code> til dit navn.</li>
+        <li><strong>Opret to tokens</strong> via <a id="tok-new-1" target="_blank" rel="noopener">Opret token ↗</a>. Begge med:
+          Resource owner = organisationen · Expiration = så lang som tilladt · Repository access = <em>Only select repositories</em> → <code>ai-board-data</code>.
+          <br>• <em>AI Board – visning</em>: Permissions → Contents → <strong>Read-only</strong>
+          <br>• <em>AI Board – redigering</em>: Permissions → Contents → <strong>Read and write</strong>
+          <br>Kræver organisationen godkendelse, ligger de som "pending" til en admin har godkendt dem.</li>
+        <li><strong>Indsæt dem under <a href="#adgang">Adgang</a></strong> og tryk <em>Gem og test</em>. Begge skal vise ✓.</li>
+        <li><strong>Send links</strong>: redigeringslinket personligt til redaktørerne, visningslinket til resten.
+          <em>Kopiér besked</em> giver en færdig tekst.</li>
+      </ol>
+    </details>
+
+    <details>
+      <summary>Et link er lækket, eller en redaktør skal fjernes</summary>
+      <ol>
+        <li>Opret et nyt token med samme opsætning (<a id="tok-new-2" target="_blank" rel="noopener">Opret token ↗</a>).</li>
+        <li>Indsæt det under <a href="#adgang">Adgang</a> → <em>Gem og test</em>.</li>
+        <li>Send det nye link til dem, der stadig skal have adgang.</li>
+        <li>Slet det gamle token under <a id="tok-list-1" target="_blank" rel="noopener">Dine tokens ↗</a> — så holder det gamle link op med at virke med det samme.</li>
+      </ol>
+    </details>
+
+    <details>
+      <summary>Et link udløber snart</summary>
+      <ul>
+        <li>Udløbsdatoen står ved linket øverst (når GitHub oplyser den) og under <a id="tok-list-2" target="_blank" rel="noopener">Dine tokens ↗</a>.</li>
+        <li>Under tokenet på GitHub kan du vælge <em>Regenerate token</em>: samme rettigheder, ny udløbsdato — men en ny værdi, så linket skal sendes ud igen.</li>
+        <li>Sæt en påmindelse i kalenderen en uge før.</li>
+      </ul>
+    </details>
+
+    <details>
+      <summary>Nogen har slettet eller ødelagt noget</summary>
+      <ol>
+        <li>Åbn <a id="hist-2" target="_blank" rel="noopener">Ændringshistorik ↗</a> og find den sidste gode version — hver linje viser navn og hvilke initiativer der blev rettet.</li>
+        <li>Klik på ændringen → <em>⋯</em> → <em>View file</em> → <em>Raw</em>, og kopiér hele teksten.</li>
+        <li>Åbn <a id="file-2" target="_blank" rel="noopener">data.json ↗</a> → blyanten (Edit) → erstat alt med det kopierede → <em>Commit changes</em>.</li>
+        <li>Redaktører med boardet åbent får den gendannede version inden for et halvt minut.</li>
+      </ol>
+    </details>
+
+    <details>
+      <summary>Sådan virker det</summary>
+      <ul>
+        <li>Boardet (<code>ai-board</code>) er kun kode. Data ligger i <code>data.json</code> i det private <code>ai-board-data</code>.</li>
+        <li>Linkene bærer et token efter <code>#</code>. Den del sendes aldrig til nogen server, og boardet fjerner den fra adresselinjen og husker den i browseren.</li>
+        <li>Hver gemning bliver en ændring i <code>ai-board-data</code> med redaktørens navn. Retter to samtidig, flettes ændringerne sammen.</li>
+        <li>Redaktører ser hinandens ændringer inden for ca. 30 sekunder.</li>
+        <li>Et token kan kun læse/skrive <code>ai-board-data</code> — ikke boardets kode eller andre repos.</li>
+      </ul>
+    </details>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  // ── Config (mirrors resolveSyncConfig in project/app/sync.jsx) ──
+  var c = window.AIBOARD_CONFIG || {};
+  var boardRepo = (c.repo || '').trim();
+  var hostM = location.hostname.match(/^([^.]+)\.github\.io$/i);
+  var seg = location.pathname.split('/').filter(Boolean)[0];
+  if (!boardRepo && hostM && seg) boardRepo = hostM[1] + '/' + seg;
+  var dataRepo = (c.dataRepo || '').trim();
+  var branch = c.branch || 'main';
+  var file = c.file || 'data.json';
+  var apiBase = (c.apiBase || 'https://api.github.com').replace(/\/+$/, '');
+  var web = apiBase === 'https://api.github.com' ? 'https://github.com'
+    : apiBase.replace(/\/api\/v3$/, '').replace('://api.', '://');
+  var boardUrl = new URL('./', location.href).href;
+
+  var KEYS = { view: 'aiboard-admin:view-token', edit: 'aiboard-admin:edit-token' };
+  var get = function (k) { try { return localStorage.getItem(KEYS[k]) || ''; } catch (_) { return ''; } };
+  var set = function (k, v) { try { v ? localStorage.setItem(KEYS[k], v) : localStorage.removeItem(KEYS[k]); } catch (_) {} };
+  var $ = function (id) { return document.getElementById(id); };
+
+  function toast(msg) {
+    var t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toast.t); toast.t = setTimeout(function () { t.classList.remove('show'); }, 1800);
+  }
+  function copy(text, msg) {
+    (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
+      .then(function () { toast(msg); })
+      .catch(function () { window.prompt('Kopiér:', text); });
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]; }); }
+
+  // ── Notices ──
+  var notes = [];
+  if (!dataRepo) notes.push('<strong>Link-mode er ikke slået til.</strong> Sæt <code>dataRepo</code> i <code>config.js</code> til det private data-repo — indtil da ligger data offentligt i <code>data.json</code> ved siden af boardet, og visnings-/redigeringslinks virker ikke. Se <a href="#guide-setup">Første opsætning</a>.');
+  if (!boardRepo) notes.push('Boardets repo kunne ikke genkendes ud fra adressen. Sæt <code>repo</code> i <code>config.js</code>.');
+  if (notes.length) $('notice').innerHTML = notes.map(function (n) { return '<div class="notice">' + n + '</div>'; }).join('');
+
+  // ── Admin links ──
+  var tokensUrl = web + '/settings/personal-access-tokens';
+  var newTokenUrl = tokensUrl + '/new';
+  var histUrl = dataRepo ? web + '/' + dataRepo + '/commits/' + branch + '/' + file : null;
+  var fileUrl = dataRepo ? web + '/' + dataRepo + '/blob/' + branch + '/' + file : null;
+  var adminLinks = [
+    [boardUrl, 'Boardet (uden adgang)', 'Den rå adresse. Viser kun "Du skal bruge dit link" — del i stedet visnings- eller redigeringslinket.'],
+    [histUrl, 'Ændringshistorik', 'Hver gemning med navn og hvilke initiativer der blev rettet. Herfra kan du gendanne en tidligere version.'],
+    [fileUrl, 'data.json', 'Selve dataene. Ret direkte her, eller indsæt en gendannet version.'],
+    [dataRepo && web + '/' + dataRepo, 'Data-repo', dataRepo ? '<code>' + esc(dataRepo) + '</code> — privat. Kun tokens og organisationens medlemmer har adgang.' : 'Ikke sat op endnu (dataRepo i config.js).'],
+    [boardRepo && web + '/' + boardRepo, 'Kode-repo', 'Boardets kode og <code>config.js</code>. Her ændres funktioner — aldrig data.'],
+    [boardRepo && web + '/' + boardRepo + '/settings/pages', 'Pages-indstillinger', 'Hvor boardet publiceres, og om siden er offentlig.'],
+    [newTokenUrl, 'Opret token', 'Når du sætter op første gang, eller et link skal udskiftes.'],
+    [tokensUrl, 'Dine tokens', 'Se udløbsdatoer, forny eller slet tokens. Et slettet token = et dødt link.'],
+    [boardUrl + 'overblik.html', 'Denne side', 'Bogmærk den. Den er ikke linket fra boardet.'],
+  ];
+  $('admin-links').innerHTML = adminLinks.filter(function (l) { return l[0]; }).map(function (l) {
+    return '<a class="item" href="' + esc(l[0]) + '" target="_blank" rel="noopener"><span class="name">' + esc(l[1]) + '</span><span class="desc">' + l[2] + '</span></a>';
+  }).join('');
+  ['tok-new-1', 'tok-new-2'].forEach(function (id) { $(id).href = newTokenUrl; });
+  ['tok-list-1', 'tok-list-2'].forEach(function (id) { $(id).href = tokensUrl; });
+  if (histUrl) { $('history-all').href = histUrl; $('hist-2').href = histUrl; $('file-2').href = fileUrl; }
+
+  // ── Share links ──
+  var linkFor = function (k) { var t = get(k); return t ? boardUrl + '#' + k + '=' + encodeURIComponent(t) : ''; };
+  var MESSAGES = {
+    view: 'Hej!\n\nHer er linket til AI Board, hvor du kan følge vores AI-initiativer:\n{link}\n\nKlik på det én gang, så husker din browser det.',
+    edit: 'Hej!\n\nHer er dit link til AI Board, hvor du kan se og rette dine initiativer:\n{link}\n\nFørste gang skriver du dit navn. Ændringer gemmes automatisk, og dine kolleger kan se dem med det samme.\nLinket giver adgang til at rette — del det ikke videre.',
+  };
+  function renderLinks() {
+    ['view', 'edit'].forEach(function (k) {
+      var l = linkFor(k);
+      var masked = l ? boardUrl + '#' + k + '=' + get(k).slice(0, 12) + '…' : null;
+      if (masked) $(k + '-link').textContent = masked;
+      $(k + '-open').href = l || '#';
+      $(k + '-open').classList.toggle('disabled', !l);
+      document.querySelector('[data-copy="' + k + '"]').disabled = !l;
+      document.querySelector('[data-msg="' + k + '"]').disabled = !l;
+    });
+  }
+  document.querySelectorAll('[data-copy]').forEach(function (b) {
+    b.onclick = function () { copy(linkFor(b.dataset.copy), 'Link kopieret'); };
+  });
+  document.querySelectorAll('[data-msg]').forEach(function (b) {
+    b.onclick = function () { copy(MESSAGES[b.dataset.msg].replace('{link}', linkFor(b.dataset.msg)), 'Besked kopieret'); };
+  });
+
+  // ── Token checks ──
+  var api = function (path, tok) {
+    return fetch(apiBase + '/repos/' + dataRepo + path, {
+      headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json' }, cache: 'no-store',
+    });
+  };
+  function pill(k, cls, text) { var p = $(k + '-status'); p.className = 'pill ' + cls; p.textContent = text; }
+  function fmtDate(d) { return d.toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' }); }
+  function check(k) {
+    var tok = get(k);
+    if (!tok) return pill(k, 'none', 'mangler token');
+    if (!dataRepo) return pill(k, 'warn', 'dataRepo mangler');
+    pill(k, 'none', 'tester…');
+    api('/contents/' + file + '?ref=' + encodeURIComponent(branch), tok).then(function (r) {
+      if (!r.ok) return pill(k, 'bad', r.status === 401 ? '✗ ugyldigt/udløbet' : r.status === 403 ? '✗ ingen adgang' : '✗ fejl ' + r.status);
+      var exp = r.headers.get('github-authentication-token-expiration');
+      if (!exp) return pill(k, 'ok', '✓ virker');
+      var d = new Date(exp.replace(' UTC', 'Z').replace(' ', 'T'));
+      var days = Math.round((d - Date.now()) / 864e5);
+      pill(k, days < 14 ? 'warn' : 'ok', (days < 14 ? '⚠ ' : '✓ ') + 'udløber ' + fmtDate(d));
+    }).catch(function () { pill(k, 'bad', '✗ kan ikke nå GitHub'); });
+  }
+
+  // ── Recent changes ──
+  function loadChanges() {
+    var tok = get('view') || get('edit');
+    if (!tok || !dataRepo) return;
+    api('/commits?path=' + encodeURIComponent(file) + '&sha=' + encodeURIComponent(branch) + '&per_page=10', tok)
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (list) {
+        $('changes').innerHTML = list.length ? list.map(function (cm) {
+          var when = new Date(cm.commit.author.date);
+          var msg = cm.commit.message.split('\n')[0].replace(/^board\s*/, '');
+          var m = msg.match(/^\(([^)]+)\):\s*(.*)$/);
+          var text = m ? '<strong>' + esc(m[1]) + '</strong> · ' + esc(m[2]) : esc(msg.replace(/^:\s*/, ''));
+          return '<li><time>' + esc(fmtDate(when) + ' ' + when.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })) + '</time><a href="' + esc(cm.html_url) + '" target="_blank" rel="noopener" style="color:inherit">' + text + '</a></li>';
+        }).join('') : '<li><span class="empty">Ingen ændringer endnu.</span></li>';
+      })
+      .catch(function () { $('changes').innerHTML = '<li><span class="empty">Kunne ikke hente ændringer — tjek at tokenet virker.</span></li>'; });
+  }
+
+  // ── Access form ──
+  $('tok-view').value = get('view');
+  $('tok-edit').value = get('edit');
+  $('save-tokens').onclick = function () {
+    set('view', $('tok-view').value.trim()); set('edit', $('tok-edit').value.trim());
+    renderLinks(); check('view'); check('edit'); loadChanges(); toast('Gemt i denne browser');
+  };
+  $('toggle-tokens').onclick = function () {
+    var show = $('tok-view').type === 'password';
+    $('tok-view').type = $('tok-edit').type = show ? 'text' : 'password';
+    this.textContent = show ? 'Skjul tokens' : 'Vis tokens';
+  };
+  $('clear-tokens').onclick = function () {
+    if (!confirm('Glem begge tokens i denne browser? Linkene virker stadig for brugerne.')) return;
+    set('view', ''); set('edit', ''); $('tok-view').value = $('tok-edit').value = '';
+    location.reload();
+  };
+  if (!get('view') && !get('edit')) $('guide-setup').open = true;
+
+  renderLinks(); check('view'); check('edit'); loadChanges();
+})();
+</script>
+</body>
+</html>
