@@ -1264,6 +1264,171 @@ function UiPfStackedBars({ rows, statuses, selKey, onPick, showBlocked = true })
   );
 }
 
+// ── Attention: what needs a decision or a fix ────────────────────────────────
+// Dates are 'YYYY-MM-DD' strings in local time, so they compare as strings.
+const _pfIsISO = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+
+// "Over slutdato" matches the Gantt board: end date passed, status not Prod.
+const PF_ISSUES = [
+  { id: 'blocked', label: 'Blokeret',       color: _pfWarn,                 test: (i) => _pfBlocked(i) },
+  { id: 'overdue', label: 'Over slutdato',  color: 'oklch(0.58 0.15 30)',   test: (i, todayISO) => _pfIsISO(i.end) && i.end < todayISO && i.status !== 'prod' },
+  { id: 'noowner', label: 'Uden ejer',      color: 'oklch(0.50 0.10 300)',  test: (i) => !String(i.owner || '').trim() },
+  { id: 'noout',   label: 'Uden outcome',   color: 'oklch(0.62 0.14 70)',   test: (i) => !(i.outcomeIds || []).length },
+];
+
+function UiPfAttention({ inits, store, todayISO, onOpenInit }) {
+  const [only, setOnly] = React.useState(null);    // issue id, or null = all
+  const [showAll, setShowAll] = React.useState(false);
+  const blockerById = _byId(store.blockers || []);
+  const buById = _byId(store.businessUnits || []);
+
+  const rows = inits
+    .map((i) => ({ i, issues: PF_ISSUES.filter((p) => p.test(i, todayISO)) }))
+    .filter((r) => r.issues.length);
+  const counts = Object.fromEntries(PF_ISSUES.map((p) => [p.id, rows.filter((r) => r.issues.some((x) => x.id === p.id)).length]));
+  const shown = rows
+    .filter((r) => !only || r.issues.some((x) => x.id === only))
+    .sort((a, b) => b.issues.length - a.issues.length || String(a.i.name || '').localeCompare(String(b.i.name || ''), 'da'));
+  const LIMIT = 8;   // a "Vis alle" that hides a single row isn't worth the click
+  const visible = showAll || shown.length <= LIMIT + 1 ? shown : shown.slice(0, LIMIT);
+
+  const chip = (p, n, active, onClick) => (
+    <button key={p.id} type="button" onClick={onClick} disabled={!n}
+      title={n ? (active ? 'Vis alle igen' : `Vis kun: ${p.label.toLowerCase()}`) : undefined}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: UI.sans, fontSize: 11.5, fontWeight: 600,
+        padding: '4px 9px', borderRadius: 99, cursor: n ? 'pointer' : 'default',
+        border: `1px solid ${active ? p.color : UI.border}`,
+        background: active ? `color-mix(in oklch, ${p.color} 12%, white)` : UI.panel,
+        color: n ? p.color : UI.inkFaint,
+      }}>
+      {p.label}<span style={{ fontFamily: UI.mono, fontSize: 11 }}>{n}</span>
+    </button>
+  );
+
+  return (
+    <div style={_pfCard}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: UI.ink }}>Kræver opmærksomhed</div>
+        <span style={{ fontFamily: UI.mono, fontSize: 11, color: UI.inkMuted }}>{rows.length} af {inits.length}</span>
+        <div style={{ flex: 1 }} />
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {PF_ISSUES.map((p) => chip(p, counts[p.id], only === p.id, () => { setOnly((cur) => cur === p.id ? null : p.id); setShowAll(false); }))}
+        </div>
+      </div>
+      {rows.length === 0 ? (
+        <div style={{ fontSize: 12, color: 'oklch(0.45 0.12 150)' }}>✓ Alle initiativer har ejer og outcome, ingen er blokerede eller over slutdato.</div>
+      ) : (
+        <div style={{ borderTop: `1px solid ${UI.border}` }}>
+          {visible.map(({ i, issues }) => {
+            const bu = buById[i.buId];
+            const detail = {
+              blocked: (i.blockerIds || []).map((b) => blockerById[b]?.name).filter(Boolean).join(', '),
+              overdue: _pfIsISO(i.end) ? `Slutdato ${i.end.split('-').reverse().join('.')}` : '',
+            };
+            return (
+              <div key={i.id} onClick={() => onOpenInit && onOpenInit(i)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 2px', borderBottom: `1px solid ${UI.border}`, cursor: onOpenInit ? 'pointer' : 'default' }}
+                onMouseEnter={(e) => { if (onOpenInit) e.currentTarget.style.background = UI.panelSoft; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+                {bu ? <UiBuDot bu={bu} size={7} /> : <span style={{ width: 7 }} />}
+                <div style={{ flex: '1 1 160px', minWidth: 0, fontSize: 12, fontWeight: 500, color: UI.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i.name}</div>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {issues.map((p) => (
+                    <span key={p.id} title={detail[p.id] || p.label} style={{
+                      fontSize: 10, fontWeight: 600, color: p.color, whiteSpace: 'nowrap',
+                      border: `1px solid color-mix(in oklch, ${p.color} 35%, white)`, borderRadius: 4, padding: '1px 6px',
+                    }}>{p.label}</span>
+                  ))}
+                </div>
+                <UiStatusPill status={i.status} statuses={store.statuses} size="sm" />
+              </div>
+            );
+          })}
+          {shown.length > LIMIT + 1 && (
+            <div style={{ paddingTop: 8 }}>
+              <UiButton size="sm" variant="bare" onClick={() => setShowAll((v) => !v)}>
+                {showAll ? 'Vis færre' : `Vis alle ${shown.length}`}
+              </UiButton>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Development over time: active initiatives per quarter ────────────────────
+// History isn't stored, so each initiative is counted in every quarter between
+// its start and end date (no end = løbende/BAU, active to the end of the
+// range) and coloured by its *current* status.
+const _pfQStart = (y, q) => dateToISO(new Date(y, q * 3, 1));
+const _pfQEnd   = (y, q) => dateToISO(new Date(y, q * 3 + 3, 0));
+const _pfQIndex = (iso) => { const [y, m] = iso.split('-').map(Number); return y * 4 + Math.floor((m - 1) / 3); };
+
+function UiPfQuarters({ inits, statuses, todayISO, selKey, onPick }) {
+  const dated = inits.filter((i) => _pfIsISO(i.start));
+  if (!dated.length) return <div style={{ fontSize: 12, color: UI.inkFaint, fontStyle: 'italic' }}>Ingen initiativer med startdato</div>;
+  const now = _pfQIndex(todayISO);
+  const lo = Math.max(now - 8, Math.min(...dated.map((i) => _pfQIndex(i.start))));
+  const ends = dated.filter((i) => _pfIsISO(i.end)).map((i) => _pfQIndex(i.end));
+  const hi = Math.min(now + 6, Math.max(now, ...ends));
+  const quarters = [];
+  for (let k = lo; k <= hi; k++) {
+    const y = Math.floor(k / 4), q = k % 4;
+    const qs = _pfQStart(y, q), qe = _pfQEnd(y, q);
+    const active = dated.filter((i) => i.start <= qe && (!_pfIsISO(i.end) || i.end >= qs));
+    const started = dated.filter((i) => i.start >= qs && i.start <= qe).length;
+    quarters.push({ k, label: `K${q + 1} ${String(y).slice(2)}`, title: `K${q + 1} ${y}`, active, started });
+  }
+  const max = Math.max(1, ...quarters.map((x) => x.active.length));
+  const H = 130;
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+        {quarters.map((x) => {
+          const isNow = x.k === now;
+          return (
+            <div key={x.k} style={{ flex: '1 0 38px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 3 }}>
+              <div style={{ textAlign: 'center', fontFamily: UI.mono, fontSize: 10, fontWeight: 700, color: UI.inkMuted }}>{x.active.length || ''}</div>
+              <div style={{ height: H, display: 'flex', flexDirection: 'column-reverse', gap: 1 }}>
+                {statuses.map((s) => {
+                  const seg = x.active.filter((i) => i.status === s.id);
+                  if (!seg.length) return null;
+                  const k = `q:${x.k}:${s.id}`;
+                  const dim = selKey && selKey.startsWith('q:') && selKey !== k;
+                  return (
+                    <div key={s.id} onClick={() => onPick(k, `${x.title} · ${s.label}`, seg)}
+                      title={`${x.title} · ${s.label}: ${seg.length}`}
+                      style={{ height: `${(seg.length / max) * H}px`, minHeight: 3, background: s.color, borderRadius: 2, cursor: 'pointer', opacity: dim ? 0.35 : 1, transition: 'opacity .12s' }} />
+                  );
+                })}
+              </div>
+              <div onClick={() => x.active.length && onPick(`q:${x.k}`, `Aktive i ${x.title}`, x.active)}
+                title={`${x.active.length} aktive · ${x.started} startet i ${x.title}`}
+                style={{
+                  textAlign: 'center', fontFamily: UI.mono, fontSize: 10, cursor: x.active.length ? 'pointer' : 'default',
+                  color: isNow ? UI.ink : UI.inkFaint, fontWeight: isNow ? 700 : 500,
+                  borderTop: `2px solid ${isNow ? UI.ink : UI.border}`, paddingTop: 3, whiteSpace: 'nowrap',
+                }}>{x.label}</div>
+              <div style={{ textAlign: 'center', fontSize: 9.5, color: x.started ? 'oklch(0.45 0.12 150)' : 'transparent', fontFamily: UI.mono }}>+{x.started}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 6, alignItems: 'center' }}>
+        {statuses.map((s) => (
+          <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, color: UI.inkMuted }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: s.color }} />{s.label}
+          </span>
+        ))}
+        <span style={{ fontSize: 10.5, color: 'oklch(0.45 0.12 150)' }}>+n = startet i kvartalet</span>
+        <span style={{ fontSize: 10.5, color: UI.inkFaint }}>· farve = nuværende status</span>
+      </div>
+    </div>
+  );
+}
+
 // ── Portfolio / Outcome pillar view ──────────────────────────────────────────
 function UiPortfolioView({ store, onOpenInit }) {
   const outcomes   = store.outcomes || [];
@@ -1272,6 +1437,7 @@ function UiPortfolioView({ store, onOpenInit }) {
   const outcomeById = _byId(outcomes);
   const inits      = store.initiatives || [];
   const statuses   = _pfStatuses(store);
+  const todayISO   = dateToISO(new Date());
 
   // Selection from a KPI tile, bar segment or heatmap cell. Ids (not objects)
   // are kept, so the list stays live when the store changes underneath.
@@ -1358,6 +1524,9 @@ function UiPortfolioView({ store, onOpenInit }) {
           active={sel?.key === 'kpi:noout'} onClick={() => pick('kpi:noout', 'Uden outcomes', noOutcome)} />
       </div>
 
+      {/* ── Needs attention ── */}
+      <UiPfAttention inits={inits} store={store} todayISO={todayISO} onOpenInit={onOpenInit} />
+
       {/* ── Distribution charts ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 14, alignItems: 'start' }}>
         <div style={_pfCard}>
@@ -1427,6 +1596,15 @@ function UiPortfolioView({ store, onOpenInit }) {
         </div>
       </div>
 
+      {/* ── Over time ── */}
+      <div style={_pfCard}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: UI.ink }}>Aktive initiativer pr. kvartal</div>
+          <div style={{ fontSize: 11, color: UI.inkFaint }}>Ud fra start- og slutdato. Klik på en søjle for at se initiativerne.</div>
+        </div>
+        <UiPfQuarters inits={inits} statuses={statuses} todayISO={todayISO} selKey={sel?.key} onPick={pick} />
+      </div>
+
       {/* ── Selected initiatives ── */}
       {sel && (
         <div ref={selRef} style={{ ..._pfCard, flex: '0 0 auto', padding: 0, overflow: 'hidden', borderColor: UI.borderStrong }}>
@@ -1486,7 +1664,7 @@ function UiPortfolioView({ store, onOpenInit }) {
               })
             );
 
-            const counts = { idea: 0, poc: 0, pilot: 0, live: 0 };
+            const counts = {};
             for (const i of inits) counts[i.status] = (counts[i.status] || 0) + 1;
 
             return (
@@ -1520,7 +1698,7 @@ function UiPortfolioView({ store, onOpenInit }) {
                   <span style={{ fontFamily: UI.mono, fontSize: 13, fontWeight: 700, color: pillarColor }}>{inits.length}</span>
                   <span style={{ fontFamily: UI.mono, fontSize: 9.5, color: UI.inkFaint }}>initiativer</span>
                   <div style={{ flex: 1 }} />
-                  {STATUSES.map((s) => counts[s.id] > 0 && (
+                  {statuses.map((s) => counts[s.id] > 0 && (
                     <span key={s.id} title={s.label} style={{
                       display: 'inline-flex', alignItems: 'center', gap: 3,
                       fontFamily: UI.mono, fontSize: 9.5, color: s.color,

@@ -292,6 +292,13 @@ function parseJSON(text) {
     next.milestones = (Array.isArray(next.milestones) ? next.milestones : [])
       .filter((m) => m && typeof m === 'object')
       .map((m) => (m.done === undefined ? m : { ...m, done: m.done === true }));
+    // Rejected ideas (Idéer → "Afvis"): optional `rejected: { at: 'YYYY-MM-DD', reason }`.
+    // A hand-written `true` or reason string is upgraded; a falsy value is dropped.
+    if ('rejected' in next) {
+      const r = next.rejected;
+      if (!r) delete next.rejected;
+      else if (typeof r !== 'object') next.rejected = { at: '', reason: typeof r === 'string' ? r : '' };
+    }
     return next;
   });
 
