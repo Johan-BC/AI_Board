@@ -1,4 +1,4 @@
-// ── Technology view: initiatives using one technology, with assessment criteria and manual priority ──
+// ── Technology view: initiatives using one or more selected technologies, with assessment criteria and manual priority ──
 
 // Global priority order: assessment.rank ascending, unranked last, stable on original order.
 function compareRank(a, b) {
@@ -39,14 +39,22 @@ function UiScoreEditor({ score, onChange }) {
 function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess }) {
   const techs = store.technologies || [];
   const defaultTech = techs.find((t) => t.name?.trim() === 'Claude') || techs[0];
-  const [techId, setTechId]   = React.useState(defaultTech?.id || null);
+  const [techIds, setTechIds] = React.useState(() => new Set(defaultTech ? [defaultTech.id] : []));
   const [sortKey, setSortKey] = React.useState('rank');
   const [sortDir, setSortDir] = React.useState('desc');
 
   if (!store) return null;
 
+  const toggleTech = (id) => setTechIds((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  // Initiatives using any of the selected technologies.
   const allOrdered = [...(store.initiatives || [])].sort(compareRank);
-  const inTech     = allOrdered.filter((i) => (i.techIds || []).includes(techId));
+  const inTech     = allOrdered.filter((i) => (i.techIds || []).some((t) => techIds.has(t)));
+  const multi      = techIds.size > 1;
   const canReorder = sortKey === 'rank';
   const visible    = canReorder ? inTech : sortByScore(inTech, sortKey, sortDir);
 
@@ -88,10 +96,31 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
 
   return (
     <div style={{ flex: 1, overflow: 'auto', padding: 20, fontFamily: UI.sans, minWidth: 0 }}>
+      <div style={{
+        fontFamily: UI.mono, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase',
+        color: UI.inkMuted, marginBottom: 7,
+      }}>Vælg én eller flere teknologier</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+        {techs.map((t) => {
+          const on = techIds.has(t.id);
+          return (
+            <button key={t.id} type="button" onClick={() => toggleTech(t.id)} aria-pressed={on} style={{
+              padding: '5px 12px', fontSize: 12, fontFamily: UI.sans, fontWeight: 600, borderRadius: 99,
+              border: `1px solid ${on ? UI.ink : `color-mix(in oklch, ${UI.ink} 30%, transparent)`}`,
+              background: on ? UI.ink : UI.panel,
+              boxShadow: on ? 'none' : '0 1px 1px rgba(0,0,0,0.05)',
+              color: on ? '#fff' : UI.ink, cursor: 'pointer', whiteSpace: 'nowrap',
+            }}>{on ? '✓ ' : ''}{t.name}</button>
+          );
+        })}
+        {techIds.size > 0 && (
+          <button type="button" onClick={() => setTechIds(new Set())} style={{
+            border: 'none', background: 'transparent', padding: '4px 6px', cursor: 'pointer',
+            fontSize: 11, color: UI.inkFaint, textDecoration: 'underline',
+          }}>Ryd</button>
+        )}
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
-        <select value={techId || ''} onChange={(e) => setTechId(e.target.value)} style={{ ...uiInputStyle, width: 'auto', minWidth: 180 }}>
-          {techs.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-        </select>
         <div style={{ fontFamily: UI.mono, fontSize: 11, color: UI.inkFaint }}>{inTech.length} initiativer</div>
         <div style={{ fontSize: 11, color: UI.inkFaint, fontStyle: 'italic' }}>
           {canReorder
@@ -103,7 +132,9 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
 
       {inTech.length === 0 ? (
         <div style={{ color: UI.inkFaint, fontSize: 13, padding: '40px 0', textAlign: 'center' }}>
-          Ingen initiativer bruger denne teknologi endnu.
+          {techIds.size === 0
+            ? 'Vælg en eller flere teknologier ovenfor.'
+            : multi ? 'Ingen initiativer bruger de valgte teknologier endnu.' : 'Ingen initiativer bruger denne teknologi endnu.'}
         </div>
       ) : (
         <div style={{ overflowX: 'auto', border: `1px solid ${UI.border}`, borderRadius: 8, background: UI.panel }}>
@@ -151,6 +182,12 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
                         {bu && <UiBuDot bu={bu} />}
                         {i.name}
                       </button>
+                      {/* With several technologies selected, show which of them this initiative uses. */}
+                      {multi && (
+                        <div style={{ fontFamily: UI.mono, fontSize: 9.5, color: UI.inkFaint, marginTop: 3 }}>
+                          {techs.filter((t) => techIds.has(t.id) && (i.techIds || []).includes(t.id)).map((t) => t.name).join(' · ')}
+                        </div>
+                      )}
                     </td>
                     <td style={td}><UiStatusPill status={i.status} statuses={store.statuses} size="sm" /></td>
                     <td style={{ ...td, color: UI.inkMuted, whiteSpace: 'nowrap' }}>{i.owner || '–'}</td>
