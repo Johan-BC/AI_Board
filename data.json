@@ -29,1733 +29,1479 @@
       "colorHue": 150
     },
     {
-      "id": "t_4a549",
-      "name": "Machine learning ",
+      "id": "t_ml",
+      "name": "Machine learning",
       "category": "Azure",
-      "colorHue": null
+      "colorHue": 260
     },
     {
-      "id": "t_cewv6",
-      "name": "Eleven Labs",
+      "id": "t_tts",
+      "name": "Tale (STT/TTS)",
       "category": "STT/TTS",
       "colorHue": 45
     },
     {
-      "id": "t_za15x",
-      "name": "AI search results",
-      "category": "AI based search and results",
+      "id": "t_search",
+      "name": "AI-søgning",
+      "category": "Søgning",
       "colorHue": 221
     },
     {
-      "id": "t_e9zlh",
-      "name": "AI generated video and voice",
-      "category": "AI generated Content",
+      "id": "t_video",
+      "name": "AI-genereret video",
+      "category": "Indhold",
       "colorHue": 123
     },
     {
-      "id": "t_hpysq",
-      "name": "Agentic supported workflows",
+      "id": "t_agentwf",
+      "name": "Agent-understøttede workflows",
       "category": "Agentic",
       "colorHue": 321
     },
     {
-      "id": "t_25p4k",
-      "name": "AI conversations",
-      "category": "AI generated text/speech",
+      "id": "t_conv",
+      "name": "AI-samtaler",
+      "category": "Tekst/tale",
       "colorHue": 300
     },
     {
-      "id": "t_9njqv",
-      "name": "AI based data processing",
-      "category": "Data processing",
-      "colorHue": 150
+      "id": "t_docs",
+      "name": "Dokumentbehandling",
+      "category": "Data",
+      "colorHue": 180
     },
     {
-      "id": "t_rgwfa",
+      "id": "t_agentauto",
       "name": "Agentic automation",
       "category": "Agentic",
-      "colorHue": null
+      "colorHue": 340
     },
     {
-      "id": "t_iajha",
+      "id": "t_claude",
       "name": "Claude",
-      "category": "GenAI",
-      "colorHue": 3
+      "category": "LLM",
+      "colorHue": 30
     },
     {
-      "id": "t_yyls9",
-      "name": "Lovable",
-      "category": "GenAI",
-      "colorHue": 261
+      "id": "t_gpt",
+      "name": "GPT",
+      "category": "LLM",
+      "colorHue": 90
     },
     {
-      "id": "t_zcsbr",
-      "name": "STT/TTS",
-      "category": "STT/TTS",
-      "colorHue": 84
+      "id": "t_lowcode",
+      "name": "Low-code AI",
+      "category": "Platform",
+      "colorHue": 200
     }
   ],
   "blockers": [
     {
       "id": "b_legal",
-      "name": "Legal review",
+      "name": "Juridisk review",
       "category": "Godkendelse",
       "colorHue": 10
     },
     {
       "id": "b_budget",
-      "name": "Budget godkendelse",
+      "name": "Budgetgodkendelse",
       "category": "Godkendelse",
       "colorHue": 30
     },
     {
       "id": "b_gdpr",
-      "name": "GDPR compliance",
+      "name": "GDPR",
       "category": "Godkendelse",
       "colorHue": 5
     },
     {
       "id": "b_it",
-      "name": "IT infrastruktur",
+      "name": "IT-infrastruktur",
       "category": "Teknik",
       "colorHue": 200
     },
     {
       "id": "b_vendor",
-      "name": "Vendor kontrakt",
+      "name": "Leverandørkontrakt",
       "category": "Teknik",
       "colorHue": 220
     },
     {
       "id": "b_data",
-      "name": "Data adgang",
+      "name": "Dataadgang",
       "category": "Teknik",
       "colorHue": 240
     },
     {
-      "id": "b_talent",
+      "id": "b_skills",
       "name": "Kompetencer",
       "category": "Organisation",
       "colorHue": 60
     },
     {
-      "id": "b_res",
-      "name": "Ressourcer/kapacitet",
+      "id": "b_cap",
+      "name": "Kapacitet",
       "category": "Organisation",
       "colorHue": 70
     },
     {
-      "id": "b_bbrng",
-      "name": "Manglende godkendelse fra TECH",
+      "id": "b_sec",
+      "name": "Sikkerhedsgodkendelse",
       "category": "Godkendelse",
-      "colorHue": 10
-    },
-    {
-      "id": "b_t1yi3",
-      "name": "Ikke tilladt teknologi",
-      "category": "Godkendelse",
-      "colorHue": 72
-    },
-    {
-      "id": "b_ijh8z",
-      "name": "Missing Governance",
-      "category": "Organisation",
-      "colorHue": 136
+      "colorHue": 15
     }
   ],
   "outcomes": [
     {
-      "id": "o_tnps",
-      "name": "Improve tNPS",
-      "category": "Customer Exp.",
+      "id": "o_nps",
+      "name": "Højere NPS",
+      "category": "Kundeoplevelse",
       "colorHue": 200
     },
     {
       "id": "o_aht",
-      "name": "Lower AHT",
-      "category": "Customer Exp.",
+      "name": "Lavere AHT",
+      "category": "Kundeoplevelse",
       "colorHue": 210
     },
     {
       "id": "o_fcr",
-      "name": "Higher FCR",
-      "category": "Customer Exp.",
+      "name": "Højere FCR",
+      "category": "Kundeoplevelse",
       "colorHue": 190
     },
     {
       "id": "o_repeat",
-      "name": "Fewer repeat contacts",
-      "category": "Customer Exp.",
+      "name": "Færre gentagne henvendelser",
+      "category": "Kundeoplevelse",
       "colorHue": 220
     },
     {
       "id": "o_sales",
-      "name": "More sales per call",
-      "category": "Revenue",
+      "name": "Mere salg pr. kontakt",
+      "category": "Omsætning",
       "colorHue": 145
     },
     {
       "id": "o_conv",
-      "name": "Higher conversion",
-      "category": "Revenue",
+      "name": "Højere konvertering",
+      "category": "Omsætning",
       "colorHue": 155
     },
     {
-      "id": "o_fte",
-      "name": "Lower FTE cost",
-      "category": "Efficiency",
-      "colorHue": 60
-    },
-    {
-      "id": "o_cpc",
-      "name": "Lower cost per contact",
-      "category": "Efficiency",
+      "id": "o_cost",
+      "name": "Lavere omkostning pr. kontakt",
+      "category": "Effektivitet",
       "colorHue": 65
     },
     {
       "id": "o_ttm",
-      "name": "Faster time to market",
-      "category": "Efficiency",
+      "name": "Hurtigere time-to-market",
+      "category": "Effektivitet",
       "colorHue": 55
     },
     {
-      "id": "o_qa",
-      "name": "Higher QA score",
-      "category": "Quality",
+      "id": "o_quality",
+      "name": "Højere kvalitet",
+      "category": "Kvalitet",
       "colorHue": 110
     },
     {
-      "id": "o_comp",
-      "name": "Fewer compliance issues",
-      "category": "Quality",
-      "colorHue": 100
-    },
-    {
-      "id": "o_ycjeo",
-      "name": "Quality improvement",
-      "category": "Quality",
-      "colorHue": 125
-    },
-    {
-      "id": "o_ixdrw",
-      "name": "Cost reduction",
-      "category": "Efficiency",
-      "colorHue": null
-    },
-    {
-      "id": "o_luc7c",
-      "name": "Cost optimization",
-      "category": "Efficiency",
-      "colorHue": 318
-    },
-    {
-      "id": "o_ajwjr",
-      "name": "Time reduction",
-      "category": "Efficiency",
-      "colorHue": 269
+      "id": "o_time",
+      "name": "Tidsbesparelse",
+      "category": "Effektivitet",
+      "colorHue": 70
     }
   ],
   "initiatives": [
     {
-      "id": "i_odqgz",
-      "buId": "mkt",
+      "id": "i_t00",
+      "buId": "bu_cx",
       "platformIds": [
-        "p_ttg5a"
+        "p_figma",
+        "p_dwh"
       ],
       "departmentIds": [
-        "dep_lllps"
+        "dep_voice"
       ],
-      "name": "AI-Mail",
-      "status": "pilot",
-      "owner": "Lasse Gilsfeldt",
+      "name": "Mail-assistent",
+      "status": "poc",
+      "owner": "Rasmus Dahl",
       "techIds": [
-        "t_copilot"
+        "t_ml"
       ],
       "blockerIds": [
-        "b_bbrng",
-        "b_ijh8z",
+        "b_budget",
         "b_data"
       ],
       "outcomeIds": [
-        "o_fte"
+        "o_time",
+        "o_sales"
       ],
       "tags": [],
-      "start": "2026-01-01",
-      "end": "",
-      "milestones": [
-        {
-          "date": "2026-07-01",
-          "label": "Go-Live"
-        }
-      ],
-      "purpose": "AI mail",
-      "need": "hurtigere håndtering af mails",
-      "solution": "Copilot hjælper med svar",
-      "assessment": {
-        "rank": 1
-      }
-    },
-    {
-      "id": "i_n71kd",
-      "buId": "mkt",
-      "platformIds": [
-        "p_cn47r"
-      ],
-      "departmentIds": [
-        "dep_lllps"
-      ],
-      "name": "AHT Model",
-      "status": "prod",
-      "owner": "Lasse Gilsfeldt",
-      "techIds": [
-        "t_4a549"
-      ],
-      "blockerIds": [],
-      "outcomeIds": [
-        "o_aht",
-        "o_qa"
-      ],
-      "tags": [],
-      "start": "2026-01-01",
-      "end": "",
-      "milestones": [
-        {
-          "date": "2026-07-01",
-          "label": "Review"
-        }
-      ],
-      "purpose": "forbedre AHT:",
-      "need": "indsigt i samtaler",
-      "solution": "ML-model der analyserer \"VARM faser",
+      "start": "2026-11-01",
+      "end": "2027-05-01",
+      "milestones": [],
+      "purpose": "Svarforslag til kundemails",
+      "need": "Lang svartid på mails",
+      "solution": "AI foreslår svar, medarbejder godkender",
       "assessment": {
         "rank": 2
       }
     },
     {
-      "id": "i_fur7u",
-      "buId": "mkt",
+      "id": "i_t01",
+      "buId": "bu_cx",
       "platformIds": [
-        "p_obqcq",
-        "p_dxhpv"
+        "p_dwh"
       ],
       "departmentIds": [
-        "dep_lllps"
+        "dep_voice"
       ],
-      "name": "Agent Assist",
-      "status": "pilot",
-      "owner": "Lasse Gilsfeldt",
+      "name": "Opkaldsresumé",
+      "status": "poc",
+      "owner": "Ole Brandt",
       "techIds": [
-        "t_cewv6",
-        "t_9njqv"
+        "t_copilot"
       ],
       "blockerIds": [
-        "b_budget",
-        "b_bbrng",
-        "b_it"
+        "b_vendor"
       ],
       "outcomeIds": [
-        "o_aht"
+        "o_repeat"
       ],
       "tags": [],
-      "start": "2026-09-29",
-      "end": "",
-      "milestones": [
-        {
-          "date": "2026-09-01",
-          "label": "Test"
-        },
-        {
-          "date": "2026-09-29",
-          "label": "Release MVP"
-        }
-      ],
-      "purpose": "reducere AHT",
-      "need": "effektivisering",
-      "solution": "transkribering og summaries på voicekald",
+      "start": "2026-08-01",
+      "end": "2027-08-01",
+      "milestones": [],
+      "purpose": "Automatisk resumé efter opkald",
+      "need": "Tid brugt på efterbehandling",
+      "solution": "Tale-til-tekst + resumé i CRM",
       "assessment": {
-        "rank": 3
+        "value": {
+          "score": 4
+        },
+        "ttv": {
+          "score": 3
+        },
+        "readiness": {
+          "ready": true
+        }
       }
     },
     {
-      "id": "i_ee8bd",
-      "buId": "mkt",
+      "id": "i_t02",
+      "buId": "bu_cx",
       "platformIds": [
-        "p_wblim"
+        "p_sf"
       ],
       "departmentIds": [
-        "dep_riw1k"
+        "dep_qa",
+        "dep_kb"
       ],
-      "name": "AI plugin i Contentful",
-      "status": "prod",
-      "owner": "Johanne Ladekær",
+      "name": "Chatbot 2.0",
+      "status": "pilot",
+      "owner": "Ole Brandt",
       "techIds": [
-        "t_hpysq",
-        "t_9njqv"
+        "t_gpt",
+        "t_agentwf"
       ],
-      "blockerIds": [
-        "b_res"
-      ],
+      "blockerIds": [],
       "outcomeIds": [
-        "o_ycjeo"
+        "o_nps"
       ],
       "tags": [],
-      "start": "2026-01-01",
+      "start": "2026-03-01",
+      "end": "2026-10-01",
+      "milestones": [],
+      "purpose": "Selvbetjening i chat",
+      "need": "For mange simple henvendelser",
+      "solution": "Agent der kan slå op i ordrer",
+      "assessment": {
+        "value": {
+          "score": 1
+        },
+        "ttv": {
+          "score": 2
+        },
+        "rank": 5
+      }
+    },
+    {
+      "id": "i_t03",
+      "buId": "bu_cx",
+      "platformIds": [
+        "p_cstudio",
+        "p_figma"
+      ],
+      "departmentIds": [
+        "dep_voice"
+      ],
+      "name": "Kvalitetsscore",
+      "status": "idea",
+      "owner": "Ole Brandt",
+      "techIds": [
+        "t_lowcode",
+        "t_claude"
+      ],
+      "blockerIds": [
+        "b_skills",
+        "b_data"
+      ],
+      "outcomeIds": [
+        "o_fcr"
+      ],
+      "tags": [],
+      "start": "2026-11-01",
+      "end": "2027-09-01",
+      "milestones": [],
+      "purpose": "Automatisk kvalitetsvurdering",
+      "need": "Kun stikprøver i dag",
+      "solution": "AI scorer alle samtaler",
+      "assessment": {
+        "value": {
+          "score": 1
+        },
+        "ttv": {
+          "score": 1
+        },
+        "readiness": {
+          "ready": true
+        }
+      }
+    },
+    {
+      "id": "i_t04",
+      "buId": "bu_cx",
+      "platformIds": [
+        "p_zd"
+      ],
+      "departmentIds": [
+        "dep_chat"
+      ],
+      "name": "Vidensbase-søgning",
+      "status": "idea",
+      "owner": "Maria Juhl",
+      "techIds": [
+        "t_gpt",
+        "t_agentwf"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [
+        "o_cost",
+        "o_fcr"
+      ],
+      "tags": [],
+      "start": "2026-11-01",
+      "end": "2027-10-01",
+      "milestones": [],
+      "purpose": "Bedre søgning for agenter",
+      "need": "Svar er svære at finde",
+      "solution": "Semantisk søgning i artikler"
+    },
+    {
+      "id": "i_t05",
+      "buId": "bu_cx",
+      "platformIds": [
+        "p_cstudio"
+      ],
+      "departmentIds": [
+        "dep_voice"
+      ],
+      "name": "Sentiment i realtid",
+      "status": "prod",
+      "owner": "Ida Mørk",
+      "techIds": [
+        "t_claude"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [
+        "o_ttm",
+        "o_nps"
+      ],
+      "tags": [],
+      "start": "2025-07-01",
+      "end": "2026-03-01",
+      "milestones": [
+        {
+          "date": "2025-11-15",
+          "label": "Evaluering"
+        }
+      ],
+      "purpose": "Fang utilfredse kunder tidligt",
+      "need": "Eskalering sker for sent",
+      "solution": "Live sentiment på opkald"
+    },
+    {
+      "id": "i_t06",
+      "buId": "bu_cx",
+      "platformIds": [
+        "p_dwh",
+        "p_m365"
+      ],
+      "departmentIds": [
+        "dep_voice"
+      ],
+      "name": "Voicebot til fejlmelding",
+      "status": "prod",
+      "owner": "Maria Juhl",
+      "techIds": [
+        "t_agentauto",
+        "t_tts",
+        "t_video"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [
+        "o_time",
+        "o_cost"
+      ],
+      "tags": [],
+      "start": "2025-07-01",
       "end": "",
       "milestones": [],
-      "purpose": "Generere automatiske AI-tekster til mediefiler.",
-      "need": "At sikre accessibility.",
-      "solution": "Et AI-plugin i Contentful genererer tekst automatisk baseret på indholdet; teamet undersøger også om pluginet kan bruges til andre metafelter.",
+      "purpose": "Fejlmelding uden ventetid",
+      "need": "Kø ved driftsforstyrrelser",
+      "solution": "Voicebot der registrerer fejl",
       "assessment": {
         "rank": 4
       }
     },
     {
-      "id": "i_180mm",
-      "buId": "mkt",
-      "platformIds": [],
+      "id": "i_t07",
+      "buId": "bu_cx",
+      "platformIds": [
+        "p_zd",
+        "p_sf"
+      ],
       "departmentIds": [
-        "dep_riw1k"
+        "dep_voice"
       ],
-      "name": "Cludo AI search results",
+      "name": "Agent-coach",
       "status": "pilot",
-      "owner": "Johanne Ladekær",
+      "owner": "Jonas Krogh",
       "techIds": [
-        "t_za15x"
+        "t_agentwf"
       ],
-      "blockerIds": [
-        "b_vendor",
-        "b_res",
-        "b_it"
-      ],
+      "blockerIds": [],
       "outcomeIds": [
-        "o_repeat",
-        "o_qa",
-        "o_fcr"
+        "o_quality",
+        "o_repeat"
       ],
       "tags": [],
-      "start": "2026-10-01",
-      "end": "",
+      "start": "2026-05-01",
+      "end": "2027-02-01",
       "milestones": [
         {
-          "date": "2026-06-01",
-          "label": "Find testmiljø"
-        },
-        {
-          "date": "2026-06-01",
-          "label": "Evaluer feature"
-        },
-        {
-          "date": "2026-06-01",
-          "label": "Udrulning i Youniverse"
-        },
-        {
-          "date": "2026-06-01",
-          "label": "Udrulning youSee.dk"
+          "date": "2026-09-15",
+          "label": "Go-live"
         }
       ],
-      "purpose": "Give mere svar-lignende AI-søgeresultater.",
-      "need": "Forbedre søgeoplevelsen for kunder og agenter på flere søgninger.",
-      "solution": "Cludo har rullet en feature ud kaldet AI search results, som skal testes og senere evt. rulles ud på de tre søgninger.",
+      "purpose": "Feedback til nye medarbejdere",
+      "need": "Lang oplæringstid",
+      "solution": "AI-coach efter hver samtale",
       "assessment": {
-        "rank": 5
+        "value": {
+          "score": 1,
+          "comments": [
+            {
+              "id": "c7",
+              "text": "Stort potentiale hvis data er på plads",
+              "at": "2026-09-15T10:00:00.000Z"
+            }
+          ]
+        },
+        "ttv": {
+          "score": 2
+        },
+        "readiness": {
+          "ready": true
+        },
+        "rank": 6
       }
     },
     {
-      "id": "i_0w9ld",
-      "buId": "mkt",
+      "id": "i_t08",
+      "buId": "bu_mkt",
       "platformIds": [
-        "p_0oh1c"
+        "p_cms"
       ],
       "departmentIds": [
-        "dep_riw1k"
+        "dep_insight"
       ],
-      "name": "AI hjælpevideoer med Heygen",
-      "status": "prod",
-      "owner": "Emil Lund",
+      "name": "Kampagnetekster",
+      "status": "pilot",
+      "owner": "Kasper Lund",
       "techIds": [
-        "t_e9zlh"
+        "t_search",
+        "t_docs",
+        "t_conv"
+      ],
+      "blockerIds": [
+        "b_budget"
+      ],
+      "outcomeIds": [
+        "o_cost"
+      ],
+      "tags": [],
+      "start": "2026-04-01",
+      "end": "2027-03-01",
+      "milestones": [
+        {
+          "date": "2026-09-15",
+          "label": "Beslutning"
+        }
+      ],
+      "purpose": "Hurtigere tekstproduktion",
+      "need": "Flaskehals i content",
+      "solution": "AI-udkast i tone of voice",
+      "assessment": {
+        "value": {
+          "score": 1
+        },
+        "ttv": {
+          "score": 1
+        },
+        "readiness": {
+          "ready": false
+        }
+      }
+    },
+    {
+      "id": "i_t09",
+      "buId": "bu_mkt",
+      "platformIds": [
+        "p_cstudio",
+        "p_sf"
+      ],
+      "departmentIds": [
+        "dep_campaign"
+      ],
+      "name": "Produktvideoer",
+      "status": "poc",
+      "owner": "Thomas Vang",
+      "techIds": [
+        "t_ml",
+        "t_docs"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [
+        "o_quality"
+      ],
+      "tags": [],
+      "start": "2026-06-01",
+      "end": "2027-06-01",
+      "milestones": [],
+      "purpose": "Korte forklaringsvideoer",
+      "need": "Dyrt at producere video",
+      "solution": "AI-avatar og stemme"
+    },
+    {
+      "id": "i_t10",
+      "buId": "bu_mkt",
+      "platformIds": [
+        "p_sf"
+      ],
+      "departmentIds": [
+        "dep_content"
+      ],
+      "name": "SEO-optimering",
+      "status": "pilot",
+      "owner": "Camilla Friis",
+      "techIds": [
+        "t_conv"
+      ],
+      "blockerIds": [
+        "b_cap"
+      ],
+      "outcomeIds": [
+        "o_cost",
+        "o_quality"
+      ],
+      "tags": [],
+      "start": "2026-03-01",
+      "end": "2027-02-01",
+      "milestones": [
+        {
+          "date": "2026-08-15",
+          "label": "Beslutning"
+        }
+      ],
+      "purpose": "Bedre placering i søgning",
+      "need": "Manuel SEO er langsom",
+      "solution": "AI-forslag til metadata",
+      "assessment": {
+        "value": {
+          "score": 3
+        },
+        "ttv": {
+          "score": 2
+        }
+      }
+    },
+    {
+      "id": "i_t11",
+      "buId": "bu_mkt",
+      "platformIds": [],
+      "departmentIds": [
+        "dep_insight",
+        "dep_content"
+      ],
+      "name": "Social listening",
+      "status": "idea",
+      "owner": "Anna Lindqvist",
+      "techIds": [
+        "t_tts"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [
+        "o_aht",
+        "o_repeat"
+      ],
+      "tags": [],
+      "start": "2026-11-01",
+      "end": "2027-03-01",
+      "milestones": [],
+      "purpose": "Overblik over omtale",
+      "need": "Spredt overvågning",
+      "solution": "AI-klassificering af omtale"
+    },
+    {
+      "id": "i_t12",
+      "buId": "bu_mkt",
+      "platformIds": [],
+      "departmentIds": [
+        "dep_insight",
+        "dep_campaign"
+      ],
+      "name": "Billedgenerering",
+      "status": "idea",
+      "owner": "Line Bech",
+      "techIds": [
+        "t_gpt",
+        "t_agentwf"
       ],
       "blockerIds": [
         "b_vendor"
       ],
       "outcomeIds": [
-        "o_ixdrw",
-        "o_repeat"
+        "o_fcr",
+        "o_sales"
       ],
       "tags": [],
-      "start": "2026-01-01",
-      "end": "",
-      "milestones": [
-        {
-          "date": "2026-07-01",
-          "label": "Beslutning om fremtidig platform"
-        }
-      ],
-      "purpose": "Lave AI-genererede hjælpevideoer og andre videoer.",
-      "need": "Effektiv produktion af videoer med avatar/skuespiller.",
-      "solution": "Et tool genererer video baseret på en prompt med en skuespiller/avatar; teamet evaluerer om de skal fortsætte eller skifte til et andet tool, som kan mere men koster lidt mere.",
-      "assessment": {
-        "rank": 6
-      }
+      "start": "2026-12-01",
+      "end": "2027-04-01",
+      "milestones": [],
+      "purpose": "Kampagnebilleder",
+      "need": "Lang leveringstid fra bureau",
+      "solution": "AI-billeder med brand-guide"
     },
     {
-      "id": "i_w4zpc",
-      "buId": "mkt",
+      "id": "i_t13",
+      "buId": "bu_mkt",
       "platformIds": [],
       "departmentIds": [
-        "dep_petrw"
+        "dep_insight"
       ],
-      "name": "Agentic Design System",
+      "name": "Personaliserede mails",
       "status": "idea",
-      "owner": "Rikke ",
+      "owner": "Line Bech",
       "techIds": [
-        "t_hpysq",
-        "t_iajha"
+        "t_agentwf",
+        "t_ml"
       ],
       "blockerIds": [
-        "b_budget",
-        "b_gdpr",
-        "b_bbrng",
-        "b_res"
+        "b_data"
       ],
       "outcomeIds": [
-        "o_ixdrw",
-        "o_ycjeo"
+        "o_fcr",
+        "o_ttm"
       ],
       "tags": [],
-      "start": "2026-06-01",
-      "end": "",
-      "milestones": [
-        {
-          "date": "2026-06-01",
-          "label": "Adgang til intern Anthropic model"
-        }
-      ],
-      "purpose": "Afprøve et setup for et agentisk designsystem med frontend-katalog/storybook og kobling til frontend.",
-      "need": "Skabe bedre frontend og gøre piloten anvendelig i praksis.",
-      "solution": "Pilot hvor de forsøger at koble designsetup op på GitHub og interne modeller; på længere sigt tænkes det implementeret i My YouSee og Mit Internet.\nAnthropic-modeller internt; Co-work/andet eksternt værktøj til prompts",
-      "testing": true,
-      "assessment": {
-        "value": {
-          "score": 1
-        },
-        "rank": 7
-      }
-    },
-    {
-      "id": "i_y3shs",
-      "buId": "mkt",
-      "platformIds": [
-        "p_6sydy"
-      ],
-      "departmentIds": [
-        "dep_petrw"
-      ],
-      "name": "Figma AI prototyper og opsummering",
-      "status": "prod",
-      "owner": "Barbara Post",
-      "techIds": [
-        "t_hpysq",
-        "t_9njqv"
-      ],
-      "blockerIds": [],
-      "outcomeIds": [
-        "o_ttm",
-        "o_ycjeo"
-      ],
-      "tags": [],
-      "start": "2026-01-01",
-      "end": "",
+      "start": "2026-12-01",
+      "end": "2027-05-01",
       "milestones": [],
-      "purpose": "Hjælpe med prototyper, workshops og opsummering af inputs/indsigter.",
-      "need": "Hurtigere at komme frem til visuelle modeller og støtte kreativ udvikling.",
-      "solution": "Figma AI bruges på platformsudvikling og af UX’ere; den beskrives som god til workshops og opsummering, hvis man har mange inputs.",
+      "purpose": "Relevante nyhedsbreve",
+      "need": "Lav åbningsrate",
+      "solution": "Segmentering + AI-tekster",
       "assessment": {
         "rank": 8
       }
     },
     {
-      "id": "i_axj56",
-      "buId": "mkt",
-      "platformIds": [
-        "p_s66za"
-      ],
+      "id": "i_t14",
+      "buId": "bu_mkt",
+      "platformIds": [],
       "departmentIds": [
-        "dep_petrw"
+        "dep_campaign"
       ],
-      "name": "Theydo - Journey management system",
-      "status": "prod",
-      "owner": "Line Huusom",
+      "name": "Indsigtsrapporter",
+      "status": "poc",
+      "owner": "Mikkel Sørensen",
       "techIds": [
-        "t_9njqv"
-      ],
-      "blockerIds": [
-        "b_res",
-        "b_talent",
-        "b_data"
-      ],
-      "outcomeIds": [
-        "o_qa",
-        "o_ycjeo",
-        "o_tnps"
-      ],
-      "tags": [],
-      "start": "2026-07-01",
-      "end": "",
-      "milestones": [
-        {
-          "date": "2026-07-01",
-          "label": "Pilotintegrationer håbes i løbet af Q3"
-        }
-      ],
-      "purpose": "Finde indsigter og pain points på tværs af data.",
-      "need": "Bedre beslutningsstøtte ud fra de data, der uploades i systemet.",
-      "solution": "Et eksisterende journey management system har AI koblet på og bruges allerede meget; i dag uploades data manuelt, og planen er at få integrationer så nyeste data kommer ind dynamisk.",
-      "assessment": {
-        "rank": 9
-      }
-    },
-    {
-      "id": "i_82rhu",
-      "buId": "mkt",
-      "platformIds": [
-        "p_obqcq"
-      ],
-      "departmentIds": [
-        "dep_czm6m"
-      ],
-      "name": "Chatbot (Chat kanal)",
-      "status": "prod",
-      "owner": "Josephine Nøjsen",
-      "techIds": [
-        "t_25p4k"
-      ],
-      "blockerIds": [],
-      "outcomeIds": [
-        "o_fcr",
-        "o_repeat"
-      ],
-      "tags": [],
-      "start": "2026-01-01",
-      "end": "2028-01-01",
-      "milestones": [],
-      "purpose": "Automatisere kundedialog via chat.",
-      "need": "Håndtere kundeservice effektivt og skalerbart.",
-      "solution": "Chatbot baseret på knowledge base og RAG-modeller, som genererer AI-svar og dialog.",
-      "assessment": {
-        "rank": 10
-      }
-    },
-    {
-      "id": "i_dfqje",
-      "buId": "mkt",
-      "platformIds": [
-        "p_obqcq"
-      ],
-      "departmentIds": [
-        "dep_u4lep"
-      ],
-      "name": "Voicebot (Voice kanal)",
-      "status": "prod",
-      "owner": "Josephine Nøjsen",
-      "techIds": [
-        "t_cewv6",
-        "t_25p4k"
-      ],
-      "blockerIds": [],
-      "outcomeIds": [
-        "o_fcr",
-        "o_tnps",
-        "o_repeat"
-      ],
-      "tags": [],
-      "start": "2026-01-01",
-      "end": "",
-      "milestones": [],
-      "purpose": "Håndtere kundedialog via voice.",
-      "need": "Udvide chatbot capability til voice.",
-      "solution": "Voicebot med tale-til-tekst og tekst-til-tale samt AI-genereret output.",
-      "assessment": {
-        "rank": 11
-      }
-    },
-    {
-      "id": "i_aedea",
-      "buId": "mkt",
-      "platformIds": [
-        "p_obqcq"
-      ],
-      "departmentIds": [
-        "dep_u4lep"
-      ],
-      "name": "STT/TTS platform (Eleven Labs integration)",
-      "status": "pilot",
-      "owner": "Josephine Nøjsen",
-      "techIds": [
-        "t_cewv6",
-        "t_e9zlh"
+        "t_lowcode"
       ],
       "blockerIds": [
         "b_vendor"
       ],
       "outcomeIds": [
-        "o_tnps",
-        "o_fcr",
-        "o_ycjeo"
+        "o_time",
+        "o_repeat"
       ],
       "tags": [],
-      "start": "2026-06-01",
-      "end": "2028-01-01",
+      "start": "2026-10-01",
+      "end": "2027-06-01",
+      "milestones": [],
+      "purpose": "Automatiske månedsrapporter",
+      "need": "Manuel rapportering",
+      "solution": "AI opsummerer data",
+      "assessment": {
+        "value": {
+          "score": 3
+        },
+        "ttv": {
+          "score": 5
+        },
+        "readiness": {
+          "ready": false
+        }
+      }
+    },
+    {
+      "id": "i_t15",
+      "buId": "bu_prd",
+      "platformIds": [],
+      "departmentIds": [
+        "dep_app"
+      ],
+      "name": "Designsystem-agent",
+      "status": "idea",
+      "owner": "Maria Juhl",
+      "techIds": [
+        "t_tts",
+        "t_docs"
+      ],
+      "blockerIds": [
+        "b_sec",
+        "b_legal"
+      ],
+      "outcomeIds": [
+        "o_aht"
+      ],
+      "tags": [],
+      "start": "2026-11-01",
+      "end": "2027-03-01",
+      "milestones": [],
+      "purpose": "Komponenter fra designsystem",
+      "need": "Inkonsistente skærmbilleder",
+      "solution": "Agent der bygger fra komponenter",
+      "assessment": {
+        "rank": 9
+      }
+    },
+    {
+      "id": "i_t16",
+      "buId": "bu_prd",
+      "platformIds": [
+        "p_m365"
+      ],
+      "departmentIds": [
+        "dep_data"
+      ],
+      "name": "App-søgning",
+      "status": "prod",
+      "owner": "Anna Lindqvist",
+      "techIds": [
+        "t_search",
+        "t_gpt"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [
+        "o_aht"
+      ],
+      "tags": [],
+      "start": "2025-05-01",
+      "end": "",
       "milestones": [
         {
-          "date": "2026-06-10",
-          "label": "Kontrakt underskrivse + release"
+          "date": "2025-11-15",
+          "label": "Beslutning"
         }
       ],
-      "purpose": "Forbedre voice output kvalitet.",
-      "need": "Bedre syntetisk tale og voice experience.",
-      "solution": "Integration af Eleven Labs til talegenerering som ny leverandør.",
+      "purpose": "Bedre søgning i appen",
+      "need": "Brugere finder ikke svar",
+      "solution": "AI-søgning i app og web",
+      "assessment": {
+        "rank": 3
+      }
+    },
+    {
+      "id": "i_t17",
+      "buId": "bu_prd",
+      "platformIds": [
+        "p_m365",
+        "p_cstudio"
+      ],
+      "departmentIds": [
+        "dep_data"
+      ],
+      "name": "Churn-forudsigelse",
+      "status": "pilot",
+      "owner": "Maria Juhl",
+      "techIds": [
+        "t_video",
+        "t_tts"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [
+        "o_nps",
+        "o_ttm"
+      ],
+      "tags": [],
+      "start": "2026-04-01",
+      "end": "2026-10-01",
+      "milestones": [
+        {
+          "date": "2026-07-15",
+          "label": "Beslutning"
+        }
+      ],
+      "purpose": "Fang kunder der vil opsige",
+      "need": "Høj churn",
+      "solution": "ML-model på brugsdata",
+      "assessment": {
+        "value": {
+          "score": 2,
+          "comments": [
+            {
+              "id": "c17",
+              "text": "Stort potentiale hvis data er på plads",
+              "at": "2026-09-15T10:00:00.000Z"
+            }
+          ]
+        },
+        "ttv": {
+          "score": 2
+        },
+        "readiness": {
+          "ready": true
+        },
+        "rank": 1
+      }
+    },
+    {
+      "id": "i_t18",
+      "buId": "bu_prd",
+      "platformIds": [
+        "p_dwh",
+        "p_figma"
+      ],
+      "departmentIds": [
+        "dep_app"
+      ],
+      "name": "Testautomatisering",
+      "status": "poc",
+      "owner": "Line Bech",
+      "techIds": [
+        "t_claude",
+        "t_video"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [
+        "o_time"
+      ],
+      "tags": [],
+      "start": "2026-07-01",
+      "end": "2027-07-01",
+      "milestones": [
+        {
+          "date": "2027-01-15",
+          "label": "Evaluering"
+        }
+      ],
+      "purpose": "Hurtigere test",
+      "need": "Manuel regressionstest",
+      "solution": "AI genererer testcases",
+      "assessment": {
+        "value": {
+          "score": 5,
+          "comments": [
+            {
+              "id": "c18",
+              "text": "Stort potentiale hvis data er på plads",
+              "at": "2026-09-15T10:00:00.000Z"
+            }
+          ]
+        },
+        "ttv": {
+          "score": 1
+        },
+        "readiness": {
+          "ready": true
+        }
+      }
+    },
+    {
+      "id": "i_t19",
+      "buId": "bu_prd",
+      "platformIds": [],
+      "departmentIds": [
+        "dep_ux"
+      ],
+      "name": "Tilgængelighedstjek",
+      "status": "prod",
+      "owner": "Rasmus Dahl",
+      "techIds": [
+        "t_lowcode"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [
+        "o_quality",
+        "o_sales"
+      ],
+      "tags": [],
+      "start": "2025-09-01",
+      "end": "",
+      "milestones": [
+        {
+          "date": "2025-12-15",
+          "label": "Evaluering"
+        }
+      ],
+      "purpose": "WCAG på alle sider",
+      "need": "Fejl findes sent",
+      "solution": "AI-scanning før release",
+      "assessment": {
+        "value": {
+          "score": 3
+        },
+        "ttv": {
+          "score": 5
+        },
+        "readiness": {
+          "ready": true
+        }
+      }
+    },
+    {
+      "id": "i_t20",
+      "buId": "bu_prd",
+      "platformIds": [
+        "p_figma"
+      ],
+      "departmentIds": [
+        "dep_data"
+      ],
+      "name": "Datakatalog-assistent",
+      "status": "poc",
+      "owner": "Kasper Lund",
+      "techIds": [
+        "t_docs",
+        "t_lowcode"
+      ],
+      "blockerIds": [
+        "b_it",
+        "b_cap"
+      ],
+      "outcomeIds": [
+        "o_fcr",
+        "o_aht"
+      ],
+      "tags": [],
+      "start": "2026-08-01",
+      "end": "2026-12-01",
+      "milestones": [
+        {
+          "date": "2026-10-15",
+          "label": "Evaluering"
+        }
+      ],
+      "purpose": "Find de rigtige data",
+      "need": "Ingen ved hvor data ligger",
+      "solution": "Chat oven på datakatalog",
+      "assessment": {
+        "value": {
+          "score": 2,
+          "comments": [
+            {
+              "id": "c20",
+              "text": "Stort potentiale hvis data er på plads",
+              "at": "2026-09-15T10:00:00.000Z"
+            }
+          ]
+        },
+        "ttv": {
+          "score": 3
+        },
+        "readiness": {
+          "ready": true
+        }
+      }
+    },
+    {
+      "id": "i_t21",
+      "buId": "bu_prd",
+      "platformIds": [
+        "p_dwh",
+        "p_cstudio"
+      ],
+      "departmentIds": [
+        "dep_data",
+        "dep_ux"
+      ],
+      "name": "Brugerinterview-analyse",
+      "status": "idea",
+      "owner": "Jonas Krogh",
+      "techIds": [
+        "t_gpt",
+        "t_copilot"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [
+        "o_repeat",
+        "o_fcr"
+      ],
+      "tags": [],
+      "start": "2026-10-01",
+      "end": "2027-09-01",
+      "milestones": [],
+      "purpose": "Hurtigere indsigt",
+      "need": "Analyse tager uger",
+      "solution": "AI tematiserer interviews",
       "assessment": {
         "rank": 12
       }
     },
     {
-      "id": "i_pc7hb",
-      "buId": "mkt",
+      "id": "i_t22",
+      "buId": "bu_sal",
       "platformIds": [
-        "p_es9n0"
+        "p_dwh",
+        "p_figma"
       ],
       "departmentIds": [
-        "dep_ybx0u"
+        "dep_b2b",
+        "dep_b2c"
       ],
-      "name": "Microsoft copilot 365 Adoption",
+      "name": "Salgsassistent",
       "status": "prod",
-      "owner": "Johan Christophersen",
+      "owner": "Sofie Holm",
       "techIds": [
-        "t_hpysq",
-        "t_9njqv",
-        "t_rgwfa"
+        "t_docs",
+        "t_video",
+        "t_search"
       ],
       "blockerIds": [],
       "outcomeIds": [
-        "o_ycjeo",
-        "o_ixdrw"
+        "o_sales",
+        "o_quality"
       ],
       "tags": [],
-      "start": "2026-01-01",
-      "end": "",
+      "start": "2025-10-01",
+      "end": "2026-03-01",
       "milestones": [
         {
-          "date": "2026-08-01",
-          "label": "Fase 2 - afsluttet"
-        },
-        {
-          "date": "2026-08-01",
-          "label": "Fase 3 - begyndes"
+          "date": "2025-12-15",
+          "label": "Pilot start"
         }
       ],
-      "purpose": "Udbrede forståelsen og brugen af generativb AI i youSee",
-      "need": "En",
-      "solution": "der er compliant og som skaber mest mulig værdi for alle.Løsning: Udrulle Microsoft 365 copilot i youSee",
+      "purpose": "Forslag under salgssamtalen",
+      "need": "Mersalg glemmes",
+      "solution": "Live forslag til tilbud",
       "assessment": {
-        "rank": 13
+        "value": {
+          "score": 1
+        },
+        "ttv": {
+          "score": 3
+        },
+        "readiness": {
+          "ready": true
+        }
       }
     },
     {
-      "id": "i_1dg4h",
-      "buId": "mkt",
+      "id": "i_t23",
+      "buId": "bu_sal",
       "platformIds": [
-        "p_obqcq"
+        "p_cstudio"
       ],
       "departmentIds": [
-        "dep_czm6m"
+        "dep_b2b"
       ],
-      "name": "Anbefalingsbot (Adobe/tilbudslogik)",
-      "status": "prod",
-      "owner": "Josephine Nøjsen",
+      "name": "Tilbudsgenerator",
+      "status": "idea",
+      "owner": "Camilla Friis",
       "techIds": [
-        "t_hpysq",
-        "t_9njqv"
+        "t_agentauto",
+        "t_docs"
       ],
       "blockerIds": [
-        "b_gdpr",
-        "b_legal"
+        "b_legal",
+        "b_it"
       ],
       "outcomeIds": [
-        "o_sales"
+        "o_cost",
+        "o_nps"
       ],
       "tags": [],
-      "start": "2026-01-01",
-      "end": "2028-01-01",
+      "start": "2026-10-01",
+      "end": "2027-08-01",
       "milestones": [],
-      "purpose": "Præsentere relevante tilbud til kunder.",
-      "need": "Øge relevans i kundeinteraktion og mersalg.",
-      "solution": "Bot vurderer baseret på parametre om tilbud skal vises og genererer forslag.",
+      "purpose": "Hurtigere erhvervstilbud",
+      "need": "Tilbud tager dage",
+      "solution": "AI udfylder tilbudsskabelon",
       "assessment": {
-        "rank": 14
+        "rank": 7
       }
     },
     {
-      "id": "i_fazu7",
-      "buId": "bu_5j4q7",
-      "platformIds": [],
-      "departmentIds": [
-        "dep_rq9e5"
+      "id": "i_t24",
+      "buId": "bu_sal",
+      "platformIds": [
+        "p_dwh",
+        "p_cstudio"
       ],
-      "name": "MMM-model / Media Mix Modelling",
+      "departmentIds": [
+        "dep_b2c",
+        "dep_b2b"
+      ],
+      "name": "Lead-scoring",
       "status": "prod",
-      "owner": "Michael Gamst",
+      "owner": "Camilla Friis",
       "techIds": [
-        "t_9njqv"
+        "t_copilot",
+        "t_conv",
+        "t_agentwf"
       ],
       "blockerIds": [],
       "outcomeIds": [
-        "o_ixdrw",
-        "o_luc7c"
+        "o_cost",
+        "o_fcr"
       ],
       "tags": [],
-      "start": "2026-06-01",
-      "end": "",
+      "start": "2025-09-01",
+      "end": "2026-05-01",
       "milestones": [],
-      "purpose": "At optimere marketing spend og omsætte modeloutput til mere konkrete actions.",
-      "need": "Forretningen vil vide, hvor marketingbudgettet skal bruges for størst salgseffekt, og ønsker mere agile og handlingsorienterede analyser end tidligere.",
-      "solution": "En MMM-model bygget sammen med mediebureau/samarbejdspartner, som vurderer kanalvalg og spend. Michael siger, at udviklingen har taget et “kvantespring”, og at løsningen kombinerer modeloutput med mere håndgribelige findings, så man ikke bare sidder tilbage med flere spørgsmål, men får konkrete actions. Løsningen ligger hos en ekstern partner i et lukket miljø under NDA.",
+      "purpose": "Prioritér de varme leads",
+      "need": "Sælgere ringer bredt",
+      "solution": "ML-score på leads",
       "assessment": {
-        "rank": 15
+        "rank": 11
       }
     },
     {
-      "id": "i_18m70",
-      "buId": "bu_5j4q7",
+      "id": "i_t25",
+      "buId": "bu_sal",
       "platformIds": [],
       "departmentIds": [
-        "dep_rq9e5"
+        "dep_b2c",
+        "dep_b2b"
       ],
-      "name": "Performance Marketing Intelligence",
-      "status": "idea",
-      "owner": "Søren Dyrberg Bundgaard ",
+      "name": "Opkaldsanalyse salg",
+      "status": "pilot",
+      "owner": "Sofie Holm",
       "techIds": [
-        "t_iajha"
+        "t_video"
       ],
       "blockerIds": [
-        "b_bbrng",
-        "b_t1yi3",
-        "b_data"
-      ],
-      "outcomeIds": [
-        "o_luc7c"
-      ],
-      "tags": [],
-      "start": "2026-01-01",
-      "end": "",
-      "milestones": [],
-      "purpose": "Give hurtigere og bedre overblik over performance på tværs af mange annonceplatforme og understøtte rapportering internt i marketing og videre til salgsorganisationen.",
-      "need": "Performance marketing arbejder med data fra 7-8 forskellige systemer, hvor data ikke er ens, og overblik kræver input fra egne rapporter, eksterne bureauer og kollegaer. Det kunne tidligere tage dage/uger at få svar og skabe overblik.",
-      "solution": "Trænet Claude med sin måde at tænke performance på, bygget skills og faste dashboards, så agenten kan vurdere datasæt ud fra hans instruktioner og give færdige output, visualiseringer og grafer.",
-      "testing": true,
-      "assessment": {
-        "rank": 16
-      }
-    },
-    {
-      "id": "i_n88d1",
-      "buId": "bu_5j4q7",
-      "platformIds": [],
-      "departmentIds": [
-        "dep_rq9e5"
-      ],
-      "name": "Automatisering af lavpraktiske marketingopgaver",
-      "status": "idea",
-      "owner": "Søren Dyrberg Bundgaard ",
-      "techIds": [
-        "t_iajha"
-      ],
-      "blockerIds": [
-        "b_bbrng",
-        "b_t1yi3"
-      ],
-      "outcomeIds": [
-        "o_ixdrw",
-        "o_ajwjr",
-        "o_ttm"
-      ],
-      "tags": [],
-      "start": "",
-      "end": "",
-      "milestones": [],
-      "purpose": "Frigøre tid ved at lade AI-agenter udføre manuelle, gentagne marketingopgaver.",
-      "need": "Opgaver som upload af nye YouTube-assets, placering i rette mapper, linkgenerering og oprettelse af tracking-koder kræver manuel klikarbejde i forskellige systemer.",
-      "solution": "Definerede opgaver i Claude-browseren, så der kan startes en agent, hvorefter agenten udfører arbejdet på skærmen.",
-      "testing": true,
-      "assessment": {
-        "rank": 17
-      }
-    },
-    {
-      "id": "i_ldnfz",
-      "buId": "bu_5j4q7",
-      "platformIds": [],
-      "departmentIds": [
-        "dep_rq9e5"
-      ],
-      "name": "Konkurrentovervågning og ekstern research",
-      "status": "idea",
-      "owner": "Søren Dyrberg Bundgaard ",
-      "techIds": [
-        "t_iajha"
-      ],
-      "blockerIds": [
-        "b_bbrng",
-        "b_t1yi3"
-      ],
-      "outcomeIds": [],
-      "tags": [],
-      "start": "",
-      "end": "",
-      "milestones": [],
-      "purpose": "Skabe bedre og hurtigere indsigt i konkurrenters annoncer, tilbud, claims og digitale aktiviteter.",
-      "need": "Manuel gennemgang af konkurrenters 100+ annoncer, tilbud og claims ville kræve meget tid og ville sandsynligvis ikke blive gjort i samme omfang.",
-      "solution": "Agenter, der kan analysere konkurrenters annonce-setup, fx se hvornår en konkurrent begynder at bruge bestemte claims, hvor mange assets der bruger claimet, og visualisere udvikling over fx 14 dage.",
-      "testing": true,
-      "assessment": {
-        "rank": 18
-      }
-    },
-    {
-      "id": "i_vhmcf",
-      "buId": "bu_5j4q7",
-      "platformIds": [],
-      "departmentIds": [],
-      "name": "MAPR",
-      "status": "idea",
-      "owner": "Phillip Andreasen",
-      "techIds": [
-        "t_yyls9"
-      ],
-      "blockerIds": [
-        "b_bbrng",
-        "b_t1yi3"
-      ],
-      "outcomeIds": [
-        "o_ixdrw",
-        "o_ycjeo",
-        "o_ajwjr"
-      ],
-      "tags": [],
-      "start": "",
-      "end": "",
-      "milestones": [],
-      "purpose": "Automatisere produktoprettelse.",
-      "need": "Manuel dataindsamling er tidskrævende.",
-      "solution": "Agent henter, strukturerer og beriger data og indsætter i systemer.",
-      "testing": true,
-      "assessment": {
-        "rank": 19
-      }
-    },
-    {
-      "id": "i_83298",
-      "buId": "bu_5j4q7",
-      "platformIds": [],
-      "departmentIds": [
-        "dep_a2i79"
-      ],
-      "name": "SCRB",
-      "status": "idea",
-      "owner": "Phillip Andreasen",
-      "techIds": [
-        "t_yyls9"
-      ],
-      "blockerIds": [
-        "b_bbrng",
-        "b_t1yi3",
-        "b_budget"
+        "b_data",
+        "b_it"
       ],
       "outcomeIds": [
         "o_conv",
-        "o_tnps"
-      ],
-      "tags": [],
-      "start": "",
-      "end": "",
-      "milestones": [
-        {
-          "date": "2026-07-01",
-          "label": "IT har indkøbt nyt tool Synergi?"
-        }
-      ],
-      "purpose": "Overvåge fejlbeskeder, out-of-stock-situationer og andre issues.",
-      "need": "Manglende monitorering.",
-      "solution": "Crawler identificerer fejl og sender til dashboard.",
-      "testing": true,
-      "assessment": {
-        "rank": 20
-      }
-    },
-    {
-      "id": "i_55a4u",
-      "buId": "bu_5j4q7",
-      "platformIds": [
-        "p_wblim"
-      ],
-      "departmentIds": [
-        "dep_a2i79"
-      ],
-      "name": "CMS AI Usecase",
-      "status": "idea",
-      "owner": "Rasmus Thau",
-      "techIds": [
-        "t_9njqv",
-        "t_e9zlh"
-      ],
-      "blockerIds": [
-        "b_talent",
-        "b_it"
-      ],
-      "outcomeIds": [],
-      "tags": [],
-      "start": "",
-      "end": "",
-      "milestones": [],
-      "purpose": "Bruge AI i CMS.",
-      "need": "Manglende AI anvendelse.",
-      "solution": "Potentielle use cases som content og datastrukturering.",
-      "assessment": {
-        "rank": 21
-      }
-    },
-    {
-      "id": "i_vw646",
-      "buId": "bu_5j4q7",
-      "platformIds": [
-        "p_6sydy"
-      ],
-      "departmentIds": [
-        "dep_a2i79"
-      ],
-      "name": "Figma Design AI-assistent ",
-      "status": "poc",
-      "owner": "Michael Kremer",
-      "techIds": [
-        "t_hpysq"
-      ],
-      "blockerIds": [
-        "b_talent",
-        "b_res",
-        "b_ijh8z",
-        "b_budget"
-      ],
-      "outcomeIds": [
-        "o_ttm",
-        "o_ixdrw",
-        "o_ycjeo"
+        "o_time"
       ],
       "tags": [],
       "start": "2026-01-01",
-      "end": "",
+      "end": "2026-05-01",
       "milestones": [],
-      "purpose": "Reducere manuelt designarbejde, styrke kvaliteten og sikre mere struktur i designleverancer.",
-      "need": "Designere bruger tid på gentagende tilpasninger af eksisterende designs, mangler ofte sparring og inspiration undervejs, og oplever udfordringer med ustrukturerede filer og navngivning ved overlevering til udvikling.",
-      "solution": "AI-assistenten kan generere nye designvarianter ud fra eksisterende templates og data (fx fra Excel), foreslå forbedringer og alternative løsninger baseret på best practice samt vurdere designs. Derudover kan den analysere og strukturere designfiler ved automatisk at navngive layers og komponenter efter fælles standarder, så samarbejde og overlevering bliver enklere.",
+      "purpose": "Lær af de bedste samtaler",
+      "need": "Ingen systematisk læring",
+      "solution": "AI finder gode mønstre",
       "assessment": {
-        "rank": 22
-      }
-    },
-    {
-      "id": "i_auelb",
-      "buId": "bu_5j4q7",
-      "platformIds": [
-        "p_6sydy"
-      ],
-      "departmentIds": [
-        "dep_a2i79"
-      ],
-      "name": "Figma Make AI",
-      "status": "poc",
-      "owner": "Michael Kremer",
-      "techIds": [
-        "t_e9zlh"
-      ],
-      "blockerIds": [
-        "b_bbrng",
-        "b_budget",
-        "b_ijh8z"
-      ],
-      "outcomeIds": [
-        "o_ttm",
-        "o_ixdrw"
-      ],
-      "tags": [],
-      "start": "2026-01-01",
-      "end": "",
-      "milestones": [],
-      "purpose": "Komme hurtigere fra idé til konkret, klikbar og mere realistisk prototype.",
-      "need": "Traditionel prototyping kræver mange manuelle skærme og lineære klikflows, og PowerPoint/klippe-klistre er ikke velegnet til videre designarbejde.",
-      "solution": "Med 3-4 skærme eller tekstbeskrivelse kan Figma Make generere undersider, dynamiske flows og kode, som potentielt kan bringes videre til udviklere; konceptet kan flyttes til Figma og kobles til YouSee's design system.",
-      "assessment": {
-        "rank": 23
-      }
-    },
-    {
-      "id": "i_1endv",
-      "buId": "bu_5j4q7",
-      "platformIds": [
-        "p_6sydy"
-      ],
-      "departmentIds": [
-        "dep_a2i79"
-      ],
-      "name": "FigJam AI ",
-      "status": "poc",
-      "owner": "Michael Kremer",
-      "techIds": [
-        "t_hpysq"
-      ],
-      "blockerIds": [
-        "b_bbrng",
-        "b_ijh8z"
-      ],
-      "outcomeIds": [],
-      "tags": [],
-      "start": "2026-01-01",
-      "end": "",
-      "milestones": [],
-      "purpose": "Skabe hurtigere overblik efter workshops og brugertests.",
-      "need": "Mange post-its/datapunkter fra fx brugertest kræver manuel opsummering, tematisering og analyse.",
-      "solution": "Man kan markere post-its i FigJam og få AI til at opsummere findings, tematisere indholdet og muliggøre dialog med post-its.",
-      "assessment": {
-        "rank": 24
-      }
-    },
-    {
-      "id": "i_dzjii",
-      "buId": "bu_5j4q7",
-      "platformIds": [
-        "p_6sydy"
-      ],
-      "departmentIds": [
-        "dep_a2i79"
-      ],
-      "name": "Figma Motion / AI-animation",
-      "status": "poc",
-      "owner": "Michael Kremer",
-      "techIds": [
-        "t_e9zlh"
-      ],
-      "blockerIds": [
-        "b_ijh8z",
-        "b_budget"
-      ],
-      "outcomeIds": [],
-      "tags": [],
-      "start": "2026-01-01",
-      "end": "",
-      "milestones": [],
-      "purpose": "Udnytte AI-muligheder til animation/motion i Figma-suite.",
-      "need": "Kreative medarbejdere kan have behov for hurtigere eller bedre motion/animationsarbejde.",
-      "solution": "Michael nævner 'animation af AI' og 'Figma Motion' som en mulighed, men uden detaljer om konkret setup.",
-      "assessment": {
-        "rank": 25
-      }
-    },
-    {
-      "id": "i_hb4g0",
-      "buId": "bu_5j4q7",
-      "platformIds": [],
-      "departmentIds": [
-        "dep_a2i79"
-      ],
-      "name": "Hurtigere prototyping",
-      "status": "idea",
-      "owner": "Michael Kremer",
-      "techIds": [
-        "t_iajha"
-      ],
-      "blockerIds": [
-        "b_t1yi3"
-      ],
-      "outcomeIds": [
-        "o_ttm"
-      ],
-      "tags": [],
-      "start": "",
-      "end": "",
-      "milestones": [],
-      "purpose": "Fælles behov for hurtigere prototyping og bedre værktøjer, men outcome er ikke realiseret",
-      "need": "",
-      "solution": "",
-      "assessment": {
-        "rank": 26
-      }
-    },
-    {
-      "id": "i_bd5vb",
-      "buId": "bu_qe7qh",
-      "platformIds": [],
-      "departmentIds": [],
-      "name": "AI Forecasting (budget/2-års forecast)",
-      "status": "idea",
-      "owner": "Morten Sthaalros Christiansen",
-      "techIds": [
-        "t_iajha",
-        "t_9njqv"
-      ],
-      "blockerIds": [
-        "b_t1yi3"
-      ],
-      "outcomeIds": [
-        "o_ycjeo",
-        "o_ajwjr"
-      ],
-      "tags": [],
-      "purpose": "Reducere tidsforbrug og forbedre kvalitet i forecasting",
-      "need": "Forecast laves manuelt i Excel med simple trendlinjer og uden AI-validering, hvilket tager ca. 1,5 måned",
-      "solution": "Anvende AI til at analysere historiske data, validere estimater og generere mere præcise forecast baseret på mønstre og inputvariabler som historik og kontekst.",
-      "start": "",
-      "end": "",
-      "milestones": [],
-      "assessment": {
-        "rank": 27
-      }
-    },
-    {
-      "id": "i_8lz26",
-      "buId": "bu_qe7qh",
-      "platformIds": [],
-      "departmentIds": [],
-      "name": "AI-drevet salgsanalyse og rapportering",
-      "status": "idea",
-      "owner": "Morten Sthaalros Christiansen",
-      "techIds": [
-        "t_9njqv"
-      ],
-      "blockerIds": [
-        "b_data",
-        "b_it"
-      ],
-      "outcomeIds": [
-        "o_ajwjr"
-      ],
-      "tags": [],
-      "purpose": "Automatisere rapportering og analyse af salgsdata. ",
-      "need": "Der findes ca. 60 rapporter, men de bruges ikke aktivt pga. manuel gennemgang og manglende tid/engagement",
-      "solution": "AI analyserer data og genererer automatiske rapporter med forklaringer på afvigelser (fx salg, churn og performance på kanaler) uden manuel dataudtræk",
-      "start": "",
-      "end": "",
-      "milestones": [],
-      "assessment": {
-        "rank": 28
-      }
-    },
-    {
-      "id": "i_7rydf",
-      "buId": "bu_qe7qh",
-      "platformIds": [],
-      "departmentIds": [],
-      "name": "AI kampagneprioritering",
-      "status": "idea",
-      "owner": "Morten Sthaalros Christiansen",
-      "techIds": [
-        "t_9njqv"
-      ],
-      "blockerIds": [],
-      "outcomeIds": [],
-      "tags": [],
-      "purpose": "Optimere prioritering af kampagner",
-      "need": "Beslutninger træffes manuelt og uden fuld indsigt i performance",
-      "solution": "AI analyserer kampagnedata og foreslår eller automatisk prioriterer hvilke kampagner der skal køres baseret på performance og mål",
-      "start": "2026-08-27",
-      "end": "2026-12-25",
-      "milestones": [],
-      "assessment": {
-        "rank": 29
-      }
-    },
-    {
-      "id": "i_gf8ve",
-      "buId": "bu_5j4q7",
-      "platformIds": [
-        "p_16612"
-      ],
-      "departmentIds": [
-        "dep_ul26r"
-      ],
-      "name": "Adobe Experience Platform ",
-      "status": "prod",
-      "owner": "Lasse Schmidt",
-      "techIds": [
-        "t_9njqv",
-        "t_rgwfa",
-        "t_hpysq"
-      ],
-      "blockerIds": [
-        "b_data",
-        "b_budget",
-        "b_bbrng"
-      ],
-      "outcomeIds": [
-        "o_tnps",
-        "o_conv"
-      ],
-      "tags": [],
-      "purpose": "Orkestrere sammenhængende kunderejser på tværs af kanaler",
-      "need": "Stigende kompleksitet gør manuelle forretningsregler utilstrækkelige.",
-      "solution": "Platformen bruger kundedata, segmenter og kontekst til at styre 'next best experience', hvor AI gradvist overtager styring fra regler. Early days",
-      "start": "2026-04-01",
-      "end": "",
-      "milestones": [],
-      "assessment": {
-        "rank": 30
-      }
-    },
-    {
-      "id": "i_p3vtm",
-      "buId": "bu_5j4q7",
-      "platformIds": [
-        "p_16612"
-      ],
-      "departmentIds": [],
-      "name": "Propensity model/scoring",
-      "status": "idea",
-      "owner": "Lasse Scmidt",
-      "techIds": [
-        "t_4a549",
-        "t_9njqv"
-      ],
-      "blockerIds": [
-        "b_it"
-      ],
-      "outcomeIds": [],
-      "tags": [],
-      "purpose": "Udnytte centralt udviklede propensity- og scoringsmodeller til at skabe mere datadrevne kundeinteraktioner og prioritere de rette indsatser over for den enkelte kunde. YouSee udvikler ikke modellerne, men forbereder anvendelsen af dem i kundejourneys og kundeoplevelser",
-      "need": "Bedre kundeprioritering baseret på data frem for manuelle vurderinger og mavefornemmelser.",
-      "solution": "Centralt udviklede modeller integreres i Adobe-platformen, hvor scores anvendes til retention, customer journeys og Next Best Experience.",
-      "start": "",
-      "end": "",
-      "milestones": [
-        {
-          "date": "",
-          "label": "Afventer Infosys"
-        }
-      ],
-      "assessment": {
-        "rank": 31
-      }
-    },
-    {
-      "id": "i_2k2uj",
-      "buId": "bu_5j4q7",
-      "platformIds": [
-        "p_16612"
-      ],
-      "departmentIds": [
-        "dep_ul26r"
-      ],
-      "name": "Adobe MCP Servers",
-      "status": "idea",
-      "owner": "Lasse Schmidt",
-      "techIds": [
-        "t_rgwfa",
-        "t_za15x"
-      ],
-      "blockerIds": [
-        "b_bbrng",
-        "b_data"
-      ],
-      "outcomeIds": [
-        "o_ajwjr"
-      ],
-      "tags": [],
-      "purpose": "Analysere kampagner via prompts.",
-      "need": "Hurtigere indsigt",
-      "solution": " LLM kan spørges direkte om performance baseret på data.",
-      "start": "",
-      "end": "",
-      "milestones": [],
-      "assessment": {
-        "rank": 32
-      }
-    },
-    {
-      "id": "i_o0wlo",
-      "buId": "bu_p85gt",
-      "platformIds": [
-        "p_ju1h1"
-      ],
-      "departmentIds": [
-        "dep_odbvf"
-      ],
-      "name": "AI-transskribering og opsummering af kald",
-      "status": "poc",
-      "owner": "Thomas Emil Mortensen",
-      "techIds": [
-        "t_cewv6"
-      ],
-      "blockerIds": [
-        "b_budget"
-      ],
-      "outcomeIds": [],
-      "tags": [],
-      "purpose": "Transkribering og summary. Give overblik og lette opfølgning",
-      "need": " Ledere skal gennemgå mange samtaler",
-      "solution": "Automatisk transskribering og opsummering af calls.",
-      "start": "2026-08-01",
-      "end": "",
-      "milestones": [
-        {
-          "date": "2026-08-01",
-          "label": "Afklare Budget"
-        }
-      ],
-      "assessment": {
-        "rank": 33
-      }
-    },
-    {
-      "id": "i_b5q1w",
-      "buId": "bu_p85gt",
-      "platformIds": [
-        "p_ju1h1"
-      ],
-      "departmentIds": [
-        "dep_odbvf"
-      ],
-      "name": "Pitch rate værktøj",
-      "status": "idea",
-      "owner": "Thomas Emil Mortensen",
-      "techIds": [
-        "t_za15x",
-        "t_9njqv",
-        "t_zcsbr"
-      ],
-      "blockerIds": [
-        "b_budget"
-      ],
-      "outcomeIds": [],
-      "tags": [],
-      "purpose": "Øge salgsperformance",
-      "need": " Sælgere husker ikke altid alle produkter",
-      "solution": "AI analyserer samtaler og rater brug af ord og pitches.",
-      "start": "2026-08-01",
-      "end": "",
-      "milestones": [
-        {
-          "date": "2026-08-01",
-          "label": "Afklare budget og test."
-        }
-      ],
-      "testing": false,
-      "assessment": {
-        "rank": 34
-      }
-    },
-    {
-      "id": "i_vd8z1",
-      "buId": "bu_p85gt",
-      "platformIds": [
-        "p_ju1h1"
-      ],
-      "departmentIds": [
-        "dep_odbvf"
-      ],
-      "name": "Coach-modul",
-      "status": "idea",
-      "owner": "Thomas Emil Mortensen",
-      "techIds": [
-        "t_9njqv",
-        "t_zcsbr"
-      ],
-      "blockerIds": [
-        "b_budget"
-      ],
-      "outcomeIds": [
-        "o_sales",
-        "o_ycjeo"
-      ],
-      "tags": [],
-      "purpose": " Give individuel coaching.",
-      "need": "Bedre feedback til agenter",
-      "solution": "AI analyserer performance og giver anbefalinger, evt. nær real-time.",
-      "start": "2026-08-01",
-      "end": "",
-      "milestones": [],
-      "assessment": {
-        "rank": 35
-      }
-    },
-    {
-      "id": "i_cpewz",
-      "buId": "mkt",
-      "platformIds": [
-        "p_obqcq"
-      ],
-      "departmentIds": [
-        "dep_czm6m"
-      ],
-      "name": "AI Simulering af samtaler til chatbot-test",
-      "status": "prod",
-      "owner": "Ruben Raffnsøe Dall",
-      "techIds": [
-        "t_25p4k",
-        "t_4a549"
-      ],
-      "blockerIds": [],
-      "outcomeIds": [],
-      "tags": [],
-      "purpose": "forbedre chatbots.",
-      "need": "teste komplekse scenarier",
-      "solution": "AI simulerer samtaler og tester bots. På tværs af brands (Consumer)",
-      "start": "2026-04-27",
-      "end": "",
-      "milestones": [
-        {
-          "date": "2026-04-01",
-          "label": "Opsætning i alle brands"
+        "value": {
+          "score": 4
         },
-        {
-          "date": "2026-04-01",
-          "label": "Overlevering til alle brands"
+        "ttv": {
+          "score": 3
         }
-      ],
-      "assessment": {
-        "rank": 36
       }
     },
     {
-      "id": "i_jaqkj",
-      "buId": "mkt",
-      "platformIds": [
-        "p_obqcq"
-      ],
-      "departmentIds": [
-        "dep_czm6m"
-      ],
-      "name": "AI-evaluering af chatbot-samtaler",
-      "status": "pilot",
-      "owner": "Ruben Raffnsøe Dall",
-      "techIds": [
-        "t_9njqv",
-        "t_4a549"
-      ],
-      "blockerIds": [],
-      "outcomeIds": [],
-      "tags": [],
-      "purpose": "skabe indsigt.",
-      "need": "manglende datagrundlag",
-      "solution": "AI analyserer samtaler og genererer indsigter.",
-      "start": "2026-04-27",
-      "end": "",
-      "milestones": [
-        {
-          "date": "2026-04-27",
-          "label": "Fælles data-pipeline Q2"
-        }
-      ],
-      "assessment": {
-        "rank": 37
-      }
-    },
-    {
-      "id": "i_z9nzf",
-      "buId": "bu_5j4q7",
+      "id": "i_t26",
+      "buId": "bu_sal",
       "platformIds": [],
       "departmentIds": [
-        "dep_ul26r"
+        "dep_b2c"
       ],
-      "name": "AI-værktøjer til prototyping og hverdagsværktøjer",
+      "name": "CRM-noter",
       "status": "idea",
-      "owner": "Michael Kremer",
+      "owner": "Jonas Krogh",
       "techIds": [
-        "t_yyls9",
-        "t_iajha"
+        "t_claude"
       ],
       "blockerIds": [
-        "b_gdpr",
-        "b_budget",
-        "b_data",
-        "b_t1yi3"
+        "b_it"
       ],
       "outcomeIds": [
-        "o_ajwjr",
-        "o_ixdrw",
         "o_ttm"
       ],
       "tags": [],
-      "purpose": "Synliggøre at brugere søger mod værktøjer, hvor de kan løse konkrete problemer hurtigere.",
-      "need": "Hvis godkendte værktøjer ikke dækker behovene, bruger folk muligvis andre værktøjer til prototyping eller små hverdagsværktøjer.",
-      "solution": "Ingen konkret løsning nævnes; mødet peger på behovet for at løfte det som fælles behov og finde færre, rigtige værktøjer.",
-      "start": "2026-01-01",
-      "end": "",
+      "start": "2026-10-01",
+      "end": "2027-03-01",
       "milestones": [],
-      "testing": true,
+      "purpose": "Automatiske noter i CRM",
+      "need": "Mangelfulde noter",
+      "solution": "Resumé direkte i CRM",
       "assessment": {
-        "rank": 38
+        "value": {
+          "score": 2
+        },
+        "ttv": {
+          "score": 4
+        }
+      }
+    },
+    {
+      "id": "i_t27",
+      "buId": "bu_sal",
+      "platformIds": [],
+      "departmentIds": [
+        "dep_b2b"
+      ],
+      "name": "Konkurrentovervågning",
+      "status": "prod",
+      "owner": "Camilla Friis",
+      "techIds": [
+        "t_ml",
+        "t_claude"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [
+        "o_repeat",
+        "o_aht"
+      ],
+      "tags": [],
+      "start": "2025-05-01",
+      "end": "",
+      "milestones": [
+        {
+          "date": "2025-09-15",
+          "label": "Evaluering"
+        }
+      ],
+      "purpose": "Overblik over konkurrenters priser",
+      "need": "Manuel research",
+      "solution": "AI samler og sammenligner"
+    },
+    {
+      "id": "i_t28",
+      "buId": "bu_prd",
+      "platformIds": [
+        "p_figma",
+        "p_m365"
+      ],
+      "departmentIds": [
+        "dep_app"
+      ],
+      "name": "Intern HR-bot",
+      "status": "prod",
+      "owner": "Camilla Friis",
+      "techIds": [
+        "t_ml",
+        "t_conv",
+        "t_agentwf"
+      ],
+      "blockerIds": [],
+      "outcomeIds": [
+        "o_ttm",
+        "o_fcr"
+      ],
+      "tags": [],
+      "start": "2025-12-01",
+      "end": "",
+      "milestones": [
+        {
+          "date": "2026-02-15",
+          "label": "Evaluering"
+        }
+      ],
+      "purpose": "Svar på HR-spørgsmål",
+      "need": "Mange gentagne spørgsmål",
+      "solution": "Copilot på HR-håndbog"
+    },
+    {
+      "id": "i_t29",
+      "buId": "bu_mkt",
+      "platformIds": [
+        "p_cstudio"
+      ],
+      "departmentIds": [
+        "dep_campaign"
+      ],
+      "name": "Mødereferater",
+      "status": "idea",
+      "owner": "Thomas Vang",
+      "techIds": [
+        "t_docs",
+        "t_claude"
+      ],
+      "blockerIds": [
+        "b_data",
+        "b_legal"
+      ],
+      "outcomeIds": [
+        "o_conv",
+        "o_fcr"
+      ],
+      "tags": [],
+      "start": "2026-11-01",
+      "end": "2027-07-01",
+      "milestones": [],
+      "purpose": "Referater uden ekstra arbejde",
+      "need": "Referater bliver ikke skrevet",
+      "solution": "Copilot i Teams-møder",
+      "assessment": {
+        "value": {
+          "score": 3
+        },
+        "ttv": {
+          "score": 3
+        },
+        "readiness": {
+          "ready": true
+        },
+        "rank": 10
       }
     }
   ],
   "businessUnits": [
     {
-      "id": "mkt",
-      "name": "Service & CX",
-      "short": "SAI",
+      "id": "bu_cx",
+      "name": "Kundeservice",
+      "short": "KS",
       "accent": "oklch(0.48 0.12 290)",
-      "lead": "Trine Heiberg"
+      "lead": "Anna Lindqvist"
     },
     {
-      "id": "bu_5j4q7",
-      "name": "Brand & Marketing",
-      "short": "BR",
+      "id": "bu_mkt",
+      "name": "Marketing & Brand",
+      "short": "MB",
       "accent": "oklch(0.48 0.12 55)",
-      "lead": "Steffen Lundgren Kristensen"
+      "lead": "Mikkel Sørensen"
     },
     {
-      "id": "bu_qe7qh",
-      "name": "Commercial & Products",
-      "short": "CO",
+      "id": "bu_prd",
+      "name": "Produkt & Digital",
+      "short": "PD",
       "accent": "oklch(0.48 0.12 173)",
-      "lead": "Peter Maarbjerg Buus"
+      "lead": "Sofie Holm"
     },
     {
-      "id": "bu_p85gt",
-      "name": "Sales",
+      "id": "bu_sal",
+      "name": "Salg",
       "short": "SA",
       "accent": "oklch(0.48 0.12 353)",
-      "lead": ""
+      "lead": "Jonas Krogh"
     }
   ],
   "platforms": [
     {
-      "id": "p_obqcq",
-      "name": "Cognigy",
-      "buId": "mkt"
+      "id": "p_m365",
+      "name": "Microsoft 365 Copilot"
     },
     {
-      "id": "p_es9n0",
-      "name": "Microsoft Copilot 365",
-      "buId": "mkt"
+      "id": "p_cstudio",
+      "name": "Copilot Studio"
     },
     {
-      "id": "p_dxhpv",
-      "name": "Genesys"
-    },
-    {
-      "id": "p_0oh1c",
-      "name": "HeyGen"
-    },
-    {
-      "id": "p_6sydy",
+      "id": "p_figma",
       "name": "Figma"
     },
     {
-      "id": "p_wblim",
-      "name": "Contentful"
+      "id": "p_sf",
+      "name": "Salesforce"
     },
     {
-      "id": "p_ttg5a",
-      "name": "Microsoft Copilot Studio"
+      "id": "p_zd",
+      "name": "Zendesk",
+      "buId": "bu_cx"
     },
     {
-      "id": "p_s66za",
-      "name": "TheyDo"
+      "id": "p_cms",
+      "name": "Headless CMS",
+      "buId": "bu_mkt"
     },
     {
-      "id": "p_16612",
-      "name": "Adobe"
+      "id": "p_ccaas",
+      "name": "Contact Center-platform",
+      "buId": "bu_cx"
     },
     {
-      "id": "p_ju1h1",
-      "name": "Adversus"
-    },
-    {
-      "id": "p_cn47r",
-      "name": "Captui"
+      "id": "p_dwh",
+      "name": "Data warehouse"
     }
   ],
   "departments": [
     {
-      "id": "dep_cc",
-      "name": "Contact Centre",
-      "buId": "cxo"
+      "id": "dep_chat",
+      "name": "Chat & Messaging",
+      "buId": "bu_cx"
     },
     {
-      "id": "dep_qual",
-      "name": "Quality",
-      "buId": "cxo"
+      "id": "dep_voice",
+      "name": "Telefoni",
+      "buId": "bu_cx"
     },
     {
-      "id": "dep_it",
-      "name": "IT",
-      "buId": "cxo"
+      "id": "dep_qa",
+      "name": "Kvalitet",
+      "buId": "bu_cx"
     },
     {
-      "id": "dep_ds",
-      "name": "Data Science",
-      "buId": "dig"
+      "id": "dep_kb",
+      "name": "Vidensbase",
+      "buId": "bu_cx"
     },
     {
-      "id": "dep_eng",
-      "name": "Engineering",
-      "buId": "dig"
+      "id": "dep_content",
+      "name": "Content",
+      "buId": "bu_mkt"
     },
     {
-      "id": "dep_lllps",
-      "name": "Internal AI Products",
-      "buId": "mkt"
+      "id": "dep_campaign",
+      "name": "Kampagner",
+      "buId": "bu_mkt"
     },
     {
-      "id": "dep_riw1k",
-      "name": "Content team",
-      "buId": "mkt"
+      "id": "dep_insight",
+      "name": "Insights",
+      "buId": "bu_mkt"
     },
     {
-      "id": "dep_petrw",
-      "name": "UX/UI Team",
-      "buId": "mkt"
+      "id": "dep_app",
+      "name": "App & Web",
+      "buId": "bu_prd"
     },
     {
-      "id": "dep_u4lep",
-      "name": "Agentic AI - Voice",
-      "buId": "mkt"
+      "id": "dep_data",
+      "name": "Data & Analytics",
+      "buId": "bu_prd"
     },
     {
-      "id": "dep_2kqmq",
-      "name": "Consumer",
-      "buId": "mkt"
+      "id": "dep_ux",
+      "name": "UX",
+      "buId": "bu_prd"
     },
     {
-      "id": "dep_c0w5t",
-      "name": "Service & CX",
-      "buId": "mkt"
+      "id": "dep_b2c",
+      "name": "Privatsalg",
+      "buId": "bu_sal"
     },
     {
-      "id": "dep_czm6m",
-      "name": "Agentic AI - Chat",
-      "buId": "mkt"
-    },
-    {
-      "id": "dep_ybx0u",
-      "name": "AI & Channel Transformation",
-      "buId": "mkt"
-    },
-    {
-      "id": "dep_rq9e5",
-      "name": "Group Branding",
-      "buId": "bu_5j4q7"
-    },
-    {
-      "id": "dep_a2i79",
-      "name": "Online Sale",
-      "buId": "bu_5j4q7"
-    },
-    {
-      "id": "dep_ul26r",
-      "name": "Commercial & Online",
-      "buId": "bu_5j4q7"
-    },
-    {
-      "id": "dep_odbvf",
-      "name": "Outbound/Sales performance",
-      "buId": "bu_p85gt"
+      "id": "dep_b2b",
+      "name": "Erhvervssalg",
+      "buId": "bu_sal"
     }
   ]
 }

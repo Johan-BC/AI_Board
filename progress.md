@@ -7,7 +7,7 @@ Gantt-style timeline with BU swim lanes, technology/blocker/outcome filter strip
 CRUD drawer — a single-page app with no build step. Data lives in `data.json`, synced to
 GitHub so the board is shared rather than per-browser.
 
-- **Live:** https://johan-bc.github.io/AI_Board/
+- **Live (production):** https://nuuday.github.io/ai-board/ — deployed by copying files, see [`UDVIKLING.md`](UDVIKLING.md)
 - **Local dev:** any static file server, e.g. `npx serve .` or `python -m http.server 8080`
   (see `.claude/launch.json`, gitignored/local-only) → `index.html`
 
@@ -121,8 +121,9 @@ fine-grained PAT. That needs org membership — see the earlier notes on token a
 - **Departments** are BU-scoped (`buId`) — filtered to the selected BU in the drawer
 - **Statuses:** `idea` · `poc` · `pilot` · `prod` (`prod` was formerly `live`)
 
-Current `data.json`: 4 business units, 17 departments, 11 platforms, 12 technologies,
-11 blockers, 15 outcomes, 38 initiatives (16 of them `idea`-status).
+`data.json` in this repo is **fictional test data** (4 BUs, 12 departments, 8 platforms,
+12 technologies, 9 blockers, 10 outcomes, 30 initiatives, 10 of them `idea`). Real data lives
+only in `nuuday/ai-board-data`. See [`UDVIKLING.md`](UDVIKLING.md) for the dev/prod split.
 
 ### Board layout (swim-lane hierarchy)
 ```
