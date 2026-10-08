@@ -290,7 +290,10 @@
       ],
       "purpose": "AI mail",
       "need": "hurtigere håndtering af mails",
-      "solution": "Copilot hjælper med svar"
+      "solution": "Copilot hjælper med svar",
+      "assessment": {
+        "rank": 1
+      }
     },
     {
       "id": "i_n71kd",
@@ -323,7 +326,10 @@
       ],
       "purpose": "forbedre AHT:",
       "need": "indsigt i samtaler",
-      "solution": "ML-model der analyserer \"VARM faser"
+      "solution": "ML-model der analyserer \"VARM faser",
+      "assessment": {
+        "rank": 2
+      }
     },
     {
       "id": "i_fur7u",
@@ -365,7 +371,10 @@
       ],
       "purpose": "reducere AHT",
       "need": "effektivisering",
-      "solution": "transkribering og summaries på voicekald"
+      "solution": "transkribering og summaries på voicekald",
+      "assessment": {
+        "rank": 3
+      }
     },
     {
       "id": "i_ee8bd",
@@ -395,7 +404,10 @@
       "milestones": [],
       "purpose": "Generere automatiske AI-tekster til mediefiler.",
       "need": "At sikre accessibility.",
-      "solution": "Et AI-plugin i Contentful genererer tekst automatisk baseret på indholdet; teamet undersøger også om pluginet kan bruges til andre metafelter."
+      "solution": "Et AI-plugin i Contentful genererer tekst automatisk baseret på indholdet; teamet undersøger også om pluginet kan bruges til andre metafelter.",
+      "assessment": {
+        "rank": 4
+      }
     },
     {
       "id": "i_180mm",
@@ -443,7 +455,10 @@
       ],
       "purpose": "Give mere svar-lignende AI-søgeresultater.",
       "need": "Forbedre søgeoplevelsen for kunder og agenter på flere søgninger.",
-      "solution": "Cludo har rullet en feature ud kaldet AI search results, som skal testes og senere evt. rulles ud på de tre søgninger."
+      "solution": "Cludo har rullet en feature ud kaldet AI search results, som skal testes og senere evt. rulles ud på de tre søgninger.",
+      "assessment": {
+        "rank": 5
+      }
     },
     {
       "id": "i_0w9ld",
@@ -478,7 +493,10 @@
       ],
       "purpose": "Lave AI-genererede hjælpevideoer og andre videoer.",
       "need": "Effektiv produktion af videoer med avatar/skuespiller.",
-      "solution": "Et tool genererer video baseret på en prompt med en skuespiller/avatar; teamet evaluerer om de skal fortsætte eller skifte til et andet tool, som kan mere men koster lidt mere."
+      "solution": "Et tool genererer video baseret på en prompt med en skuespiller/avatar; teamet evaluerer om de skal fortsætte eller skifte til et andet tool, som kan mere men koster lidt mere.",
+      "assessment": {
+        "rank": 6
+      }
     },
     {
       "id": "i_w4zpc",
@@ -520,7 +538,8 @@
       "assessment": {
         "value": {
           "score": 1
-        }
+        },
+        "rank": 7
       }
     },
     {
@@ -550,7 +569,10 @@
       "milestones": [],
       "purpose": "Hjælpe med prototyper, workshops og opsummering af inputs/indsigter.",
       "need": "Hurtigere at komme frem til visuelle modeller og støtte kreativ udvikling.",
-      "solution": "Figma AI bruges på platformsudvikling og af UX’ere; den beskrives som god til workshops og opsummering, hvis man har mange inputs."
+      "solution": "Figma AI bruges på platformsudvikling og af UX’ere; den beskrives som god til workshops og opsummering, hvis man har mange inputs.",
+      "assessment": {
+        "rank": 8
+      }
     },
     {
       "id": "i_axj56",
@@ -588,7 +610,10 @@
       ],
       "purpose": "Finde indsigter og pain points på tværs af data.",
       "need": "Bedre beslutningsstøtte ud fra de data, der uploades i systemet.",
-      "solution": "Et eksisterende journey management system har AI koblet på og bruges allerede meget; i dag uploades data manuelt, og planen er at få integrationer så nyeste data kommer ind dynamisk."
+      "solution": "Et eksisterende journey management system har AI koblet på og bruges allerede meget; i dag uploades data manuelt, og planen er at få integrationer så nyeste data kommer ind dynamisk.",
+      "assessment": {
+        "rank": 9
+      }
     },
     {
       "id": "i_82rhu",
@@ -616,7 +641,10 @@
       "milestones": [],
       "purpose": "Automatisere kundedialog via chat.",
       "need": "Håndtere kundeservice effektivt og skalerbart.",
-      "solution": "Chatbot baseret på knowledge base og RAG-modeller, som genererer AI-svar og dialog."
+      "solution": "Chatbot baseret på knowledge base og RAG-modeller, som genererer AI-svar og dialog.",
+      "assessment": {
+        "rank": 10
+      }
     },
     {
       "id": "i_dfqje",
@@ -646,7 +674,10 @@
       "milestones": [],
       "purpose": "Håndtere kundedialog via voice.",
       "need": "Udvide chatbot capability til voice.",
-      "solution": "Voicebot med tale-til-tekst og tekst-til-tale samt AI-genereret output."
+      "solution": "Voicebot med tale-til-tekst og tekst-til-tale samt AI-genereret output.",
+      "assessment": {
+        "rank": 11
+      }
     },
     {
       "id": "i_aedea",
@@ -683,7 +714,10 @@
       ],
       "purpose": "Forbedre voice output kvalitet.",
       "need": "Bedre syntetisk tale og voice experience.",
-      "solution": "Integration af Eleven Labs til talegenerering som ny leverandør."
+      "solution": "Integration af Eleven Labs til talegenerering som ny leverandør.",
+      "assessment": {
+        "rank": 12
+      }
     },
     {
       "id": "i_pc7hb",
@@ -722,7 +756,10 @@
       ],
       "purpose": "Udbrede forståelsen og brugen af generativb AI i youSee",
       "need": "En",
-      "solution": "der er compliant og som skaber mest mulig værdi for alle.Løsning: Udrulle Microsoft 365 copilot i youSee"
+      "solution": "der er compliant og som skaber mest mulig værdi for alle.Løsning: Udrulle Microsoft 365 copilot i youSee",
+      "assessment": {
+        "rank": 13
+      }
     },
     {
       "id": "i_1dg4h",
@@ -753,7 +790,10 @@
       "milestones": [],
       "purpose": "Præsentere relevante tilbud til kunder.",
       "need": "Øge relevans i kundeinteraktion og mersalg.",
-      "solution": "Bot vurderer baseret på parametre om tilbud skal vises og genererer forslag."
+      "solution": "Bot vurderer baseret på parametre om tilbud skal vises og genererer forslag.",
+      "assessment": {
+        "rank": 14
+      }
     },
     {
       "id": "i_fazu7",
@@ -779,7 +819,10 @@
       "milestones": [],
       "purpose": "At optimere marketing spend og omsætte modeloutput til mere konkrete actions.",
       "need": "Forretningen vil vide, hvor marketingbudgettet skal bruges for størst salgseffekt, og ønsker mere agile og handlingsorienterede analyser end tidligere.",
-      "solution": "En MMM-model bygget sammen med mediebureau/samarbejdspartner, som vurderer kanalvalg og spend. Michael siger, at udviklingen har taget et “kvantespring”, og at løsningen kombinerer modeloutput med mere håndgribelige findings, så man ikke bare sidder tilbage med flere spørgsmål, men får konkrete actions. Løsningen ligger hos en ekstern partner i et lukket miljø under NDA."
+      "solution": "En MMM-model bygget sammen med mediebureau/samarbejdspartner, som vurderer kanalvalg og spend. Michael siger, at udviklingen har taget et “kvantespring”, og at løsningen kombinerer modeloutput med mere håndgribelige findings, så man ikke bare sidder tilbage med flere spørgsmål, men får konkrete actions. Løsningen ligger hos en ekstern partner i et lukket miljø under NDA.",
+      "assessment": {
+        "rank": 15
+      }
     },
     {
       "id": "i_18m70",
@@ -809,7 +852,10 @@
       "purpose": "Give hurtigere og bedre overblik over performance på tværs af mange annonceplatforme og understøtte rapportering internt i marketing og videre til salgsorganisationen.",
       "need": "Performance marketing arbejder med data fra 7-8 forskellige systemer, hvor data ikke er ens, og overblik kræver input fra egne rapporter, eksterne bureauer og kollegaer. Det kunne tidligere tage dage/uger at få svar og skabe overblik.",
       "solution": "Trænet Claude med sin måde at tænke performance på, bygget skills og faste dashboards, så agenten kan vurdere datasæt ud fra hans instruktioner og give færdige output, visualiseringer og grafer.",
-      "testing": true
+      "testing": true,
+      "assessment": {
+        "rank": 16
+      }
     },
     {
       "id": "i_n88d1",
@@ -840,7 +886,10 @@
       "purpose": "Frigøre tid ved at lade AI-agenter udføre manuelle, gentagne marketingopgaver.",
       "need": "Opgaver som upload af nye YouTube-assets, placering i rette mapper, linkgenerering og oprettelse af tracking-koder kræver manuel klikarbejde i forskellige systemer.",
       "solution": "Definerede opgaver i Claude-browseren, så der kan startes en agent, hvorefter agenten udfører arbejdet på skærmen.",
-      "testing": true
+      "testing": true,
+      "assessment": {
+        "rank": 17
+      }
     },
     {
       "id": "i_ldnfz",
@@ -867,7 +916,10 @@
       "purpose": "Skabe bedre og hurtigere indsigt i konkurrenters annoncer, tilbud, claims og digitale aktiviteter.",
       "need": "Manuel gennemgang af konkurrenters 100+ annoncer, tilbud og claims ville kræve meget tid og ville sandsynligvis ikke blive gjort i samme omfang.",
       "solution": "Agenter, der kan analysere konkurrenters annonce-setup, fx se hvornår en konkurrent begynder at bruge bestemte claims, hvor mange assets der bruger claimet, og visualisere udvikling over fx 14 dage.",
-      "testing": true
+      "testing": true,
+      "assessment": {
+        "rank": 18
+      }
     },
     {
       "id": "i_vhmcf",
@@ -896,7 +948,10 @@
       "purpose": "Automatisere produktoprettelse.",
       "need": "Manuel dataindsamling er tidskrævende.",
       "solution": "Agent henter, strukturerer og beriger data og indsætter i systemer.",
-      "testing": true
+      "testing": true,
+      "assessment": {
+        "rank": 19
+      }
     },
     {
       "id": "i_83298",
@@ -932,7 +987,10 @@
       "purpose": "Overvåge fejlbeskeder, out-of-stock-situationer og andre issues.",
       "need": "Manglende monitorering.",
       "solution": "Crawler identificerer fejl og sender til dashboard.",
-      "testing": true
+      "testing": true,
+      "assessment": {
+        "rank": 20
+      }
     },
     {
       "id": "i_55a4u",
@@ -961,7 +1019,10 @@
       "milestones": [],
       "purpose": "Bruge AI i CMS.",
       "need": "Manglende AI anvendelse.",
-      "solution": "Potentielle use cases som content og datastrukturering."
+      "solution": "Potentielle use cases som content og datastrukturering.",
+      "assessment": {
+        "rank": 21
+      }
     },
     {
       "id": "i_vw646",
@@ -995,7 +1056,10 @@
       "milestones": [],
       "purpose": "Reducere manuelt designarbejde, styrke kvaliteten og sikre mere struktur i designleverancer.",
       "need": "Designere bruger tid på gentagende tilpasninger af eksisterende designs, mangler ofte sparring og inspiration undervejs, og oplever udfordringer med ustrukturerede filer og navngivning ved overlevering til udvikling.",
-      "solution": "AI-assistenten kan generere nye designvarianter ud fra eksisterende templates og data (fx fra Excel), foreslå forbedringer og alternative løsninger baseret på best practice samt vurdere designs. Derudover kan den analysere og strukturere designfiler ved automatisk at navngive layers og komponenter efter fælles standarder, så samarbejde og overlevering bliver enklere."
+      "solution": "AI-assistenten kan generere nye designvarianter ud fra eksisterende templates og data (fx fra Excel), foreslå forbedringer og alternative løsninger baseret på best practice samt vurdere designs. Derudover kan den analysere og strukturere designfiler ved automatisk at navngive layers og komponenter efter fælles standarder, så samarbejde og overlevering bliver enklere.",
+      "assessment": {
+        "rank": 22
+      }
     },
     {
       "id": "i_auelb",
@@ -1027,7 +1091,10 @@
       "milestones": [],
       "purpose": "Komme hurtigere fra idé til konkret, klikbar og mere realistisk prototype.",
       "need": "Traditionel prototyping kræver mange manuelle skærme og lineære klikflows, og PowerPoint/klippe-klistre er ikke velegnet til videre designarbejde.",
-      "solution": "Med 3-4 skærme eller tekstbeskrivelse kan Figma Make generere undersider, dynamiske flows og kode, som potentielt kan bringes videre til udviklere; konceptet kan flyttes til Figma og kobles til YouSee's design system."
+      "solution": "Med 3-4 skærme eller tekstbeskrivelse kan Figma Make generere undersider, dynamiske flows og kode, som potentielt kan bringes videre til udviklere; konceptet kan flyttes til Figma og kobles til YouSee's design system.",
+      "assessment": {
+        "rank": 23
+      }
     },
     {
       "id": "i_1endv",
@@ -1055,7 +1122,10 @@
       "milestones": [],
       "purpose": "Skabe hurtigere overblik efter workshops og brugertests.",
       "need": "Mange post-its/datapunkter fra fx brugertest kræver manuel opsummering, tematisering og analyse.",
-      "solution": "Man kan markere post-its i FigJam og få AI til at opsummere findings, tematisere indholdet og muliggøre dialog med post-its."
+      "solution": "Man kan markere post-its i FigJam og få AI til at opsummere findings, tematisere indholdet og muliggøre dialog med post-its.",
+      "assessment": {
+        "rank": 24
+      }
     },
     {
       "id": "i_dzjii",
@@ -1083,7 +1153,10 @@
       "milestones": [],
       "purpose": "Udnytte AI-muligheder til animation/motion i Figma-suite.",
       "need": "Kreative medarbejdere kan have behov for hurtigere eller bedre motion/animationsarbejde.",
-      "solution": "Michael nævner 'animation af AI' og 'Figma Motion' som en mulighed, men uden detaljer om konkret setup."
+      "solution": "Michael nævner 'animation af AI' og 'Figma Motion' som en mulighed, men uden detaljer om konkret setup.",
+      "assessment": {
+        "rank": 25
+      }
     },
     {
       "id": "i_hb4g0",
@@ -1110,7 +1183,10 @@
       "milestones": [],
       "purpose": "Fælles behov for hurtigere prototyping og bedre værktøjer, men outcome er ikke realiseret",
       "need": "",
-      "solution": ""
+      "solution": "",
+      "assessment": {
+        "rank": 26
+      }
     },
     {
       "id": "i_bd5vb",
@@ -1137,7 +1213,10 @@
       "solution": "Anvende AI til at analysere historiske data, validere estimater og generere mere præcise forecast baseret på mønstre og inputvariabler som historik og kontekst.",
       "start": "",
       "end": "",
-      "milestones": []
+      "milestones": [],
+      "assessment": {
+        "rank": 27
+      }
     },
     {
       "id": "i_8lz26",
@@ -1163,7 +1242,10 @@
       "solution": "AI analyserer data og genererer automatiske rapporter med forklaringer på afvigelser (fx salg, churn og performance på kanaler) uden manuel dataudtræk",
       "start": "",
       "end": "",
-      "milestones": []
+      "milestones": [],
+      "assessment": {
+        "rank": 28
+      }
     },
     {
       "id": "i_7rydf",
@@ -1184,7 +1266,10 @@
       "solution": "AI analyserer kampagnedata og foreslår eller automatisk prioriterer hvilke kampagner der skal køres baseret på performance og mål",
       "start": "2026-08-27",
       "end": "2026-12-25",
-      "milestones": []
+      "milestones": [],
+      "assessment": {
+        "rank": 29
+      }
     },
     {
       "id": "i_gf8ve",
@@ -1218,7 +1303,10 @@
       "solution": "Platformen bruger kundedata, segmenter og kontekst til at styre 'next best experience', hvor AI gradvist overtager styring fra regler. Early days",
       "start": "2026-04-01",
       "end": "",
-      "milestones": []
+      "milestones": [],
+      "assessment": {
+        "rank": 30
+      }
     },
     {
       "id": "i_p3vtm",
@@ -1249,7 +1337,10 @@
           "date": "",
           "label": "Afventer Infosys"
         }
-      ]
+      ],
+      "assessment": {
+        "rank": 31
+      }
     },
     {
       "id": "i_2k2uj",
@@ -1280,7 +1371,10 @@
       "solution": " LLM kan spørges direkte om performance baseret på data.",
       "start": "",
       "end": "",
-      "milestones": []
+      "milestones": [],
+      "assessment": {
+        "rank": 32
+      }
     },
     {
       "id": "i_o0wlo",
@@ -1312,7 +1406,10 @@
           "date": "2026-08-01",
           "label": "Afklare Budget"
         }
-      ]
+      ],
+      "assessment": {
+        "rank": 33
+      }
     },
     {
       "id": "i_b5q1w",
@@ -1347,7 +1444,10 @@
           "label": "Afklare budget og test."
         }
       ],
-      "testing": false
+      "testing": false,
+      "assessment": {
+        "rank": 34
+      }
     },
     {
       "id": "i_vd8z1",
@@ -1378,7 +1478,10 @@
       "solution": "AI analyserer performance og giver anbefalinger, evt. nær real-time.",
       "start": "2026-08-01",
       "end": "",
-      "milestones": []
+      "milestones": [],
+      "assessment": {
+        "rank": 35
+      }
     },
     {
       "id": "i_cpewz",
@@ -1413,7 +1516,10 @@
           "date": "2026-04-01",
           "label": "Overlevering til alle brands"
         }
-      ]
+      ],
+      "assessment": {
+        "rank": 36
+      }
     },
     {
       "id": "i_jaqkj",
@@ -1444,7 +1550,10 @@
           "date": "2026-04-27",
           "label": "Fælles data-pipeline Q2"
         }
-      ]
+      ],
+      "assessment": {
+        "rank": 37
+      }
     },
     {
       "id": "i_z9nzf",
@@ -1478,7 +1587,10 @@
       "start": "2026-01-01",
       "end": "",
       "milestones": [],
-      "testing": true
+      "testing": true,
+      "assessment": {
+        "rank": 38
+      }
     }
   ],
   "businessUnits": [
