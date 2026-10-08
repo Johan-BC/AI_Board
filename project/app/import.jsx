@@ -20,9 +20,16 @@ function xlStatus(raw) {
   return { v: null, ok: false, raw: raw.toString() };
 }
 
+// A parsed date string as 'YYYY-MM-DD'. new Date('2026-03-01') is UTC midnight,
+// so an ISO string is taken as written; other formats parse as local time.
+function isoOfParsed(d, s) {
+  return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : dateToISO(d);
+}
+
 function xlDate(raw) {
   if (raw == null || raw === '') return { v: null, ok: true };
-  if (raw instanceof Date && !isNaN(raw)) return { v: raw.toISOString().slice(0,10), ok: true };
+  // SheetJS (cellDates) builds Date cells in local time
+  if (raw instanceof Date && !isNaN(raw)) return { v: dateToISO(raw), ok: true };
   if (typeof raw === 'number') {
     const d = new Date(Math.round((raw - 25569) * 864e5));
     return { v: d.toISOString().slice(0,10), ok: true };
@@ -31,7 +38,7 @@ function xlDate(raw) {
   // Blank / N/A / - / BAU / løbende all mean "no date" (ongoing), not an error.
   if (!s || /^(n\/a|-|bau|l(ø|oe)bende|ongoing)$/i.test(s)) return { v: null, ok: true };
   const d = new Date(s);
-  if (!isNaN(d.getTime()) && /\d{4}/.test(s)) return { v: d.toISOString().slice(0,10), ok: true };
+  if (!isNaN(d.getTime()) && /\d{4}/.test(s)) return { v: isoOfParsed(d, s), ok: true };
   return { v: null, ok: false, raw: s };
 }
 
@@ -40,14 +47,14 @@ function xlMilestones(raw) {
   const s = raw.toString().trim();
   const d0 = new Date(s);
   if (!isNaN(d0.getTime()) && /\d{4}/.test(s))
-    return [{ label: s, date: d0.toISOString().slice(0,10), ok: true }];
+    return [{ label: s, date: isoOfParsed(d0, s), ok: true }];
   const parts = s.split(/;/).map(p => p.trim()).filter(Boolean);
   return parts.map(p => {
     const m = p.match(/(\d{1,2})\.\s*(januar|februar|marts|april|maj|juni|juli|august|september|oktober|november|december)(?:\s+(\d{4}))?/i);
     if (m) {
       const mo = MONTH_DK[m[2].toLowerCase()];
       const yr = m[3] ? parseInt(m[3]) : 2026;
-      return { label: p, date: new Date(yr, mo, parseInt(m[1])).toISOString().slice(0,10), ok: true };
+      return { label: p, date: dateToISO(new Date(yr, mo, parseInt(m[1]))), ok: true };
     }
     return { label: p, date: null, ok: false };
   });

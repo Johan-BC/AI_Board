@@ -4,7 +4,6 @@
 // ── Date helpers ──────────────────────────────────────────────────────────────
 const D_MS = 86400000;
 function parseISO(s) { const [y, m, d] = String(s || '').split('-').map(Number); return new Date(y, m - 1, d); }
-function dateToISO(d) { return d.toISOString().slice(0, 10); }
 function fmtMon(d) { return d.toLocaleString('en-US', { month: 'short' }); }
 function fmtDay(d) { return d.toLocaleString('en-US', { month: 'short', day: 'numeric' }); }
 function quarterOf(d) { return Math.floor(d.getMonth() / 3) + 1; }
@@ -1028,7 +1027,7 @@ function BoardView() {
     platformIds: [], departmentIds: [],
     name: '', status: 'idea', owner: '',
     techIds: [], blockerIds: [], outcomeIds: [], tags: [], purpose: '', need: '', solution: '',
-    start: dateToISO(today), end: dateToISO(new Date(today.getTime() + 120 * D_MS)),
+    start: dateToISO(today), end: dateToISO(addDays(today, 120)),
     milestones: [],
   });
 
@@ -1098,19 +1097,19 @@ function BoardView() {
       if (dxDays === 0) { updateInit(init.id, { start: dateToISO(origStart), end: dateToISO(origEnd) }); return; }
       let ns = origStart, ne = origEnd;
       if (mode === 'move') {
-        ns = new Date(origStart.getTime() + dxDays * D_MS);
-        ne = new Date(origEnd.getTime()   + dxDays * D_MS);
+        ns = addDays(origStart, dxDays);
+        ne = addDays(origEnd,   dxDays);
       } else if (mode === 'rR') {
-        ne = new Date(origEnd.getTime() + dxDays * D_MS);
-        if (ne <= new Date(origStart.getTime() + 6 * D_MS)) ne = new Date(origStart.getTime() + 7 * D_MS);
+        ne = addDays(origEnd, dxDays);
+        if (ne <= addDays(origStart, 6)) ne = addDays(origStart, 7);
       } else if (mode === 'rL') {
-        ns = new Date(origStart.getTime() + dxDays * D_MS);
-        if (ns >= new Date(origEnd.getTime() - 6 * D_MS)) ns = new Date(origEnd.getTime() - 7 * D_MS);
+        ns = addDays(origStart, dxDays);
+        if (ns >= addDays(origEnd, -6)) ns = addDays(origEnd, -7);
       }
       const patch = { start: dateToISO(ns), end: dateToISO(ne) };
       if (mode === 'move' && init.milestones && init.milestones.length) {
         patch.milestones = init.milestones.map((m) => ({
-          ...m, date: dateToISO(new Date(parseISO(m.date).getTime() + dxDays * D_MS)),
+          ...m, date: dateToISO(addDays(parseISO(m.date), dxDays)),
         }));
       }
       updateInit(init.id, patch);

@@ -1,6 +1,17 @@
 // Data layer: BU → Platform → Initiative hierarchy.
 // GitHub repo (data.json) is the only store — see sync.jsx.
 
+// ── Calendar dates ────────────────────────────────────────────────────────────
+// 'YYYY-MM-DD' from the LOCAL date. toISOString() would give the UTC date,
+// which in Denmark is the previous day for anything before 01:00/02:00 —
+// including the local-midnight Dates parseISO() returns.
+function dateToISO(d) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+// Calendar-day arithmetic; adding n × 24h drifts an hour across DST changes.
+function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+
 const BUSINESS_UNITS = [
   { id: 'mkt', name: 'Marketing',      short: 'MK', accent: 'oklch(0.48 0.12 290)', lead: 'Anne Berg' },
   { id: 'cxo', name: 'Cust. Ops',      short: 'CO', accent: 'oklch(0.48 0.12 165)', lead: 'Mads Iversen' },

@@ -198,7 +198,7 @@ function UiComments({ comments, onChange, compact = false }) {
   const close = () => { setAdding(false); setDraft(''); };
   const submit = () => {
     const text = draft.trim();
-    if (text) onChange([...comments, { id: `c_${Date.now()}`, text, at: new Date().toISOString().slice(0, 10) }]);
+    if (text) onChange([...comments, { id: `c_${Date.now()}`, text, at: dateToISO(new Date()) }]);
     close();
   };
   const fs = compact ? 11 : 12;
