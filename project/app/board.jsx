@@ -37,7 +37,9 @@ const OUTCOME_TEAL   = 'oklch(0.48 0.13 175)';
 // data.json on GitHub is the only store. The browser keeps just the PAT and
 // view preferences — never a copy of the board, so no edit can end up saved
 // in one browser only. GitHub helpers + merge live in sync.jsx.
-const PAT_KEY       = 'aiboard:github-pat';
+const PAT_KEY       = 'aiboard:github-pat';      // token (from a link or pasted)
+const MODE_KEY      = 'aiboard:access-mode';     // 'view' | 'edit'
+const NAME_KEY      = 'aiboard:editor-name';     // shown in commit messages
 const COLLAPSE_KEY  = 'aiboard:collapsed-bus';
 const SYNC_CFG      = resolveSyncConfig();
 const SAVE_DEBOUNCE = 3000;
@@ -61,11 +63,87 @@ function LoadingScreen({ message }) {
   );
 }
 
+// ── Shared modal shell ────────────────────────────────────────────────────────
+function Modal({ children, width = 440 }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      background: 'rgba(20,16,12,0.55)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{
+        background: UI.bg, borderRadius: 14, padding: '32px 36px', width, maxWidth: '90vw',
+        boxShadow: '0 24px 64px rgba(20,16,12,.25)', fontFamily: UI.sans,
+        border: `1px solid ${UI.border}`,
+      }}>{children}</div>
+    </div>
+  );
+}
+
+const contactLine = () => SYNC_CFG.contact
+  ? <>Kontakt <strong>{SYNC_CFG.contact}</strong>.</>
+  : 'Kontakt den, der administrerer boardet.';
+
+// ── No access (link mode without a working link) ─────────────────────────────
+function NoAccessScreen({ kind }) {
+  const text = {
+    none:  'Boardet åbnes via det link, du har fået tilsendt. Klik på linket i mailen eller beskeden — så husker browseren det.',
+    bad:   'Dit link virker ikke længere — det er udløbet eller udskiftet. Bed om et nyt link.',
+    error: 'Boardet kunne ikke hentes lige nu. Tjek din forbindelse og prøv igen.',
+  }[kind];
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: UI.bg, fontFamily: UI.sans, padding: 16 }}>
+      <div style={{ maxWidth: 420, textAlign: 'center' }}>
+        <div style={{ fontFamily: UI.mono, fontSize: 10, color: UI.inkFaint, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>AI Board</div>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: UI.ink, margin: '0 0 12px' }}>
+          {kind === 'error' ? 'Kunne ikke hente boardet' : 'Du skal bruge dit link'}
+        </h1>
+        <p style={{ fontSize: 14, color: UI.inkMuted, lineHeight: 1.6, margin: '0 0 8px' }}>{text}</p>
+        {kind !== 'error' && <p style={{ fontSize: 13, color: UI.inkFaint, lineHeight: 1.6, margin: 0 }}>{contactLine()}</p>}
+        {kind === 'error' && (
+          <button onClick={() => location.reload()} style={{
+            marginTop: 12, padding: '8px 18px', borderRadius: 7, border: 'none',
+            background: UI.ink, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: UI.sans,
+          }}>Prøv igen</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Editor name prompt ────────────────────────────────────────────────────────
+function NamePrompt({ initial, onSave, onCancel }) {
+  const [val, setVal] = React.useState(initial || '');
+  const ok = val.trim().length > 0;
+  const save = () => ok && onSave(val.trim());
+  return (
+    <Modal width={400}>
+      <div style={{ fontFamily: UI.mono, fontSize: 10, color: UI.inkFaint, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>Redigering</div>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: UI.ink, margin: '0 0 10px' }}>Hvad hedder du?</h2>
+      <p style={{ fontSize: 13, color: UI.inkMuted, lineHeight: 1.6, margin: '0 0 16px' }}>
+        Dit navn gemmes sammen med dine ændringer, så man kan se hvem der har rettet hvad.
+      </p>
+      <input autoFocus value={val} onChange={(e) => setVal(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && save()} placeholder="Fornavn Efternavn"
+        style={{ width: '100%', padding: '9px 12px', borderRadius: 7, boxSizing: 'border-box', border: `1.5px solid ${UI.border}`, fontFamily: UI.sans, fontSize: 14, color: UI.ink, background: UI.panel, outline: 'none' }} />
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+        {onCancel && <button onClick={onCancel} style={{ padding: '8px 18px', borderRadius: 7, border: `1px solid ${UI.border}`, background: 'transparent', color: UI.inkMuted, cursor: 'pointer', fontSize: 13, fontFamily: UI.sans }}>Annullér</button>}
+        <button onClick={save} disabled={!ok} style={{
+          padding: '8px 18px', borderRadius: 7, border: 'none', background: UI.ink, color: '#fff',
+          cursor: ok ? 'pointer' : 'not-allowed', opacity: ok ? 1 : 0.45, fontSize: 13, fontWeight: 600, fontFamily: UI.sans,
+        }}>Gem</button>
+      </div>
+    </Modal>
+  );
+}
+
 // ── PAT setup overlay ─────────────────────────────────────────────────────────
 function PatSetupOverlay({ onConnect, onSkip }) {
   const [val, setVal]     = React.useState('');
   const [phase, setPhase] = React.useState('idle'); // idle | busy | err
   const [errMsg, setErrMsg] = React.useState('');
+  // In link mode editors get access from their link — the token field is for the admin
+  const [showToken, setShowToken] = React.useState(!SYNC_CFG.linkMode);
 
   const connect = async () => {
     const pat = val.trim();
@@ -101,14 +179,27 @@ function PatSetupOverlay({ onConnect, onSkip }) {
         border: `1px solid ${UI.border}`,
       }}>
         <div style={{ fontFamily: UI.mono, fontSize: 10, color: UI.inkFaint, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>Redigering</div>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: UI.ink, margin: '0 0 10px' }}>Forbind til GitHub for at redigere</h2>
-        {!SYNC_CFG.repo ? (
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: UI.ink, margin: '0 0 10px' }}>
+          {SYNC_CFG.linkMode ? 'Du kan kun se boardet' : 'Forbind til GitHub for at redigere'}
+        </h2>
+        {SYNC_CFG.linkMode && (
+          <p style={{ fontSize: 13, color: UI.inkMuted, lineHeight: 1.65, margin: '0 0 12px' }}>
+            Du har åbnet boardet med et visningslink. For at oprette og rette initiativer skal du bruge
+            redigeringslinket. {contactLine()}
+          </p>
+        )}
+        {SYNC_CFG.linkMode && !showToken && (
+          <button onClick={() => setShowToken(true)} style={{ border: 'none', background: 'transparent', padding: 0, color: UI.inkFaint, fontSize: 11, fontFamily: UI.mono, cursor: 'pointer' }}>
+            Har du et GitHub-token? ›
+          </button>
+        )}
+        {!showToken ? null : !SYNC_CFG.repo ? (
           <p style={{ fontSize: 13, color: BLOCKER_RED, lineHeight: 1.65, margin: '0 0 8px' }}>
             Repo er ikke konfigureret. Sæt {code('repo')} i {code('config.js')} (fx {code('org/AI_Board')}).
           </p>
         ) : (<>
           <p style={{ fontSize: 13, color: UI.inkMuted, lineHeight: 1.65, margin: '0 0 12px' }}>
-            Alle kan se boardet. For at oprette og redigere initiativer skal du have skriveadgang til{' '}
+            {SYNC_CFG.linkMode ? 'Med et token' : 'Alle kan se boardet. For at oprette og redigere initiativer'} skal du have skriveadgang til{' '}
             <strong>{SYNC_CFG.repo}</strong> og et{' '}
             <a href={SYNC_CFG.tokenUrl} target="_blank" rel="noopener"
               style={{ color: UI.accent, textDecoration: 'none', borderBottom: `1px solid ${UI.accent}` }}>
@@ -146,8 +237,8 @@ function PatSetupOverlay({ onConnect, onSkip }) {
             padding: '8px 18px', borderRadius: 7, border: `1px solid ${UI.border}`,
             background: 'transparent', color: UI.inkMuted, cursor: 'pointer',
             fontSize: 13, fontFamily: UI.sans,
-          }}>Kun se</button>
-          {SYNC_CFG.repo && (
+          }}>{SYNC_CFG.linkMode ? 'OK' : 'Kun se'}</button>
+          {SYNC_CFG.repo && showToken && (
             <button onClick={connect} disabled={!val.trim() || phase === 'busy'} style={{
               padding: '8px 18px', borderRadius: 7, border: 'none',
               background: UI.ink, color: '#fff',
@@ -340,6 +431,11 @@ function BoardView() {
   const [store, setStoreRaw]                      = React.useState(null);
   const [syncStatus, setSyncStatus]               = React.useState('loading');
   const [connected, setConnected]                 = React.useState(false);
+  const [noAccess, setNoAccess]                   = React.useState(null); // null | 'none' | 'bad' | 'error'
+  const [editorName, setEditorName]               = React.useState(() => { try { return localStorage.getItem(NAME_KEY) || ''; } catch (_) { return ''; } });
+  const [askName, setAskName]                     = React.useState(false);
+  const nameRef = React.useRef(editorName);
+  nameRef.current = editorName;
   const [showPatSetup, setShowPatSetup]           = React.useState(false);
   const [statusFilter, setStatusFilter]           = React.useState(null);
   const [buFilter, setBuFilter]                   = React.useState(null);
@@ -394,6 +490,7 @@ function BoardView() {
           .catch(() => tryFetch(rest))
       : Promise.reject(new Error('not found'));
     return tryFetch([`./${SYNC_CFG.file}`, `../${SYNC_CFG.file}`]).then(parseJSON).catch(() => makeStore());
+  // (Not used in link mode: there data.json is private and only reachable with a token.)
   };
 
   const connectWith = (pat, s, sha) => {
@@ -412,21 +509,39 @@ function BoardView() {
     setSyncStatus('readonly');
   };
 
-  const loadFromGitHub = (pat, initial) => {
+  // mode 'edit' → editable; 'view' → read through the API with a read-only token
+  const loadFromGitHub = (pat, mode, initial) => {
     setSyncStatus('loading');
     readFromGitHub(SYNC_CFG, pat)
-      .then(({ store: s, sha }) => { applyStore(s); connectWith(pat, s, sha); })
+      .then(({ store: s, sha }) => {
+        setNoAccess(null);
+        applyStore(s);
+        if (mode === 'edit') connectWith(pat, s, sha);
+        else { Object.assign(syncRef.current, { pat, base: s, sha }); setSyncStatus('readonly'); }
+      })
       .catch((err) => {
-        // Show the published copy, view-only, until GitHub answers
-        if (initial) loadStatic().then(applyStore);
-        setSyncStatus(err.status === 401 || err.status === 403 ? 'auth-error' : 'load-error');
+        const rejected = err.status === 401 || err.status === 403 || err.status === 404;
+        if (SYNC_CFG.linkMode) {
+          // No public copy to fall back to
+          if (initial || !storeRef.current) { setNoAccess(rejected ? 'bad' : 'error'); return; }
+        } else if (initial) {
+          // Show the published copy, view-only, until GitHub answers
+          loadStatic().then(applyStore);
+        }
+        setSyncStatus(rejected ? 'auth-error' : 'load-error');
       });
   };
 
   // ── Initial load ────────────────────────────────────────────────────────────
   React.useEffect(() => {
-    const pat = localStorage.getItem(PAT_KEY);
-    if (pat && SYNC_CFG.repo) { loadFromGitHub(pat, true); return; }
+    const link = takeLinkToken();
+    if (link) {
+      try { localStorage.setItem(PAT_KEY, link.token); localStorage.setItem(MODE_KEY, link.mode); } catch (_) {}
+    }
+    const pat  = localStorage.getItem(PAT_KEY);
+    const mode = localStorage.getItem(MODE_KEY) || 'edit'; // a pasted token is an editor's
+    if (pat && SYNC_CFG.repo) { loadFromGitHub(pat, mode, true); return; }
+    if (SYNC_CFG.linkMode) { setNoAccess('none'); return; }
     loadStatic().then((s) => { applyStore(s); setSyncStatus('readonly'); });
   }, []);
 
@@ -449,7 +564,7 @@ function BoardView() {
     try {
       for (let attempt = 0; ; attempt++) {
         try {
-          sy.sha = await writeToGitHub(SYNC_CFG, sy.pat, sent, sy.sha, describeChange(sy.base, sent));
+          sy.sha = await writeToGitHub(SYNC_CFG, sy.pat, sent, sy.sha, describeChange(sy.base, sent, nameRef.current));
           sy.base = sent;
           break;
         } catch (err) {
@@ -489,11 +604,22 @@ function BoardView() {
   }, [store]);
 
   // ── Pick up others' changes ─────────────────────────────────────────────────
-  // Editors poll the API and merge; viewers re-read the published copy.
+  // Editors poll the API and merge; view-link holders re-read through the API;
+  // anyone else re-reads the published copy.
   const refresh = async () => {
     const sy = syncRef.current;
     if (document.hidden) return;
     if (!connectedRef.current) {
+      if (sy.pat) {
+        try {
+          const remote = await readFromGitHub(SYNC_CFG, sy.pat);
+          if (connectedRef.current || remote.sha === sy.sha) return;
+          sy.base = remote.store; sy.sha = remote.sha;
+          setStoreRaw(remote.store);
+        } catch (_) {}
+        return;
+      }
+      if (SYNC_CFG.linkMode) return;
       const s = await loadStatic();
       if (!connectedRef.current && !deepEq(s, storeRef.current)) setStoreRaw(s);
       return;
@@ -511,7 +637,8 @@ function BoardView() {
 
   React.useEffect(() => {
     if (syncStatus === 'loading') return;
-    const id = setInterval(refresh, connected ? SYNC_CFG.pollMs : 60000);
+    // API readers (editors + view links) poll often; the published copy changes slowly
+    const id = setInterval(refresh, connected || syncRef.current.pat ? SYNC_CFG.pollMs : 60000);
     const onVisible = () => {
       if (document.hidden) { if (syncRef.current.timer) flush(); } // save before the tab is left
       else refresh();
@@ -534,6 +661,7 @@ function BoardView() {
 
   // ── PAT connect callback (from overlay) ────────────────────────────────────
   const onPatConnect = (pat, ghStore, sha) => {
+    try { localStorage.setItem(MODE_KEY, 'edit'); } catch (_) {}
     setShowPatSetup(false);
     setStoreRaw(ghStore); // keep the current view/filters
     connectWith(pat, ghStore, sha);
@@ -907,6 +1035,7 @@ function BoardView() {
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
 
+  if (noAccess) return <NoAccessScreen kind={noAccess} />;
   if (!store) return <LoadingScreen message="Henter data…" />;
 
   const techById    = _byId(store.technologies);
@@ -1054,24 +1183,38 @@ function BoardView() {
       </span>
     );
 
+    // In link mode the connection comes from the link — no disconnect, no token talk
+    const onStatus = SYNC_CFG.linkMode ? undefined : askDisconnect;
+    const nameChip = connected && editorName ? (
+      <button key="n" onClick={() => setAskName(true)} title="Skift navn" style={{
+        border: 'none', background: 'transparent', cursor: 'pointer', padding: '0 2px',
+        fontFamily: UI.mono, fontSize: 10, color: UI.inkMuted,
+      }}>✎ {editorName}</button>
+    ) : null;
+    const withName = (el) => nameChip
+      ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{nameChip}{el}</span>
+      : el;
+
     if (syncStatus === 'loading') return wrap(UI.inkFaint, 'Henter…');
-    if (syncStatus === 'saving')  return wrap('oklch(0.62 0.14 70)',  'Gemmer…');
-    if (syncStatus === 'saved')   return wrap('oklch(0.52 0.13 150)', 'Gemt ✓', askDisconnect);
-    if (syncStatus === 'idle')    return wrap(UI.inkFaint,            'GitHub',  askDisconnect);
-    if (syncStatus === 'error')   return errorRow('Ikke gemt',
-      <React.Fragment key="r">{smallBtn(BLOCKER_RED, '↺ Prøv igen', flush, 'Dine ændringer er stadig her — prøv at gemme igen')}</React.Fragment>);
-    if (syncStatus === 'load-error') return errorRow('Kan ikke hente fra GitHub — kun visning',
-      <React.Fragment key="r">{smallBtn(BLOCKER_RED, '↺ Prøv igen', () => loadFromGitHub(localStorage.getItem(PAT_KEY), false))}</React.Fragment>,
-      <React.Fragment key="p">{smallBtn(UI.inkMuted, 'Skift token', changePat)}</React.Fragment>);
-    if (syncStatus === 'auth-error') return errorRow(connected ? 'Token afvist — ikke gemt' : 'Token afvist — kun visning',
-      <React.Fragment key="p">{smallBtn(BLOCKER_RED, 'Skift token', changePat, 'Tokenet er udløbet eller mangler adgang')}</React.Fragment>);
+    if (syncStatus === 'saving')  return withName(wrap('oklch(0.62 0.14 70)',  'Gemmer…'));
+    if (syncStatus === 'saved')   return withName(wrap('oklch(0.52 0.13 150)', 'Gemt ✓', onStatus));
+    if (syncStatus === 'idle')    return withName(wrap(UI.inkFaint, SYNC_CFG.linkMode ? 'Gemmes automatisk' : 'GitHub', onStatus));
+    if (syncStatus === 'error')   return withName(errorRow('Ikke gemt',
+      <React.Fragment key="r">{smallBtn(BLOCKER_RED, '↺ Prøv igen', flush, 'Dine ændringer er stadig her — prøv at gemme igen')}</React.Fragment>));
+    if (syncStatus === 'load-error') return errorRow('Kan ikke hente — kun visning',
+      <React.Fragment key="r">{smallBtn(BLOCKER_RED, '↺ Prøv igen', () => loadFromGitHub(localStorage.getItem(PAT_KEY), localStorage.getItem(MODE_KEY) || 'edit', false))}</React.Fragment>,
+      SYNC_CFG.linkMode ? null : <React.Fragment key="p">{smallBtn(UI.inkMuted, 'Skift token', changePat)}</React.Fragment>);
+    if (syncStatus === 'auth-error') return SYNC_CFG.linkMode
+      ? errorRow(connected ? 'Linket virker ikke længere — ændringer er ikke gemt' : 'Linket virker ikke længere')
+      : errorRow(connected ? 'Token afvist — ikke gemt' : 'Token afvist — kun visning',
+          <React.Fragment key="p">{smallBtn(BLOCKER_RED, 'Skift token', changePat, 'Tokenet er udløbet eller mangler adgang')}</React.Fragment>);
     if (syncStatus === 'readonly') return (
-      <button onClick={() => setShowPatSetup(true)} title="Forbind til GitHub for at oprette og redigere initiativer" style={{
+      <button onClick={() => setShowPatSetup(true)} title={SYNC_CFG.linkMode ? 'Du har et visningslink' : 'Forbind til GitHub for at oprette og redigere initiativer'} style={{
         display: 'inline-flex', alignItems: 'center', gap: 4,
         padding: '4px 9px', borderRadius: 5, cursor: 'pointer',
         border: `1px solid ${UI.border}`, background: 'transparent',
         color: UI.inkMuted, fontFamily: UI.mono, fontSize: 10,
-      }}>Kun visning · ✎ Redigér</button>
+      }}>{SYNC_CFG.linkMode ? 'Kun visning' : 'Kun visning · ✎ Redigér'}</button>
     );
     return null;
   };
@@ -1806,6 +1949,13 @@ function BoardView() {
       )}
 
       {/* GitHub PAT setup overlay */}
+      {/* Editors name themselves once, so history shows who changed what */}
+      {connected && (askName || !editorName) && (
+        <NamePrompt initial={editorName}
+          onSave={(n) => { try { localStorage.setItem(NAME_KEY, n); } catch (_) {} setEditorName(n); setAskName(false); }}
+          onCancel={editorName ? () => setAskName(false) : null} />
+      )}
+
       {showPatSetup && (
         <PatSetupOverlay
           onConnect={onPatConnect}

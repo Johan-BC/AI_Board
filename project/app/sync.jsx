@@ -4,29 +4,46 @@
 
 // ── Config ────────────────────────────────────────────────────────────────────
 // Set in /config.js. A blank `repo` is auto-detected from an
-// <owner>.github.io/<repo>/ Pages URL; anything else must be configured.
+// <owner>.github.io/<repo>/ Pages URL. With `dataRepo` set, data.json lives in
+// that (private) repo and is only reachable with a token from a view/edit link.
 function resolveSyncConfig() {
   const c = (typeof window !== 'undefined' && window.AIBOARD_CONFIG) || {};
-  let repo = (c.repo || '').trim();
-  if (!repo && typeof location !== 'undefined') {
+  let boardRepo = (c.repo || '').trim();
+  if (!boardRepo && typeof location !== 'undefined') {
     const m = location.hostname.match(/^([^.]+)\.github\.io$/i);
     const seg = location.pathname.split('/').filter(Boolean)[0];
-    if (m && seg) repo = `${m[1]}/${seg}`;
+    if (m && seg) boardRepo = `${m[1]}/${seg}`;
   }
+  const dataRepo = (c.dataRepo || '').trim();
   const apiBase = (c.apiBase || 'https://api.github.com').replace(/\/+$/, '');
-  // Web host for the "create token" link: api.github.com → github.com,
-  // GHE Server https://host/api/v3 → https://host, ghe.com api.x.ghe.com → x.ghe.com
+  // Web host: api.github.com → github.com, GHE Server https://host/api/v3 →
+  // https://host, ghe.com api.x.ghe.com → x.ghe.com
   const webBase = apiBase === 'https://api.github.com'
     ? 'https://github.com'
     : apiBase.replace(/\/api\/v3$/, '').replace('://api.', '://');
   return {
-    repo: repo || null,
+    repo: dataRepo || boardRepo || null,   // where data.json is read/written
+    boardRepo: boardRepo || null,
+    linkMode: !!dataRepo,                  // data only via view/edit links
     branch: c.branch || 'main',
     file: c.file || 'data.json',
     apiBase,
+    webBase,
     tokenUrl: `${webBase}/settings/personal-access-tokens/new`,
     pollMs: c.pollMs || 30000,
+    contact: c.contact || '',
   };
+}
+
+// A view/edit link carries its token in the URL fragment (never sent to the
+// server). Returns { mode, token } and strips it from the address bar so it
+// isn't copied along when someone shares the URL they're looking at.
+function takeLinkToken() {
+  if (typeof location === 'undefined') return null;
+  const m = location.hash.match(/(?:^#|&)(view|edit)=([^&]+)/);
+  if (!m) return null;
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (_) {}
+  return { mode: m[1], token: decodeURIComponent(m[2]) };
 }
 
 // ── GitHub Contents API ───────────────────────────────────────────────────────
@@ -145,7 +162,7 @@ function merge3(base, local, remote) {
 
 // ── Commit message ────────────────────────────────────────────────────────────
 // Names the initiatives touched, so git history reads as an audit log.
-function describeChange(base, next) {
+function describeChange(base, next, who) {
   const bi = new Map(((base && base.initiatives) || []).map((i) => [i.id, i]));
   const ni = new Map(((next && next.initiatives) || []).map((i) => [i.id, i]));
   const parts = [];
@@ -158,7 +175,7 @@ function describeChange(base, next) {
   otherKeys.delete('initiatives');
   const catalogue = [...otherKeys].some((k) => !deepEq((base || {})[k], (next || {})[k]));
 
-  let msg = 'board: ';
+  let msg = who ? `board (${who}): ` : 'board: ';
   if (parts.length) {
     msg += parts.slice(0, 3).join(', ');
     if (parts.length > 3) msg += ` (+${parts.length - 3})`;
@@ -169,4 +186,4 @@ function describeChange(base, next) {
   return msg.length > 120 ? msg.slice(0, 117) + '…' : msg;
 }
 
-if (typeof module !== 'undefined') module.exports = { merge3, deepEq, describeChange, resolveSyncConfig };
+if (typeof module !== 'undefined') module.exports = { merge3, deepEq, describeChange, resolveSyncConfig, takeLinkToken };

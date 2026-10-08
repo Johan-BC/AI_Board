@@ -75,25 +75,33 @@ self-resolves without action once the cache entry expires.
   a failed load shows the published copy view-only with retry / change token.
 - **Reset to seed** was removed — on a shared board it wiped everyone's work in one click.
 
+### Link mode — editors without GitHub accounts
+Set `dataRepo` in [`config.js`](config.js) to a private repo holding `data.json`. Then:
+- The board repo holds only code; with no link the board shows "Du skal bruge dit link"
+  (no seed/demo data).
+- **View link** `…/#view=<read-only token>` — reads through the API, polls every 30 s, can't edit.
+- **Edit link** `…/#edit=<read/write token>` — full editing; the first visit asks for a name
+  (`aiboard:editor-name`), which goes into every commit message: `board (Mette): AI-Mail`.
+- The token in the fragment is never sent to a server; `takeLinkToken()` stores it
+  (`aiboard:github-pat` + `aiboard:access-mode`) and strips it from the address bar.
+- Expired/revoked link → "Dit link virker ikke længere"; `contact` in config names who to ask.
+- Both tokens are fine-grained, scoped to the data repo only, so a leaked link can at worst
+  change data (recoverable from history), never the board code.
+
+### Admin overview ([`overblik.html`](overblik.html))
+Not linked from the board; for the admin only. Builds the view/edit links from tokens
+pasted in (kept in that browser's localStorage, never in the repo), checks each token and
+shows its expiry, lists the last 10 changes, links to history/data/repos/Pages/token
+settings with a description of each, and holds the setup and recovery guides.
+
 ### Repo config ([`config.js`](config.js))
-`repo` (`owner/repo`), `branch`, `file`, `apiBase`, optional `pollMs`. A blank `repo` is
-auto-detected from an `<owner>.github.io/<repo>/` URL; set it explicitly for private Pages
-(`*.pages.github.io`), custom domains, or GitHub Enterprise Server
-(`apiBase: 'https://github.company.com/api/v3'`). The token link in the connect prompt is
-derived from `apiBase`.
+`repo` (board repo), `dataRepo` (link mode), `branch`, `file`, `contact`, `apiBase`,
+optional `pollMs`. A blank `repo` is auto-detected from an `<owner>.github.io/<repo>/` URL;
+set it explicitly for private Pages (`*.pages.github.io`), custom domains, or GitHub
+Enterprise Server (`apiBase: 'https://github.company.com/api/v3'`).
 
-**Rolling out in an organisation:** editors need write access to the repo; the org must
-allow fine-grained PATs (and may require an admin to approve each one); with SAML SSO the
-token must be SSO-authorised. Every save is a commit to `branch`, which also triggers a
-Pages rebuild — viewers see changes once that finishes (and the Pages cache expires).
-
-### Migrations
-`migrateStore()` (localStorage path) and `parseJSON()` (data.json path) both normalise
-older stores:
-- `platformId` (string) → `platformIds: []`
-- adds `departmentIds: []` when missing
-- **`migrateLiveToProd()`** — renames the legacy `live` status → `prod` in both the statuses
-  catalogue and on initiatives
+Without `dataRepo`, `data.json` sits next to the board (public), and editors paste their own
+fine-grained PAT. That needs org membership — see the earlier notes on token approval/SSO.
 
 ---
 
