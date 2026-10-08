@@ -209,7 +209,10 @@ function UiComments({ comments, onChange, compact = false }) {
         <div key={c.id} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', fontSize: fs, lineHeight: 1.45 }}>
           <div style={{ flex: 1, minWidth: 0, color: UI.ink, whiteSpace: 'pre-wrap' }}>
             {c.text}
-            {c.at && <span style={{ marginLeft: 6, fontFamily: UI.mono, fontSize: 10, color: UI.inkFaint }}>{c.at}</span>}
+            {/* Older comments may carry a full ISO timestamp — show its local date */}
+            {c.at && <span style={{ marginLeft: 6, fontFamily: UI.mono, fontSize: 10, color: UI.inkFaint }}>
+              {String(c.at).includes('T') && !isNaN(new Date(c.at)) ? dateToISO(new Date(c.at)) : c.at}
+            </span>}
           </div>
           <button onClick={() => onChange(comments.filter((x) => x.id !== c.id))} aria-label="Slet kommentar" style={{
             border: 'none', background: 'transparent', color: UI.inkFaint, cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '0 2px', flexShrink: 0,
