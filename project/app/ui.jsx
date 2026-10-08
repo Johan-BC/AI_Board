@@ -1165,12 +1165,157 @@ function UiCatalogueDrawer({
   );
 }
 
+// ── Portfolio helpers (used only by UiPortfolioView) ─────────────────────────
+const _pfLabel = { fontFamily: UI.mono, fontSize: 9.5, letterSpacing: 1, textTransform: 'uppercase', color: UI.inkFaint };
+const _pfWarn  = 'oklch(0.55 0.15 50)';
+const _pfCard  = { background: UI.panel, border: `1px solid ${UI.border}`, borderRadius: 10, boxShadow: UI.shadow, padding: '14px 16px', minWidth: 0 };
+
+// Statuses shown in the portfolio, in store order, without 'idea'. Unknown
+// statuses found on initiatives are appended so nothing silently disappears.
+function _pfStatuses(store) {
+  const list = ((store.statuses && store.statuses.length) ? store.statuses : STATUSES).filter((s) => s.id !== 'idea');
+  const known = new Set(list.map((s) => s.id));
+  const extra = [...new Set((store.initiatives || []).map((i) => i.status))]
+    .filter((id) => id !== 'idea' && !known.has(id))
+    .map((id) => resolveStatus(id, store.statuses));
+  return [...list, ...extra];
+}
+
+const _pfBlocked = (i) => (i.blockerIds || []).length > 0;
+
+function UiPfKpi({ label, value, sub, tone, active, onClick }) {
+  const color = tone || UI.ink;
+  return (
+    <div onClick={onClick} title={onClick ? 'Vis initiativerne' : undefined}
+      style={{
+        ..._pfCard, padding: '12px 14px', cursor: onClick ? 'pointer' : 'default',
+        borderColor: active ? UI.ink : UI.border,
+        boxShadow: active ? `0 0 0 2px color-mix(in oklch, ${UI.ink} 12%, transparent)` : UI.shadow,
+        transition: 'border-color .12s, box-shadow .12s',
+      }}
+      onMouseEnter={(e) => { if (onClick && !active) e.currentTarget.style.borderColor = UI.borderStrong; }}
+      onMouseLeave={(e) => { if (!active) e.currentTarget.style.borderColor = UI.border; }}>
+      <div style={_pfLabel}>{label}</div>
+      <div style={{ fontSize: 24, fontWeight: 600, color, letterSpacing: -0.6, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: UI.inkMuted, marginTop: 1 }}>{sub}</div>}
+    </div>
+  );
+}
+
+// Horizontal stacked bars: one row per group, one segment per status.
+// rows: [{ key, label, dot, inits }]. onPick(key, title, inits).
+function UiPfStackedBars({ rows, statuses, selKey, onPick, showBlocked = true }) {
+  const max = Math.max(1, ...rows.map((r) => r.inits.length));
+  if (rows.length === 0) return <div style={{ fontSize: 12, color: UI.inkFaint, fontStyle: 'italic' }}>Ingen data</div>;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+      {rows.map((r) => {
+        const blocked = r.inits.filter(_pfBlocked).length;
+        const rowKey = `row:${r.key}`;
+        return (
+          <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div onClick={() => onPick(rowKey, r.label, r.inits)} title={`Vis alle ${r.inits.length} i ${r.label}`}
+              style={{
+                width: 130, flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                fontSize: 11.5, color: UI.ink, fontWeight: selKey === rowKey ? 700 : 500, minWidth: 0,
+              }}>
+              {r.dot && <span style={{ width: 7, height: 7, borderRadius: 99, background: r.dot, flex: '0 0 auto' }} />}
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.label}</span>
+            </div>
+            <div style={{ flex: 1, minWidth: 60, height: 16, display: 'flex' }}>
+              <div style={{ width: `${(r.inits.length / max) * 100}%`, display: 'flex', gap: 1, borderRadius: 4, overflow: 'hidden' }}>
+                {statuses.map((s) => {
+                  const segInits = r.inits.filter((i) => i.status === s.id);
+                  if (!segInits.length) return null;
+                  const k = `seg:${r.key}:${s.id}`;
+                  const dim = selKey && selKey.startsWith('seg:') && selKey !== k;
+                  return (
+                    <div key={s.id} onClick={() => onPick(k, `${r.label} · ${s.label}`, segInits)}
+                      title={`${r.label} · ${s.label}: ${segInits.length}`}
+                      style={{
+                        flex: segInits.length, background: s.color, cursor: 'pointer',
+                        opacity: dim ? 0.35 : 1, transition: 'opacity .12s',
+                        color: '#fff', fontFamily: UI.mono, fontSize: 9.5, fontWeight: 600,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                      }}>{segInits.length}</div>
+                  );
+                })}
+              </div>
+            </div>
+            <span style={{ width: 22, textAlign: 'right', fontFamily: UI.mono, fontSize: 11, fontWeight: 700, color: UI.inkMuted }}>{r.inits.length}</span>
+            <span title={blocked ? `${blocked} blokeret` : ''} style={{ width: 30, fontFamily: UI.mono, fontSize: 10, color: _pfWarn, fontWeight: 600 }}>
+              {showBlocked && blocked > 0 ? `⚠${blocked}` : ''}
+            </span>
+          </div>
+        );
+      })}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 4, paddingLeft: 138 }}>
+        {statuses.map((s) => (
+          <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, color: UI.inkMuted }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: s.color }} />{s.label}
+          </span>
+        ))}
+        {showBlocked && <span style={{ fontSize: 10.5, color: _pfWarn }}>⚠ = blokeret</span>}
+      </div>
+    </div>
+  );
+}
+
 // ── Portfolio / Outcome pillar view ──────────────────────────────────────────
 function UiPortfolioView({ store, onOpenInit }) {
   const outcomes   = store.outcomes || [];
   const pillars    = [...new Set(outcomes.map((o) => o.category))];
   const buById     = _byId(store.businessUnits);
   const outcomeById = _byId(outcomes);
+  const inits      = store.initiatives || [];
+  const statuses   = _pfStatuses(store);
+
+  // Selection from a KPI tile, bar segment or heatmap cell. Ids (not objects)
+  // are kept, so the list stays live when the store changes underneath.
+  const [sel, setSel] = React.useState(null);      // { key, title, ids }
+  const [dim, setDim] = React.useState('bu');      // stacked bars grouped by: bu | tech | blocker
+  const pick = (key, title, list) =>
+    setSel((cur) => cur && cur.key === key ? null : { key, title, ids: list.map((i) => i.id) });
+  const selInits = sel ? inits.filter((i) => sel.ids.includes(i.id)) : [];
+  const selRef = React.useRef(null);
+  React.useEffect(() => {
+    if (sel && selRef.current && selRef.current.scrollIntoView) selRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [sel && sel.key]);
+
+  // ── Key figures ──
+  const blockedInits = inits.filter(_pfBlocked);
+  const prodInits    = inits.filter((i) => i.status === 'prod');
+  const noOutcome    = inits.filter((i) => !(i.outcomeIds || []).length);
+  const pct = (n) => inits.length ? `${Math.round((n / inits.length) * 100)} %` : '–';
+
+  // ── Stacked bar rows for the chosen dimension ──
+  const barRows = (() => {
+    if (dim === 'bu') {
+      const rows = (store.businessUnits || []).map((bu) => ({
+        key: bu.id, label: bu.name, dot: bu.accent, inits: inits.filter((i) => i.buId === bu.id),
+      }));
+      const orphans = inits.filter((i) => !buById[i.buId]);
+      if (orphans.length) rows.push({ key: '_none', label: 'Uden forretningsenhed', inits: orphans });
+      return rows.filter((r) => r.inits.length);
+    }
+    const catalogue = dim === 'tech' ? (store.technologies || []) : (store.blockers || []);
+    const field     = dim === 'tech' ? 'techIds' : 'blockerIds';
+    const rows = catalogue
+      .map((c) => ({ key: c.id, label: c.name, dot: `oklch(0.58 0.13 ${c.colorHue ?? 250})`, inits: inits.filter((i) => (i[field] || []).includes(c.id)) }))
+      .filter((r) => r.inits.length)
+      .sort((a, b) => b.inits.length - a.inits.length);
+    if (dim === 'tech') {
+      const none = inits.filter((i) => !(i.techIds || []).length);
+      if (none.length) rows.push({ key: '_none', label: 'Ingen teknologi', inits: none });
+    }
+    return rows;
+  })();
+
+  // ── Heatmap: forretningsenhed × outcome-søjle ──
+  const heatBUs = (store.businessUnits || []).filter((bu) => inits.some((i) => i.buId === bu.id));
+  const pillarOf = (i) => new Set((i.outcomeIds || []).map((oid) => outcomeById[oid]?.category).filter(Boolean));
+  const cellInits = (buId, pillar) => inits.filter((i) => i.buId === buId && pillarOf(i).has(pillar));
+  const heatMax = Math.max(1, ...heatBUs.flatMap((bu) => pillars.map((p) => cellInits(bu.id, p).length)));
 
   // First colorHue per pillar
   const pillarHue = {};
@@ -1194,13 +1339,133 @@ function UiPortfolioView({ store, onOpenInit }) {
         </div>
       </div>
 
+      {/* ── Key figures ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+        <UiPfKpi label="Initiativer" value={inits.length}
+          sub={statuses.map((s) => `${inits.filter((i) => i.status === s.id).length} ${s.label}`).join(' · ')}
+          active={sel?.key === 'kpi:all'} onClick={() => pick('kpi:all', 'Alle initiativer', inits)} />
+        <UiPfKpi label="I produktion" value={prodInits.length} sub={`${pct(prodInits.length)} af porteføljen`}
+          tone={resolveStatus('prod', store.statuses).color}
+          active={sel?.key === 'kpi:prod'} onClick={() => pick('kpi:prod', 'I produktion', prodInits)} />
+        <UiPfKpi label="Blokeret" value={blockedInits.length} sub={`${pct(blockedInits.length)} har mindst én blocker`}
+          tone={blockedInits.length ? _pfWarn : UI.ink}
+          active={sel?.key === 'kpi:blocked'} onClick={() => pick('kpi:blocked', 'Blokerede initiativer', blockedInits)} />
+        <UiPfKpi label="Uden outcomes" value={noOutcome.length} sub={noOutcome.length ? 'Værdien er ikke beskrevet' : 'Alle har outcomes'}
+          tone={noOutcome.length ? 'oklch(0.62 0.14 70)' : UI.ink}
+          active={sel?.key === 'kpi:noout'} onClick={() => pick('kpi:noout', 'Uden outcomes', noOutcome)} />
+      </div>
+
+      {/* ── Distribution charts ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 14, alignItems: 'start' }}>
+        <div style={_pfCard}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: UI.ink, flex: '1 1 auto' }}>Status fordelt på</div>
+            <div style={{ width: 280, maxWidth: '100%' }}>
+              <UiSegmented value={dim} onChange={(v) => setDim(v)} options={[
+                { value: 'bu', label: 'Forretningsenhed' }, { value: 'tech', label: 'Teknologi' }, { value: 'blocker', label: 'Blocker' },
+              ]} />
+            </div>
+          </div>
+          <UiPfStackedBars rows={barRows} statuses={statuses} selKey={sel?.key} onPick={pick} showBlocked={dim !== 'blocker'} />
+          {dim === 'blocker' && (
+            <div style={{ fontSize: 10.5, color: UI.inkFaint, marginTop: 8 }}>Et initiativ med flere blockere tælles med under hver af dem.</div>
+          )}
+        </div>
+
+        <div style={_pfCard}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: UI.ink, marginBottom: 12 }}>Forretningsenhed × outcome-søjle</div>
+          {pillars.length === 0 || heatBUs.length === 0 ? (
+            <div style={{ fontSize: 12, color: UI.inkFaint, fontStyle: 'italic' }}>Ingen data</div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ borderCollapse: 'separate', borderSpacing: 3, width: '100%', fontSize: 11 }}>
+                <thead>
+                  <tr>
+                    <th />
+                    {pillars.map((p) => (
+                      <th key={p} style={{ fontWeight: 600, color: `oklch(0.46 0.13 ${pillarHue[p] ?? 200})`, fontSize: 10.5, padding: '0 4px 4px', textAlign: 'center', lineHeight: 1.25 }}>{p}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {heatBUs.map((bu) => (
+                    <tr key={bu.id}>
+                      <td style={{ whiteSpace: 'nowrap', paddingRight: 6, color: UI.ink }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><UiBuDot bu={bu} size={7} />{bu.name}</span>
+                      </td>
+                      {pillars.map((p) => {
+                        const list = cellInits(bu.id, p);
+                        const n = list.length;
+                        const t = n / heatMax;
+                        const hue = pillarHue[p] ?? 200;
+                        const k = `heat:${bu.id}:${p}`;
+                        const active = sel?.key === k;
+                        return (
+                          <td key={p}
+                            onClick={() => n && pick(k, `${bu.name} · ${p}`, list)}
+                            title={`${bu.name} · ${p}: ${n} initiativ${n === 1 ? '' : 'er'}`}
+                            style={{
+                              height: 30, minWidth: 44, textAlign: 'center', borderRadius: 5,
+                              fontFamily: UI.mono, fontWeight: 600,
+                              cursor: n ? 'pointer' : 'default',
+                              background: n ? `oklch(${(0.95 - 0.4 * t).toFixed(3)} ${(0.03 + 0.11 * t).toFixed(3)} ${hue})` : UI.panelSoft,
+                              color: n ? (t > 0.5 ? '#fff' : `oklch(0.4 0.12 ${hue})`) : UI.inkFaint,
+                              outline: active ? `2px solid ${UI.ink}` : 'none', outlineOffset: -1,
+                            }}>{n || '·'}</td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ fontSize: 10.5, color: UI.inkFaint, marginTop: 6 }}>Antal initiativer med mindst ét outcome i søjlen. Klik på en celle for at se dem.</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Selected initiatives ── */}
+      {sel && (
+        <div ref={selRef} style={{ ..._pfCard, flex: '0 0 auto', padding: 0, overflow: 'hidden', borderColor: UI.borderStrong }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: UI.panelSoft, borderBottom: `1px solid ${UI.border}` }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: UI.ink }}>{sel.title}</div>
+            <span style={{ fontFamily: UI.mono, fontSize: 11, color: UI.inkMuted }}>{selInits.length}</span>
+            <div style={{ flex: 1 }} />
+            <UiButton size="sm" variant="bare" onClick={() => setSel(null)} title="Luk listen">✕ Luk</UiButton>
+          </div>
+          {selInits.length === 0 ? (
+            <div style={{ padding: '10px 14px', fontSize: 12, color: UI.inkFaint, fontStyle: 'italic' }}>Ingen initiativer</div>
+          ) : selInits.map((i) => {
+            const bu = buById[i.buId];
+            const blockerNames = (i.blockerIds || []).map((b) => (store.blockers || []).find((x) => x.id === b)?.name).filter(Boolean);
+            return (
+              <div key={i.id} onClick={() => onOpenInit && onOpenInit(i)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 14px', borderBottom: `1px solid ${UI.border}`, cursor: onOpenInit ? 'pointer' : 'default' }}
+                onMouseEnter={(e) => { if (onOpenInit) e.currentTarget.style.background = UI.panelSoft; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+                {bu && <UiBuDot bu={bu} size={7} />}
+                <div style={{ flex: '1 1 auto', minWidth: 0, fontSize: 12, fontWeight: 500, color: UI.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i.name}</div>
+                {i.owner && <span style={{ fontSize: 11, color: UI.inkFaint, whiteSpace: 'nowrap' }}>{i.owner}</span>}
+                {blockerNames.length > 0 && (
+                  <span title={blockerNames.join(', ')} style={{ fontSize: 10.5, color: _pfWarn, fontWeight: 600, whiteSpace: 'nowrap' }}>⚠ {blockerNames.length}</span>
+                )}
+                <UiStatusPill status={i.status} statuses={store.statuses} size="sm" />
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div style={{ ..._pfLabel, marginBottom: -8 }}>Outcome-søjler</div>
+
       {/* Pillar cards */}
       {pillars.length === 0 ? (
         <div style={{ color: UI.inkFaint, fontSize: 13 }}>Ingen outcomes defineret. Gå til Catalogue → Outcomes for at tilføje.</div>
       ) : (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${Math.min(pillars.length, 4)}, minmax(200px, 1fr))`,
+          // At most 4 columns, but wrap rather than overflow on narrow screens.
+          gridTemplateColumns: `repeat(auto-fit, minmax(max(200px, calc((100% - ${(Math.min(pillars.length, 4) - 1) * 14}px) / ${Math.min(pillars.length, 4)})), 1fr))`,
           gap: 14, alignItems: 'start',
         }}>
           {pillars.map((pillar) => {
