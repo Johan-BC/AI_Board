@@ -516,7 +516,12 @@
       "purpose": "Afprøve et setup for et agentisk designsystem med frontend-katalog/storybook og kobling til frontend.",
       "need": "Skabe bedre frontend og gøre piloten anvendelig i praksis.",
       "solution": "Pilot hvor de forsøger at koble designsetup op på GitHub og interne modeller; på længere sigt tænkes det implementeret i My YouSee og Mit Internet.\nAnthropic-modeller internt; Co-work/andet eksternt værktøj til prompts",
-      "testing": true
+      "testing": true,
+      "assessment": {
+        "value": {
+          "score": 1
+        }
+      }
     },
     {
       "id": "i_y3shs",
