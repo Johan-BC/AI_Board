@@ -272,6 +272,22 @@ function migrateLiveToProd(statuses, initiatives) {
   return { statuses: nextStatuses, initiatives: nextInits };
 }
 
+// Priority (`assessment.rank`) is a sparse number: a move in the Teknologi view gives
+// only the moved initiative a new rank between its neighbours (2.5 between 2 and 3), so
+// one drag = one changed initiative. The view shows positions 1, 2, 3 …, never the number.
+// Initiatives without a rank (older data, newly created) used to sort last in array
+// order; they get the next ranks after the highest one in that same order, so the shown
+// order is unchanged. Deterministic: every editor upgrades the same file the same way,
+// so merge3 sees no difference. A non-numeric rank counts as missing.
+function migrateRanks(initiatives) {
+  const ok = (r) => typeof r === 'number' && isFinite(r);
+  let max = 0;
+  initiatives.forEach((i) => { const r = i.assessment?.rank; if (ok(r) && r > max) max = r; });
+  max = Math.floor(max);
+  return initiatives.map((i) => ok(i.assessment?.rank) ? i
+    : { ...i, assessment: { ...(i.assessment || {}), rank: ++max } });
+}
+
 // Parse a JSON string (from data.json or GitHub API) into a store object.
 // Falls back to seed constants for any missing/empty array.
 function parseJSON(text) {
@@ -304,7 +320,7 @@ function parseJSON(text) {
 
   const rawStatuses = (p.statuses && p.statuses.length) ? p.statuses : JSON.parse(JSON.stringify(STATUSES));
   const mig = migrateLiveToProd(rawStatuses, migratedInits);
-  mig.initiatives = migrateDescriptions(mig.initiatives);
+  mig.initiatives = migrateRanks(migrateDescriptions(mig.initiatives));
 
   return {
     statuses:      mig.statuses,

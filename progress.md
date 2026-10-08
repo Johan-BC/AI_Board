@@ -185,13 +185,24 @@ assessment: {
   readiness: { ready: bool, comments: [] },         // 04 Data/tech/governance (ready = governance-klar)
   ttv:       { score: 1-5 | null, comments: [] },   // 05 Time-to-value + skalerbarhed
   // comment = { id, text, at: 'YYYY-MM-DD' }. A legacy single `note` string reads as one comment.
-  rank: number | null                       // global priority, 1 = highest
+  rank: number                              // global priority, lower = higher; sparse (1, 2, 2.5, 3 …)
 }
 ```
 
 `rank` is global across all initiatives, so an initiative keeps one position regardless of which
-technology view shows it. Reordering in a view swaps the global positions of the two neighbours.
-The first reorder writes `rank` to every initiative (1..N), so that save touches the whole list.
+technology view shows it. It is a **sparse number, not a position**: dragging (or ↑↓) gives only
+the moved initiative a new rank between its neighbours in the global order (`techRankUpdates` in
+`tech-view.jsx`, applied by `setRankOrder` in `board.jsx`), so one move = one changed initiative,
+a one-name commit message, and two editors moving different initiatives merge cleanly in `merge3`
+(rank merges per initiative; the same initiative moved by both → last saver wins; equal ranks
+sort stably by array order). If the numbers run out between two neighbours (~50 halvings) it
+falls back to renumbering 1..N once. The view always shows positions 1, 2, 3 ….
+`parseJSON` (`migrateRanks`) gives initiatives without a rank the next numbers after the
+highest one in array order — the same order they were already shown in — deterministically, so
+every editor upgrades the same file identically.
+
+Rejected ideas (`rejected: { at, reason }`, set in Idéer) are hidden in the Teknologi view —
+table, matrix, overview, comparison and CSV — unless "Vis afviste" is ticked.
 
 ### BAU / ongoing initiatives
 An initiative with **no end date** is "løbende / BAU" — it runs indefinitely rather than

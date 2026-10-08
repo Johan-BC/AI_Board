@@ -1,11 +1,87 @@
 // ── Technology view: initiatives using one or more selected technologies, with assessment criteria and manual priority ──
 
 // Global priority order: assessment.rank ascending, unranked last, stable on original order.
+// Ranks are sparse numbers (1, 2, 2.5, 3 …), not positions: the view shows 1, 2, 3 … by
+// position, and a move only changes the rank of the moved initiative (see techRankUpdates).
+const techRankOf = (i) => {
+  const r = i?.assessment?.rank;
+  return typeof r === 'number' && isFinite(r) ? r : Infinity;
+};
 function compareRank(a, b) {
-  const ra = a.assessment?.rank ?? Infinity;
-  const rb = b.assessment?.rank ?? Infinity;
+  const ra = techRankOf(a), rb = techRankOf(b);
   if (ra === rb) return 0;
   return ra < rb ? -1 : 1;
+}
+
+// A short number strictly between lo and hi (either may be null = open end):
+// between 2 and 3 → 2.5, between 2 and 6 → 4, after 7 → 8. null when there is no room.
+function techRankBetween(lo, hi) {
+  if (lo == null && hi == null) return 1;
+  if (hi == null) return Math.floor(lo) + 1;
+  if (lo == null) return Math.ceil(hi) - 1;
+  if (!(lo < hi)) return null;
+  const mid = (lo + hi) / 2;
+  for (let d = 0; d <= 12; d++) {
+    const m = Math.round(mid * 10 ** d) / 10 ** d;
+    if (m > lo && m < hi) return m;
+  }
+  return mid > lo && mid < hi ? mid : null;
+}
+
+// Given the wanted global order (ids, top first), returns { id: newRank } for as few
+// initiatives as possible: the ones whose current ranks already rise along the order
+// (longest increasing run, the moved one excluded) keep their rank; the rest get a rank
+// between their kept neighbours. A trailing run of still-unranked initiatives in their
+// existing order is left unranked. Falls back to renumbering 1..N if numbers run out.
+// So one drag changes one initiative → a short commit message and no clash with an
+// editor moving something else at the same time (merge3 merges rank per initiative).
+function techRankUpdates(ids, byId, movedId) {
+  const cur = ids.map((id) => techRankOf(byId[id]));
+  // Unranked tail that is already in its current (array) order needs no rank.
+  const pos = Object.fromEntries(Object.keys(byId).map((id, k) => [id, k]));
+  let end = ids.length;
+  while (end > 0 && cur[end - 1] === Infinity && ids[end - 1] !== movedId &&
+         (end === ids.length || pos[ids[end - 1]] < pos[ids[end]])) end--;
+
+  // Longest strictly increasing subsequence of finite ranks in ids[0..end), O(n log n).
+  const tails = [], tailIdx = [], prev = new Array(end).fill(-1);
+  for (let k = 0; k < end; k++) {
+    const r = cur[k];
+    if (r === Infinity || ids[k] === movedId) continue;
+    let lo = 0, hi = tails.length;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (tails[m] < r) lo = m + 1; else hi = m; }
+    tails[lo] = r; tailIdx[lo] = k;
+    prev[k] = lo > 0 ? tailIdx[lo - 1] : -1;
+  }
+  const keep = new Set();
+  for (let k = tailIdx[tails.length - 1] ?? -1; k >= 0; k = prev[k]) keep.add(k);
+
+  const out = {};
+  let ok = true;
+  let last = null;   // rank of the item just above
+  for (let k = 0; k < end && ok; k++) {
+    if (keep.has(k)) { last = cur[k]; continue; }
+    // A run of m items to place between `last` and the next kept rank `hi`.
+    let j = k; while (j < end && !keep.has(j)) j++;
+    const m = j - k, hi = j < end ? cur[j] : null;
+    const lo = last != null ? last : hi != null ? Math.ceil(hi) - m - 1 : null;
+    const step = hi != null && lo != null ? (hi - lo) / (m + 1) : null;
+    let prevR = last;
+    for (let n = 0; n < m; n++) {
+      // Aim each item at its even slot: a short number between the item above and the next slot.
+      const r = step == null ? techRankBetween(prevR, null)
+        : techRankBetween(prevR ?? lo, n === m - 1 ? hi : lo + step * (n + 2));
+      if (r == null || (hi != null && !(r < hi)) || (prevR != null && !(r > prevR))) { ok = false; break; }
+      if (r !== cur[k + n]) out[ids[k + n]] = r;
+      prevR = r;
+    }
+    last = prevR;
+    k = j - 1;
+  }
+  if (ok) return out;
+  const all = {};
+  ids.slice(0, end).forEach((id, k) => { if (cur[k] !== k + 1) all[id] = k + 1; });
+  return all;
 }
 
 // Score getters for the sortable columns. Each returns a number or null (unscored).
@@ -59,15 +135,20 @@ function techExportCSV(rows, store, techNames) {
   const header = ['Prio', 'Initiativ', 'Status', 'Ejer', 'BU', 'Teknologier', 'Værdi (1-5)', 'TTV (1-5)', 'Samlet',
     'Governance-klar', 'Værdi – kommentarer', 'Ejerskab – kommentarer', 'Strategi – kommentarer',
     'Gov. – kommentarer', 'TTV – kommentarer'];
+  // Rejected ideas only reach the export when "Vis afviste" is on; then they're marked.
+  const anyRejected = rows.some((r) => r.init.rejected);
+  if (anyRejected) header.push('Afvist');
   const lines = rows.map(({ init: i, prio }) => {
     const a = i.assessment || {};
     const combined = TECH_SCORE.combined(i);
+    const rej = i.rejected ? ['Ja', i.rejected.at, i.rejected.reason].filter(Boolean).join(' · ') : '';
     return [
       prio, i.name, statusLabel(i.status), i.owner || '', buName(i.buId),
       (i.techIds || []).map(techName).filter(Boolean).join(', '),
       a.value?.score ?? '', a.ttv?.score ?? '', combined == null ? '' : fmtScore(combined),
       a.readiness?.ready ? 'Ja' : 'Nej',
       notes(a.value), notes(a.ownership), notes(a.strategy), notes(a.readiness), notes(a.ttv),
+      ...(anyRejected ? [rej] : []),
     ];
   });
   const csv = '﻿' + [header, ...lines].map((r) => r.map(cell).join(';')).join('\r\n');
@@ -257,7 +338,7 @@ function UiValueTtvMatrix({ rows, statuses, selectedId, onSelect, onScore }) {
           const sel = id === selectedId, hov = id === hoverId;
           const isDragged = dragging && drag.id === id;
           return (
-            <g key={id} style={{ cursor: dragging ? 'grabbing' : 'grab', opacity: isDragged ? 0.3 : 1 }}
+            <g key={id} style={{ cursor: dragging ? 'grabbing' : 'grab', opacity: isDragged ? 0.3 : row.init.rejected ? 0.45 : 1 }}
               onMouseEnter={() => setHoverId(id)} onMouseLeave={() => setHoverId(null)}
               onPointerDown={startDrag(id)}>
               <title>{`${row.prio}. ${row.init.name} — Værdi ${TECH_SCORE.value(row.init)}, TTV ${TECH_SCORE.ttv(row.init)}. Klik for at finde rækken, træk for at ændre scoren.`}</title>
@@ -363,8 +444,9 @@ function UiTechSummary({ rows }) {
 // One row per technology: number of initiatives (bar), how many have both scores,
 // and the average Samlet (mean of Værdi and TTV) on a 1–5 track. Respects the status
 // filter but not the technology selection; clicking a row toggles that technology.
-function UiTechCompare({ store, statusIds, techIds, onToggle }) {
-  const inits = (store.initiatives || []).filter((i) => !statusIds.size || statusIds.has(i.status));
+function UiTechCompare({ store, statusIds, techIds, onToggle, showRejected }) {
+  const inits = (store.initiatives || []).filter((i) =>
+    (showRejected || !i.rejected) && (!statusIds.size || statusIds.has(i.status)));
   const rows = (store.technologies || []).map((t) => {
     const list = inits.filter((i) => (i.techIds || []).includes(t.id));
     const scores = list.map(TECH_SCORE.combined).filter((v) => v != null);
@@ -422,6 +504,7 @@ function UiTechCompare({ store, statusIds, techIds, onToggle }) {
         })}
         <div style={{ fontSize: 10.5, color: UI.inkFaint, marginTop: 8, lineHeight: 1.5 }}>
           {statusIds.size ? 'Med det valgte statusfilter. ' : 'Alle statusser. '}
+          {showRejected ? 'Afviste idéer tæller med. ' : 'Afviste idéer er ikke med. '}
           Et initiativ med flere teknologier tæller med under hver af dem. Klik på en række for at vælge eller fravælge teknologien.
         </div>
       </div>
@@ -438,6 +521,7 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
   const [sortDir, setSortDir] = React.useState('desc');
   const [selectedId, setSelectedId] = React.useState(null);
   const [rowDrag, setRowDrag] = React.useState(null);   // { id, overId, after } while dragging a row
+  const [showRejected, setShowRejected] = React.useState(false);
   const [compareOpen, setCompareOpen] = React.useState(() => {
     try { return localStorage.getItem('aiboard:tech-compare') === '1'; } catch { return false; }
   });
@@ -463,8 +547,11 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
   const toggleStatus = toggleIn(setStatusIds);
 
   // Initiatives using any of the selected technologies, then the status filter.
+  // Rejected ideas (`rejected: { at, reason }`, set in Idéer) are left out unless "Vis afviste" is on;
+  // they stay in the global order so moving a neighbour doesn't disturb their rank.
   const allOrdered = [...(store.initiatives || [])].sort(compareRank);
-  const inTech     = allOrdered.filter((i) => (i.techIds || []).some((t) => techIds.has(t)));
+  const rejectedInTech = allOrdered.filter((i) => i.rejected && (i.techIds || []).some((t) => techIds.has(t))).length;
+  const inTech     = allOrdered.filter((i) => (showRejected || !i.rejected) && (i.techIds || []).some((t) => techIds.has(t)));
   const shown      = statusIds.size ? inTech.filter((i) => statusIds.has(i.status)) : inTech;
   const multi      = techIds.size > 1;
   const canReorder = sortKey === 'rank';
@@ -475,19 +562,9 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
   const statusCount = (id) => inTech.filter((i) => i.status === id).length;
   const selectedVisible = selectedId && prioById[selectedId] ? selectedId : null;
 
-  // Swap with the neighbour in the shown list; the global order of everything else is kept.
-  const moveRank = (id, dir) => {
-    const pos = shown.findIndex((i) => i.id === id);
-    const neighbour = shown[pos + dir];
-    if (pos < 0 || !neighbour) return;
-    const ids = allOrdered.map((i) => i.id);
-    const a = ids.indexOf(id), b = ids.indexOf(neighbour.id);
-    [ids[a], ids[b]] = [ids[b], ids[a]];
-    onRankOrder(ids);
-  };
-
   // Drag-and-drop: put the dragged initiative just before/after the target in the global order.
-  // Everything else keeps its relative position, so hidden initiatives are not reshuffled.
+  // Everything else keeps its relative position (and its rank), so only the moved initiative
+  // changes — hidden initiatives are not reshuffled.
   const dropRow = (dragId, targetId, after) => {
     if (!dragId || dragId === targetId) return;
     const before = allOrdered.map((i) => i.id);
@@ -495,7 +572,15 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
     const k = ids.indexOf(targetId);
     if (k < 0) return;
     ids.splice(after ? k + 1 : k, 0, dragId);
-    if (ids.some((x, n) => x !== before[n])) onRankOrder(ids);
+    if (ids.some((x, n) => x !== before[n])) onRankOrder(ids, dragId);
+  };
+
+  // ↑↓: jump over the neighbour in the shown list (placed just above/below it).
+  const moveRank = (id, dir) => {
+    const pos = shown.findIndex((i) => i.id === id);
+    const neighbour = shown[pos + dir];
+    if (pos < 0 || !neighbour) return;
+    dropRow(id, neighbour.id, dir > 0);
   };
 
   // Both scores from one matrix drop; stop after the first call in view-only mode (it opens the connect prompt).
@@ -580,10 +665,10 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
         }}>{compareOpen ? '▾' : '▸'} Sammenlign teknologier</button>
       </div>
       {compareOpen && (
-        <UiTechCompare store={store} statusIds={statusIds} techIds={techIds} onToggle={toggleTech} />
+        <UiTechCompare store={store} statusIds={statusIds} techIds={techIds} onToggle={toggleTech} showRejected={showRejected} />
       )}
 
-      {inTech.length > 0 && (
+      {(inTech.length > 0 || rejectedInTech > 0) && (
         <>
           {sectionLabel('Status')}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -593,6 +678,15 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
               return chip(s.id, `${s.label} · ${n}`, on, () => toggleStatus(s.id), { color: s.color, disabled: n === 0 && !on });
             })}
             {statusIds.size > 0 && clearBtn(() => setStatusIds(new Set()))}
+            {rejectedInTech > 0 && (
+              <label title="Idéer der er afvist i Idéer-visningen. Skjult som standard." style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5, marginLeft: 8, fontSize: 11.5,
+                color: UI.inkMuted, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap',
+              }}>
+                <input type="checkbox" checked={showRejected} onChange={(e) => setShowRejected(e.target.checked)} style={{ margin: 0 }} />
+                Vis afviste · {rejectedInTech}
+              </label>
+            )}
           </div>
         </>
       )}
@@ -601,7 +695,9 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
         <div style={{ color: UI.inkFaint, fontSize: 13, padding: '40px 0', textAlign: 'center' }}>
           {techIds.size === 0
             ? 'Vælg en eller flere teknologier ovenfor.'
-            : multi ? 'Ingen initiativer bruger de valgte teknologier endnu.' : 'Ingen initiativer bruger denne teknologi endnu.'}
+            : rejectedInTech > 0
+              ? `Kun afviste idéer bruger ${multi ? 'de valgte teknologier' : 'denne teknologi'} — sæt flueben i "Vis afviste" for at se dem.`
+              : multi ? 'Ingen initiativer bruger de valgte teknologier endnu.' : 'Ingen initiativer bruger denne teknologi endnu.'}
         </div>
       ) : shown.length === 0 ? (
         <div style={{ color: UI.inkFaint, fontSize: 13, padding: '40px 0', textAlign: 'center' }}>
@@ -630,6 +726,7 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
             <div style={{ fontFamily: UI.mono, fontSize: 11, color: UI.inkFaint }}>
               {shown.length}{shown.length !== inTech.length ? ` af ${inTech.length}` : ''} initiativer
+              {!showRejected && rejectedInTech > 0 ? ` · ${rejectedInTech} afviste skjult` : ''}
             </div>
             <div style={{ fontSize: 11, color: UI.inkFaint, fontStyle: 'italic' }}>
               {canReorder
@@ -678,7 +775,7 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
                   const rowTd = dropLine ? { ...baseTd, boxShadow: dropLine } : baseTd;
                   const isDragged = rowDrag && rowDrag.id === i.id;
                   return (
-                    <tr key={i.id} data-init-id={i.id} style={{ opacity: isDragged ? 0.4 : 1 }}
+                    <tr key={i.id} data-init-id={i.id} style={{ opacity: isDragged ? 0.4 : i.rejected ? 0.6 : 1 }}
                       onClick={(e) => {
                         // Clicking empty row space toggles the highlight; controls keep their own behaviour.
                         if (e.target.closest('button, textarea, input, a')) return;
@@ -733,6 +830,12 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
                           {bu && <UiBuDot bu={bu} />}
                           {i.name}
                         </button>
+                        {i.rejected && (
+                          <div title={i.rejected.reason || undefined} style={{ fontSize: 10.5, color: UI.inkFaint, marginTop: 3 }}>
+                            <span style={{ fontFamily: UI.mono, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', fontSize: 9.5 }}>Afvist</span>
+                            {i.rejected.at ? ` ${i.rejected.at}` : ''}{i.rejected.reason ? ` — ${i.rejected.reason}` : ''}
+                          </div>
+                        )}
                         {/* With several technologies selected, show which of them this initiative uses. */}
                         {multi && (
                           <div style={{ fontFamily: UI.mono, fontSize: 9.5, color: UI.inkFaint, marginTop: 3 }}>
@@ -789,4 +892,4 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
   );
 }
 
-Object.assign(window, { UiTechInitiativesView });
+Object.assign(window, { UiTechInitiativesView, techRankUpdates });

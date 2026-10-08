@@ -1325,8 +1325,12 @@ function BoardView() {
     }),
   }));
 
-  const setRankOrder = (ids) => setStore((s) => {
-    const rankById = Object.fromEntries(ids.map((id, k) => [id, k + 1]));
+  // `ids` = wanted global priority order; only initiatives whose rank must change get a
+  // new (sparse) rank — normally just `movedId`. See techRankUpdates in tech-view.jsx.
+  const setRankOrder = (ids, movedId) => setStore((s) => {
+    const byId = Object.fromEntries(s.initiatives.map((i) => [i.id, i]));
+    const rankById = techRankUpdates(ids.filter((id) => byId[id]), byId, movedId);
+    if (!Object.keys(rankById).length) return s;
     return {
       ...s,
       initiatives: s.initiatives.map((i) => rankById[i.id] === undefined ? i : {
