@@ -1652,7 +1652,8 @@ function BoardView() {
 
       {/* ── Ideas / Boblere view ──────────────────────────────────────────── */}
       {view === 'ideas' && (
-        <UiIdeasView store={store} onOpenInit={(i) => setDrawer({ ...i })} onUpdateAssess={updateAssess} onUpdateInit={updateInit} />
+        <UiIdeasView store={store} onOpenInit={(i) => setDrawer({ ...i })} onUpdateAssess={updateAssess} onUpdateInit={updateInit}
+          onCreateInit={(init) => setStore((s) => ({ ...s, initiatives: [...s.initiatives, init] }))} />
       )}
 
       {/* ── Technology view ───────────────────────────────────────────────── */}

@@ -285,6 +285,13 @@ function parseJSON(text) {
       delete next.platformId;
     }
     if (!next.departmentIds) next.departmentIds = [];
+    // Rejected ideas (Idéer → "Afvis"): optional `rejected: { at: 'YYYY-MM-DD', reason }`.
+    // A hand-written `true` or reason string is upgraded; a falsy value is dropped.
+    if ('rejected' in next) {
+      const r = next.rejected;
+      if (!r) delete next.rejected;
+      else if (typeof r !== 'object') next.rejected = { at: '', reason: typeof r === 'string' ? r : '' };
+    }
     return next;
   });
 

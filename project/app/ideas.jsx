@@ -71,7 +71,8 @@ function UiIdeaScoreDots({ score, onChange, hue = 250 }) {
 // Idé → POC → Pilot → Prod, counted over the whole store.
 function UiIdeaPipeline({ store, candidateCount }) {
   const statuses = (store.statuses && store.statuses.length) ? store.statuses : STATUSES;
-  const all = store.initiatives || [];
+  // Rejected ideas aren't part of the funnel.
+  const all = (store.initiatives || []).filter((i) => !(i.status === 'idea' && i.rejected));
   const max = Math.max(1, ...statuses.map((s) => all.filter((i) => i.status === s.id).length));
   return (
     <div style={{ display: 'flex', alignItems: 'stretch', gap: 6, flexWrap: 'wrap' }}>
@@ -106,9 +107,66 @@ function UiIdeaPipeline({ store, candidateCount }) {
   );
 }
 
-function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit }) {
+// Inline "+ Ny idé" form: name, business unit and an optional purpose. The rest
+// is filled in from the drawer later. The chosen BU is remembered per browser.
+function UiIdeaQuickCreate({ store, onCreate }) {
+  const bus = store.businessUnits || [];
+  const [open, setOpen]       = React.useState(false);
+  const [name, setName]       = React.useState('');
+  const [purpose, setPurpose] = React.useState('');
+  const [buId, setBuIdRaw]    = React.useState(() => ideaPref('aiboard:ideas-new-bu', bus[0]?.id || '', bus.map((b) => b.id)));
+  const setBuId = (v) => { setBuIdRaw(v); ideaSavePref('aiboard:ideas-new-bu', v); };
+  const nameRef = React.useRef(null);
+  React.useEffect(() => { if (open && nameRef.current) nameRef.current.focus(); }, [open]);
+
+  const close = () => { setOpen(false); setName(''); setPurpose(''); };
+  const submit = (e) => {
+    e && e.preventDefault();
+    if (!name.trim()) { nameRef.current && nameRef.current.focus(); return; }
+    if (onCreate({ name: name.trim(), purpose: purpose.trim(), buId: buId || bus[0]?.id || '' })) {
+      // Stay open for the next idea
+      setName(''); setPurpose('');
+      nameRef.current && nameRef.current.focus();
+    }
+  };
+
+  if (!open) {
+    return (
+      <UiButton variant="primary" size="sm" onClick={() => setOpen(true)} title="Opret en idé direkte her"
+        icon={<span style={{ fontSize: 13, lineHeight: 0 }}>+</span>}>Ny idé</UiButton>
+    );
+  }
+  const field = { ...uiInputStyle, fontSize: 12.5, padding: '6px 9px' };
+  return (
+    <form onSubmit={submit} onKeyDown={(e) => { if (e.key === 'Escape') close(); }}
+      style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '10px 12px', borderRadius: 10, background: UI.panel, border: `1px solid ${UI.borderStrong}`, boxShadow: UI.shadow, width: '100%' }}>
+      <span style={{ fontSize: 10, fontWeight: 700, color: UI.inkFaint, letterSpacing: 0.8, textTransform: 'uppercase', fontFamily: UI.mono }}>Ny idé</span>
+      <input ref={nameRef} value={name} onChange={(e) => setName(e.target.value)} placeholder="Navn på idéen"
+        aria-label="Navn på idéen" style={{ ...field, flex: '2 1 160px', width: 'auto' }} />
+      <select value={buId} onChange={(e) => setBuId(e.target.value)} aria-label="Forretningsenhed"
+        style={{ ...field, flex: '0 1 170px', width: 'auto' }}>
+        {bus.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+      </select>
+      <input value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="Formål (valgfrit)"
+        aria-label="Formål" style={{ ...field, flex: '3 1 160px', width: 'auto' }} />
+      <button type="submit" disabled={!name.trim()} style={{
+        fontFamily: UI.sans, fontSize: 12, fontWeight: 600, color: '#fff', background: name.trim() ? UI.ink : UI.borderStrong,
+        border: 'none', borderRadius: 6, padding: '7px 12px', cursor: name.trim() ? 'pointer' : 'default',
+      }}>Opret</button>
+      {/* Plain button: UiButton has no type and would submit the form */}
+      <button type="button" onClick={close} title="Luk (Esc)" aria-label="Luk" style={{
+        fontFamily: UI.sans, fontSize: 13, fontWeight: 500, color: UI.inkMuted, background: 'transparent',
+        border: 'none', borderRadius: 6, padding: '6px 6px', cursor: 'pointer',
+      }}>✕</button>
+    </form>
+  );
+}
+
+function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit, onCreateInit }) {
   const [selectedTechIds, setSelectedTechIds]       = React.useState([]);
   const [selectedOutcomeIds, setSelectedOutcomeIds] = React.useState([]);
+  const [query, setQuery]               = React.useState('');
+  const [showRejected, setShowRejected] = React.useState(false);
   const [sortBy, setSortByRaw]   = React.useState(() => ideaPref('aiboard:ideas-sort', 'score', Object.keys(IDEA_SORTS)));
   const [groupBy, setGroupByRaw] = React.useState(() => ideaPref('aiboard:ideas-group', 'tier', ['tier', 'bu', 'none']));
   const setSortBy  = (v) => { setSortByRaw(v);  ideaSavePref('aiboard:ideas-sort', v); };
@@ -120,10 +178,21 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit }) {
 
   if (!store) return null;
 
-  const ideas      = (store.initiatives   || []).filter(i => i.status === 'idea');
+  // Rejected ideas keep status 'idea' but carry `rejected: { at, reason }`.
+  // They are left out of trends, pipeline and cards, and listed at the bottom.
+  const allIdeas   = (store.initiatives   || []).filter(i => i.status === 'idea');
+  const ideas      = allIdeas.filter(i => !i.rejected);
+  const rejected   = allIdeas.filter(i => i.rejected);
   const techById   = _byId(store.technologies  || []);
   const outcomeById = _byId(store.outcomes     || []);
   const buById     = _byId(store.businessUnits || []);
+
+  // Free-text search over the card's text, owner, BU and technology names.
+  const q = query.trim().toLocaleLowerCase('da');
+  const matchesQuery = (i) => !q || [
+    i.name, i.purpose, i.need, i.solution, i.owner, buById[i.buId]?.name,
+    ...(i.techIds || []).map(t => techById[t]?.name),
+  ].some(s => s && String(s).toLocaleLowerCase('da').includes(q));
 
   // The status an idea is promoted to: the one after 'idea' in the store's order.
   const statusList = (store.statuses && store.statuses.length) ? store.statuses : STATUSES;
@@ -133,8 +202,39 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit }) {
     if (!onUpdateInit) return;
     if (!window.confirm(`Løft "${i.name}" til ${nextStatus.label}?\n\nDen forsvinder fra Idéer og kommer på Gantt-boardet.`)) return;
     const patch = { status: nextStatus.id };
-    if (!i.start) patch.start = dateToISO(new Date());   // the Gantt needs a start date
+    const start = i.start || dateToISO(new Date());
+    if (!i.start) patch.start = start;                   // the Gantt needs a start date
+    // An end date before the start would draw a negative bar; give it the same
+    // 120-day default as a new initiative. No end date (BAU) is left alone.
+    if (i.end && i.end < start) patch.end = dateToISO(addDays(parseISO(start), 120));
     onUpdateInit(i.id, patch);
+  };
+
+  const reject = (i) => {
+    if (!onUpdateInit) return;
+    const reason = window.prompt(`Afvis "${i.name}"?\n\nSkriv evt. en begrundelse. Idéen kan genåbnes senere.`, '');
+    if (reason === null) return;
+    onUpdateInit(i.id, { rejected: { at: dateToISO(new Date()), reason: reason.trim() } });
+  };
+  const reopen = (i) => onUpdateInit && onUpdateInit(i.id, { rejected: undefined });
+
+  // ── Quick create ─────────────────────────────────────────────────────────────
+  const create = (draft) => {
+    if (!onCreateInit) return false;
+    const today = new Date();
+    const ok = onCreateInit({
+      id: 'i_' + Math.random().toString(36).slice(2, 7),
+      buId: draft.buId, platformIds: [], departmentIds: [],
+      name: draft.name, status: 'idea', owner: draft.owner || '',
+      techIds: [], blockerIds: [], outcomeIds: [], tags: [],
+      purpose: draft.purpose || '', need: '', solution: '',
+      start: dateToISO(today), end: dateToISO(addDays(today, 120)),   // same defaults as "+ Ny"
+      milestones: [],
+    });
+    if (ok === false) return false;   // view-only: the board asks the user to connect
+    // Make sure the new idea is visible
+    clearFilters(); setQuery('');
+    return true;
   };
 
   // ── Trend counts ─────────────────────────────────────────────────────────────
@@ -160,9 +260,10 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit }) {
   const visibleIdeas = ideas.filter(i => {
     const techOk    = selectedTechIds.length    === 0 || (i.techIds    || []).some(t => selectedTechIds.includes(t));
     const outcomeOk = selectedOutcomeIds.length === 0 || (i.outcomeIds || []).some(o => selectedOutcomeIds.includes(o));
-    return techOk && outcomeOk;
+    return techOk && outcomeOk && matchesQuery(i);
   });
   const hasFilter = selectedTechIds.length > 0 || selectedOutcomeIds.length > 0;
+  const isNarrowed = hasFilter || !!q;
   const candidateCount = ideas.filter((i) => ideaTier(i) === 'candidate').length;
 
   // ── Sort + group ─────────────────────────────────────────────────────────────
@@ -178,12 +279,13 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit }) {
       : [{ key: 'all', label: null, items: sorted }];
 
   // ── Empty state ───────────────────────────────────────────────────────────────
-  if (ideas.length === 0) {
+  if (allIdeas.length === 0) {
     return (
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: UI.inkFaint, fontFamily: UI.sans }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: UI.inkFaint, fontFamily: UI.sans, padding: 24 }}>
         <div style={{ fontSize: 40 }}>💡</div>
         <div style={{ fontSize: 16, fontWeight: 700, color: UI.ink }}>Ingen idéer endnu</div>
-        <div style={{ fontSize: 13 }}>Opret et initiativ med status "Idea" for at se det her</div>
+        <div style={{ fontSize: 13 }}>Opret den første her, eller et initiativ med status "Idea"</div>
+        {onCreateInit && <div style={{ marginTop: 6, width: 'min(720px, 100%)', display: 'flex', justifyContent: 'center' }}><UiIdeaQuickCreate store={store} onCreate={create} /></div>}
       </div>
     );
   }
@@ -303,9 +405,9 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit }) {
         </div>
 
         {/* Footer */}
-        {(i.owner || (i.blockerIds || []).length > 0 || (isCandidate && onUpdateInit)) && (
+        {(i.owner || (i.blockerIds || []).length > 0 || onUpdateInit) && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingTop: 6, borderTop: `1px solid ${UI.border}` }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: '1 1 auto' }}>
               {i.owner && <span style={{ fontSize: 11, color: UI.inkFaint, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i.owner}</span>}
               {(i.blockerIds || []).length > 0 && (
                 <span style={{ fontSize: 10, color: '#b45309', fontWeight: 600 }}>
@@ -313,6 +415,13 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit }) {
                 </span>
               )}
             </div>
+            {onUpdateInit && (
+              <button type="button" onClick={(e) => { e.stopPropagation(); reject(i); }}
+                title="Afvis idéen — den flyttes til Afviste idéer og kan genåbnes"
+                style={{ flex: '0 0 auto', fontFamily: UI.sans, fontSize: 11, fontWeight: 500, color: UI.inkMuted, background: 'transparent', border: `1px solid ${UI.border}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer' }}>
+                Afvis
+              </button>
+            )}
             {isCandidate && onUpdateInit && (
               <button type="button" onClick={(e) => { e.stopPropagation(); promote(i); }}
                 title={`Skift status til ${nextStatus.label}`}
@@ -425,7 +534,7 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit }) {
           })}
         </>)}
 
-        {hasFilter && (
+        {isNarrowed && (
           <div style={{ marginTop: 14, fontSize: 11, color: UI.inkFaint, fontStyle: 'italic' }}>
             Viser {visibleIdeas.length} af {ideas.length}
           </div>
@@ -436,6 +545,19 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit }) {
       <div style={{ flex: 1, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
 
         <UiIdeaPipeline store={store} candidateCount={candidateCount} />
+
+        {/* Search + quick create */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: 420 }}>
+            <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: UI.inkFaint, pointerEvents: 'none' }}>⌕</span>
+            <input type="search" value={query} onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Escape') setQuery(''); }}
+              placeholder="Søg i navn, formål, ejer, teknologi…" aria-label="Søg i idéer"
+              style={{ ...uiInputStyle, fontSize: 12.5, padding: '6px 9px 6px 26px' }} />
+          </div>
+          {q && <span style={{ fontSize: 11.5, color: UI.inkMuted }}>{visibleIdeas.length} af {ideas.length} idéer</span>}
+          {onCreateInit && <UiIdeaQuickCreate store={store} onCreate={create} />}
+        </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -456,7 +578,9 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit }) {
         </div>
 
         {visibleIdeas.length === 0 && (
-          <div style={{ fontSize: 13, color: UI.inkFaint, fontStyle: 'italic' }}>Ingen idéer matcher filtrene.</div>
+          <div style={{ fontSize: 13, color: UI.inkFaint, fontStyle: 'italic' }}>
+            {ideas.length === 0 ? 'Alle idéer er afvist.' : q ? `Ingen idéer matcher "${query.trim()}".` : 'Ingen idéer matcher filtrene.'}
+          </div>
         )}
 
         {groups.filter((g) => g.items.length > 0).map((g) => (
@@ -476,6 +600,47 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit }) {
             </div>
           </div>
         ))}
+
+        {/* ── Rejected ideas: folded away, can be reopened ── */}
+        {rejected.length > 0 && (
+          <div style={{ borderTop: `1px solid ${UI.border}`, paddingTop: 14 }}>
+            <button type="button" onClick={() => setShowRejected((v) => !v)} aria-expanded={showRejected}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: UI.sans }}>
+              <span style={{ fontSize: 10, color: UI.inkFaint, display: 'inline-block', transform: showRejected ? 'rotate(90deg)' : 'none', transition: 'transform .12s' }}>▶</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: UI.inkMuted }}>Afviste idéer</span>
+              <span style={{ fontSize: 11, fontFamily: UI.mono, color: UI.inkFaint }}>{rejected.length}</span>
+            </button>
+            {showRejected && (
+              <div style={{ marginTop: 10, background: UI.panel, border: `1px solid ${UI.border}`, borderRadius: 10, overflow: 'hidden' }}>
+                {[...rejected].sort(IDEA_SORTS.name.cmp).map((i) => {
+                  const bu = buById[i.buId];
+                  const r = i.rejected || {};
+                  const at = /^\d{4}-\d{2}-\d{2}$/.test(r.at || '') ? r.at.split('-').reverse().join('.') : '';
+                  return (
+                    <div key={i.id} onClick={() => onOpenInit && onOpenInit(i)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderBottom: `1px solid ${UI.border}`, cursor: onOpenInit ? 'pointer' : 'default' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = UI.panelSoft; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+                      {bu && <span style={{ fontSize: 9, fontWeight: 700, fontFamily: UI.mono, color: bu.accent, letterSpacing: 0.6, textTransform: 'uppercase', width: 28 }}>{bu.short}</span>}
+                      <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: UI.inkMuted, textDecoration: 'line-through', textDecorationColor: UI.borderStrong }}>{i.name}</div>
+                        <div style={{ fontSize: 11, color: UI.inkFaint, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {at ? `Afvist ${at}` : 'Afvist'}{r.reason ? ` · ${r.reason}` : ''}
+                        </div>
+                      </div>
+                      {onUpdateInit && (
+                        <button type="button" onClick={(e) => { e.stopPropagation(); reopen(i); }} title="Flyt idéen tilbage blandt de aktive idéer"
+                          style={{ flex: '0 0 auto', fontFamily: UI.sans, fontSize: 11, fontWeight: 500, color: UI.ink, background: UI.panel, border: `1px solid ${UI.borderStrong}`, borderRadius: 6, padding: '4px 9px', cursor: 'pointer' }}>
+                          Genåbn
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
