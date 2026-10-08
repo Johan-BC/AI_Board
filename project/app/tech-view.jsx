@@ -112,12 +112,73 @@ const TECH_QUADRANTS = [
   { id: 'easy',  label: 'Lette tilvalg',          x: 'right', y: 'bottom' },
 ];
 
-function UiValueTtvMatrix({ rows, statuses, selectedId, onSelect }) {
+// Dragging a dot (or an unscored chip from the tray below) onto a cell sets both scores
+// through onScore(id, value, ttv). A press without movement is a plain click (select).
+function UiValueTtvMatrix({ rows, statuses, selectedId, onSelect, onScore }) {
   const [hoverId, setHoverId] = React.useState(null);
+  const [drag, setDrag] = React.useState(null); // { id, sx, sy, x, y, moved }
+  const svgRef = React.useRef(null);
   const CELL = 52, ML = 30, MT = 8, MB = 30;
   const W = ML + CELL * 5 + 8, H = MT + CELL * 5 + MB;
   const cx = (t) => ML + (t - 1) * CELL + CELL / 2;   // TTV → x
   const cy = (v) => MT + (5 - v) * CELL + CELL / 2;   // Værdi → y (5 at the top)
+
+  // Pointer position (client coords) → { v, t } of the cell under it, or null outside the grid.
+  const cellAt = (x, y) => {
+    const box = svgRef.current?.getBoundingClientRect();
+    if (!box) return null;
+    const k = box.width / W;
+    const t = Math.floor(((x - box.left) / k - ML) / CELL) + 1;
+    const v = 5 - Math.floor(((y - box.top) / k - MT) / CELL);
+    return t >= 1 && t <= 5 && v >= 1 && v <= 5 ? { v, t } : null;
+  };
+
+  // dragRef mirrors `drag` so the window handlers read the latest value without side effects in updaters.
+  const dragRef = React.useRef(null);
+  const putDrag = (d) => { dragRef.current = d; setDrag(d); };
+
+  const startDrag = (id) => (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    putDrag({ id, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, moved: false });
+  };
+
+  // While dragging, follow the pointer on the window so it works outside the SVG too.
+  React.useEffect(() => {
+    if (!drag) return;
+    const move = (e) => {
+      const d = dragRef.current;
+      if (!d) return;
+      putDrag({ ...d, x: e.clientX, y: e.clientY, moved: d.moved || Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy) > 4 });
+    };
+    const up = (e) => {
+      const d = dragRef.current;
+      putDrag(null);
+      if (!d) return;
+      if (!d.moved) { onSelect(d.id === selectedId ? null : d.id); return; }
+      const cell = cellAt(e.clientX, e.clientY);
+      const init = rows.find((r) => r.init.id === d.id)?.init;
+      if (cell && init && (TECH_SCORE.value(init) !== cell.v || TECH_SCORE.ttv(init) !== cell.t)) {
+        onScore(d.id, cell.v, cell.t);
+      }
+    };
+    const key = (e) => { if (e.key === 'Escape') putDrag(null); };
+    window.addEventListener('pointermove', move);
+    const cancel = () => putDrag(null);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', cancel);
+    window.addEventListener('keydown', key);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', cancel);
+      window.removeEventListener('keydown', key);
+    };
+  }, [!!drag, selectedId, rows, onScore]);
+
+  const dragging = drag && drag.moved;
+  const dropCell = dragging ? cellAt(drag.x, drag.y) : null;
+  const dragInit = dragging ? rows.find((r) => r.init.id === drag.id) : null;
 
   // Group scored rows per cell.
   const cells = {};
@@ -149,11 +210,12 @@ function UiValueTtvMatrix({ rows, statuses, selectedId, onSelect }) {
 
   const mid = ML + CELL * 3, midY = MT + CELL * 2;   // quadrant borders between score 3 and 4
   const hover = rows.find((r) => r.init.id === (hoverId || selectedId));
-  const unscored = rows.length - dots.length;
+  const unscoredRows = rows.filter((r) => TECH_SCORE.value(r.init) == null || TECH_SCORE.ttv(r.init) == null);
+  const unscored = unscoredRows.length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block', fontFamily: UI.mono }}
+      <svg ref={svgRef} width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block', fontFamily: UI.mono, maxWidth: '100%', height: 'auto', touchAction: 'none' }}
         onClick={(e) => { if (e.target === e.currentTarget) onSelect(null); }}>
         {/* Quick-win quadrant tint */}
         <rect x={ML + CELL * 3} y={MT} width={CELL * 2} height={CELL * 2} fill="oklch(0.95 0.04 155)" />
@@ -184,15 +246,21 @@ function UiValueTtvMatrix({ rows, statuses, selectedId, onSelect }) {
         <text transform={`translate(9 ${MT + CELL * 2.5}) rotate(-90)`} textAnchor="middle" fontSize={9} fontWeight={700} fill={UI.inkMuted} letterSpacing={0.5}>
           01 VÆRDI → HØJERE
         </text>
+        {/* Target cell while dragging */}
+        {dropCell && (
+          <rect x={ML + (dropCell.t - 1) * CELL + 1} y={MT + (5 - dropCell.v) * CELL + 1} width={CELL - 2} height={CELL - 2}
+            fill="none" stroke={UI.accent} strokeWidth={2} rx={3} style={{ pointerEvents: 'none' }} />
+        )}
         {dots.map(({ row, x, y, r }) => {
           const id = row.init.id;
           const color = resolveStatus(row.init.status, statuses).color;
           const sel = id === selectedId, hov = id === hoverId;
+          const isDragged = dragging && drag.id === id;
           return (
-            <g key={id} style={{ cursor: 'pointer' }}
+            <g key={id} style={{ cursor: dragging ? 'grabbing' : 'grab', opacity: isDragged ? 0.3 : 1 }}
               onMouseEnter={() => setHoverId(id)} onMouseLeave={() => setHoverId(null)}
-              onClick={() => onSelect(sel ? null : id)}>
-              <title>{`${row.prio}. ${row.init.name} — Værdi ${TECH_SCORE.value(row.init)}, TTV ${TECH_SCORE.ttv(row.init)}`}</title>
+              onPointerDown={startDrag(id)}>
+              <title>{`${row.prio}. ${row.init.name} — Værdi ${TECH_SCORE.value(row.init)}, TTV ${TECH_SCORE.ttv(row.init)}. Klik for at finde rækken, træk for at ændre scoren.`}</title>
               <circle cx={x} cy={y} r={r + (sel || hov ? 1.5 : 0)} fill={color}
                 stroke={sel ? UI.ink : '#fff'} strokeWidth={sel ? 2 : 1.2} />
               {r >= 6.5 && (
@@ -204,13 +272,60 @@ function UiValueTtvMatrix({ rows, statuses, selectedId, onSelect }) {
           );
         })}
       </svg>
-      <div style={{ fontSize: 11, color: hover ? UI.ink : UI.inkFaint, minHeight: 16, maxWidth: W, lineHeight: 1.4 }}>
-        {hover
-          ? <><span style={{ fontFamily: UI.mono, fontWeight: 700 }}>{hover.prio}.</span> {hover.init.name}</>
-          : unscored > 0
-            ? `${unscored} af ${rows.length} mangler score for værdi og/eller TTV.`
-            : 'Klik på et initiativ for at finde det i tabellen.'}
+      <div style={{ fontSize: 11, color: hover || dropCell ? UI.ink : UI.inkFaint, minHeight: 16, maxWidth: W, lineHeight: 1.4 }}>
+        {dragInit
+          ? (dropCell
+              ? <><b>{dragInit.init.name}</b> → Værdi {dropCell.v}, TTV {dropCell.t}</>
+              : <>Slip i et felt for at sætte værdi og TTV — Esc fortryder.</>)
+          : hover
+            ? <><span style={{ fontFamily: UI.mono, fontWeight: 700 }}>{hover.prio}.</span> {hover.init.name}</>
+            : 'Klik på en prik for at finde rækken — træk den for at ændre scoren.'}
       </div>
+
+      {/* Tray: initiatives missing value and/or TTV, draggable into the grid */}
+      {unscored > 0 && (
+        <div style={{ maxWidth: W }}>
+          <div style={{ fontFamily: UI.mono, fontSize: 9.5, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: UI.inkFaint, margin: '2px 0 5px' }}>
+            Mangler score · {unscored} af {rows.length}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {unscoredRows.map((row) => {
+              const i = row.init;
+              const color = resolveStatus(i.status, statuses).color;
+              const v = TECH_SCORE.value(i), t = TECH_SCORE.ttv(i);
+              const isDragged = dragging && drag.id === i.id;
+              return (
+                <div key={i.id} onPointerDown={startDrag(i.id)}
+                  title={`${i.name} — Værdi ${v ?? '–'}, TTV ${t ?? '–'}. Træk ind i matrixen for at sætte begge scorer.`}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5, maxWidth: '100%',
+                    padding: '2px 8px 2px 4px', borderRadius: 99, fontSize: 10.5, color: UI.ink,
+                    border: `1px solid ${i.id === selectedId ? UI.ink : UI.border}`, background: UI.panel,
+                    cursor: dragging ? 'grabbing' : 'grab', userSelect: 'none', touchAction: 'none',
+                    opacity: isDragged ? 0.35 : 1,
+                  }}>
+                  <span style={{
+                    width: 15, height: 15, borderRadius: 99, background: color, color: '#fff', flexShrink: 0,
+                    fontFamily: UI.mono, fontSize: 8.5, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  }}>{row.prio}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>{i.name}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Ghost following the pointer */}
+      {dragInit && (
+        <div style={{
+          position: 'fixed', left: drag.x + 10, top: drag.y + 10, zIndex: 1000, pointerEvents: 'none',
+          padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: UI.sans,
+          background: UI.ink, color: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.18)', whiteSpace: 'nowrap',
+        }}>
+          {dragInit.prio}. {dragInit.init.name}{dropCell ? ` · V${dropCell.v} T${dropCell.t}` : ''}
+        </div>
+      )}
     </div>
   );
 }
@@ -244,6 +359,76 @@ function UiTechSummary({ rows }) {
   );
 }
 
+// ── Technology comparison ─────────────────────────────────────────────────────
+// One row per technology: number of initiatives (bar), how many have both scores,
+// and the average Samlet (mean of Værdi and TTV) on a 1–5 track. Respects the status
+// filter but not the technology selection; clicking a row toggles that technology.
+function UiTechCompare({ store, statusIds, techIds, onToggle }) {
+  const inits = (store.initiatives || []).filter((i) => !statusIds.size || statusIds.has(i.status));
+  const rows = (store.technologies || []).map((t) => {
+    const list = inits.filter((i) => (i.techIds || []).includes(t.id));
+    const scores = list.map(TECH_SCORE.combined).filter((v) => v != null);
+    return {
+      tech: t, n: list.length, scored: scores.length,
+      avg: scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null,
+      quick: list.filter((i) => techQuadrant(i) === 'quick').length,
+    };
+  }).sort((a, b) => b.n - a.n || (b.avg ?? 0) - (a.avg ?? 0) || String(a.tech.name).localeCompare(String(b.tech.name), 'da'));
+  const maxN = Math.max(1, ...rows.map((r) => r.n));
+  const head = { fontFamily: UI.mono, fontSize: 9.5, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: UI.inkFaint };
+  const grid = { display: 'grid', gridTemplateColumns: 'minmax(110px, 180px) minmax(80px, 1fr) minmax(110px, 1fr) 54px', gap: 10, alignItems: 'center' };
+
+  return (
+    <div style={{ marginBottom: 16, padding: '12px 14px', border: `1px solid ${UI.border}`, borderRadius: 8, background: UI.panel, overflowX: 'auto' }}>
+      <div style={{ minWidth: 420 }}>
+        <div style={{ ...grid, marginBottom: 6 }}>
+          <div style={head}>Teknologi</div>
+          <div style={head}>Initiativer</div>
+          <div style={head} title="Gennemsnit af Værdi og TTV for initiativer med begge scorer">Ø Samlet (1–5)</div>
+          <div style={{ ...head, textAlign: 'right' }} title="Værdi og TTV ≥ 4">Hurtige</div>
+        </div>
+        {rows.map(({ tech, n, scored, avg, quick }) => {
+          const on = techIds.has(tech.id);
+          return (
+            <div key={tech.id} role="button" tabIndex={0} aria-pressed={on}
+              onClick={() => onToggle(tech.id)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(tech.id); } }}
+              title={on ? 'Klik for at fravælge' : 'Klik for at vælge teknologien'}
+              style={{ ...grid, padding: '4px 6px', margin: '0 -6px', borderRadius: 5, cursor: 'pointer', background: on ? UI.panelSoft : 'transparent' }}>
+              <div style={{ fontSize: 12, fontWeight: on ? 700 : 500, color: n ? UI.ink : UI.inkFaint, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {on ? '✓ ' : ''}{tech.name}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ flex: 1, height: 8, background: 'oklch(0.94 0.005 80)', borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{ width: `${(n / maxN) * 100}%`, height: '100%', background: on ? UI.ink : UI.inkMuted, opacity: on ? 0.85 : 0.45 }} />
+                </div>
+                <span style={{ fontFamily: UI.mono, fontSize: 11, fontWeight: 700, color: UI.ink, minWidth: 18, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{n}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} title={n ? `${scored} af ${n} har både værdi og TTV` : undefined}>
+                <div style={{ flex: 1, height: 8, background: 'oklch(0.94 0.005 80)', borderRadius: 2, position: 'relative', overflow: 'hidden' }}>
+                  {avg != null && (
+                    <div style={{
+                      width: `${((avg - 1) / 4) * 100}%`, minWidth: 3, height: '100%',
+                      background: avg >= 4 ? 'oklch(0.62 0.13 155)' : UI.accent, opacity: 0.8,
+                    }} />
+                  )}
+                </div>
+                <span style={{ fontFamily: UI.mono, fontSize: 11, fontWeight: 700, color: avg == null ? UI.inkFaint : UI.ink, minWidth: 22, textAlign: 'right' }}>{fmtScore(avg)}</span>
+                <span style={{ fontFamily: UI.mono, fontSize: 9.5, color: UI.inkFaint, minWidth: 26 }}>{n ? `${scored}/${n}` : ''}</span>
+              </div>
+              <div style={{ fontFamily: UI.mono, fontSize: 11, fontWeight: 700, textAlign: 'right', color: quick ? 'oklch(0.42 0.13 155)' : UI.inkFaint }}>{quick || '–'}</div>
+            </div>
+          );
+        })}
+        <div style={{ fontSize: 10.5, color: UI.inkFaint, marginTop: 8, lineHeight: 1.5 }}>
+          {statusIds.size ? 'Med det valgte statusfilter. ' : 'Alle statusser. '}
+          Et initiativ med flere teknologier tæller med under hver af dem. Klik på en række for at vælge eller fravælge teknologien.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess }) {
   const techs = store?.technologies || [];
   const defaultTech = techs.find((t) => t.name?.trim() === 'Claude') || techs[0];
@@ -252,6 +437,10 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
   const [sortKey, setSortKey] = React.useState('rank');
   const [sortDir, setSortDir] = React.useState('desc');
   const [selectedId, setSelectedId] = React.useState(null);
+  const [rowDrag, setRowDrag] = React.useState(null);   // { id, overId, after } while dragging a row
+  const [compareOpen, setCompareOpen] = React.useState(() => {
+    try { return localStorage.getItem('aiboard:tech-compare') === '1'; } catch { return false; }
+  });
   const tableRef = React.useRef(null);
 
   // Scroll the selected row into view (selection comes from the matrix).
@@ -296,6 +485,29 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
     [ids[a], ids[b]] = [ids[b], ids[a]];
     onRankOrder(ids);
   };
+
+  // Drag-and-drop: put the dragged initiative just before/after the target in the global order.
+  // Everything else keeps its relative position, so hidden initiatives are not reshuffled.
+  const dropRow = (dragId, targetId, after) => {
+    if (!dragId || dragId === targetId) return;
+    const before = allOrdered.map((i) => i.id);
+    const ids = before.filter((x) => x !== dragId);
+    const k = ids.indexOf(targetId);
+    if (k < 0) return;
+    ids.splice(after ? k + 1 : k, 0, dragId);
+    if (ids.some((x, n) => x !== before[n])) onRankOrder(ids);
+  };
+
+  // Both scores from one matrix drop; stop after the first call in view-only mode (it opens the connect prompt).
+  const setScores = (id, v, t) => {
+    if (onUpdateAssess(id, 'value', { score: v }) === false) return;
+    onUpdateAssess(id, 'ttv', { score: t });
+  };
+
+  const toggleCompare = () => setCompareOpen((o) => {
+    try { localStorage.setItem('aiboard:tech-compare', o ? '0' : '1'); } catch {}
+    return !o;
+  });
 
   const clickSort = (key) => {
     if (sortKey === key) {
@@ -361,7 +573,15 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
         {techs.map((t) => chip(t.id, t.name, techIds.has(t.id), () => toggleTech(t.id)))}
         {techIds.size > 0 && clearBtn(() => setTechIds(new Set()))}
+        <div style={{ flex: 1 }} />
+        <button type="button" onClick={toggleCompare} aria-expanded={compareOpen} style={{
+          border: `1px solid ${UI.border}`, background: compareOpen ? UI.panelSoft : UI.panel, borderRadius: 6,
+          padding: '4px 10px', fontSize: 11, fontWeight: 600, color: UI.inkMuted, cursor: 'pointer', fontFamily: UI.sans,
+        }}>{compareOpen ? '▾' : '▸'} Sammenlign teknologier</button>
       </div>
+      {compareOpen && (
+        <UiTechCompare store={store} statusIds={statusIds} techIds={techIds} onToggle={toggleTech} />
+      )}
 
       {inTech.length > 0 && (
         <>
@@ -396,13 +616,13 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
           }}>
             <div>
               {sectionLabel('Værdi × time-to-value')}
-              <UiValueTtvMatrix rows={ranked} statuses={statuses} selectedId={selectedVisible} onSelect={setSelectedId} />
+              <UiValueTtvMatrix rows={ranked} statuses={statuses} selectedId={selectedVisible} onSelect={setSelectedId} onScore={setScores} />
             </div>
             <div style={{ flex: '1 1 280px', minWidth: 0 }}>
               {sectionLabel('Overblik')}
               <UiTechSummary rows={ranked} />
               <div style={{ fontSize: 11, color: UI.inkFaint, lineHeight: 1.5, marginTop: 12 }}>
-                Tallet i prikkerne er prioriteten. Farven er status. Grønt felt = værdi og TTV på 4 eller 5.
+                Tallet i prikkerne er prioriteten. Farven er status. Grønt felt = værdi og TTV på 4 eller 5. Træk en prik til et andet felt for at ændre scoren.
               </div>
             </div>
           </div>
@@ -413,8 +633,8 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
             </div>
             <div style={{ fontSize: 11, color: UI.inkFaint, fontStyle: 'italic' }}>
               {canReorder
-                ? 'Rækkefølgen er prioriteten — ↑↓ flytter initiativet.'
-                : 'Sorteret efter score — klik "Prio" for at gå tilbage til prioriteten og bruge ↑↓.'}
+                ? 'Rækkefølgen er prioriteten — træk i ⠿ eller brug ↑↓ for at flytte initiativet.'
+                : 'Sorteret efter score — klik "Prio" for at gå tilbage til prioriteten og flytte rækker.'}
             </div>
             <div style={{ fontSize: 11, color: UI.inkFaint, fontStyle: 'italic' }}>Klik på scorer, + og ✓ i vurderings-kolonnerne for at redigere.</div>
             <div style={{ flex: 1 }} />
@@ -427,7 +647,7 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
               <thead>
                 <tr>
                   {th('Prio', 'rank', { width: 44 }, 'Vis i prioritets-rækkefølge')}
-                  {th('', null, { width: 30 })}
+                  {th('', null, { width: 46 })}
                   {th('Initiativ', null)}
                   {th('Status', null)}
                   {th('Ejer', null)}
@@ -451,20 +671,57 @@ function UiTechInitiativesView({ store, onOpenInit, onRankOrder, onUpdateAssess 
                   const comments = (key) => (
                     <UiComments compact comments={commentsOf(a[key])} onChange={(next) => update(key, { comments: next })} />
                   );
-                  const rowTd = sel ? { ...td, background: 'oklch(0.96 0.03 250)' } : td;
+                  // Drop indicator: a line above or below the row under the pointer.
+                  const dropHere = rowDrag && rowDrag.overId === i.id && rowDrag.id !== i.id;
+                  const dropLine = dropHere ? `inset 0 ${rowDrag.after ? -2 : 2}px 0 ${UI.accent}` : null;
+                  const baseTd = sel ? { ...td, background: 'oklch(0.96 0.03 250)' } : td;
+                  const rowTd = dropLine ? { ...baseTd, boxShadow: dropLine } : baseTd;
+                  const isDragged = rowDrag && rowDrag.id === i.id;
                   return (
-                    <tr key={i.id} data-init-id={i.id} onClick={(e) => {
-                      // Clicking empty row space toggles the highlight; controls keep their own behaviour.
-                      if (e.target.closest('button, textarea, input, a')) return;
-                      setSelectedId(sel ? null : i.id);
-                    }}>
-                      <td style={{ ...rowTd, fontFamily: UI.mono, fontWeight: 700, color: UI.inkMuted, boxShadow: sel ? `inset 3px 0 0 ${UI.accent}` : 'none' }}>
+                    <tr key={i.id} data-init-id={i.id} style={{ opacity: isDragged ? 0.4 : 1 }}
+                      onClick={(e) => {
+                        // Clicking empty row space toggles the highlight; controls keep their own behaviour.
+                        if (e.target.closest('button, textarea, input, a')) return;
+                        setSelectedId(sel ? null : i.id);
+                      }}
+                      onDragOver={(e) => {
+                        if (!rowDrag) return;
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        const box = e.currentTarget.getBoundingClientRect();
+                        const after = e.clientY > box.top + box.height / 2;
+                        if (rowDrag.overId !== i.id || rowDrag.after !== after) setRowDrag({ ...rowDrag, overId: i.id, after });
+                      }}
+                      onDrop={(e) => {
+                        if (!rowDrag) return;
+                        e.preventDefault();
+                        dropRow(rowDrag.id, i.id, rowDrag.after);
+                        setRowDrag(null);
+                      }}>
+                      <td style={{ ...rowTd, fontFamily: UI.mono, fontWeight: 700, color: UI.inkMuted,
+                        boxShadow: [sel && `inset 3px 0 0 ${UI.accent}`, dropLine].filter(Boolean).join(', ') || 'none' }}>
                         {prio}
                       </td>
                       <td style={rowTd}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                          {arrowBtn('▲', !canReorder || pos === 0, () => moveRank(i.id, -1), 'Flyt op')}
-                          {arrowBtn('▼', !canReorder || pos === shown.length - 1, () => moveRank(i.id, 1), 'Flyt ned')}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                          <span draggable={canReorder} aria-hidden="true"
+                            title={canReorder ? 'Træk for at flytte initiativet' : 'Klik "Prio" for at kunne flytte rækker'}
+                            onDragStart={(e) => {
+                              e.dataTransfer.effectAllowed = 'move';
+                              e.dataTransfer.setData('text/plain', i.name || i.id);
+                              const tr = e.currentTarget.closest('tr');
+                              if (tr && e.dataTransfer.setDragImage) e.dataTransfer.setDragImage(tr, 20, 16);
+                              setRowDrag({ id: i.id, overId: null, after: false });
+                            }}
+                            onDragEnd={() => setRowDrag(null)}
+                            style={{
+                              fontSize: 14, lineHeight: 1, color: UI.inkFaint, padding: '2px 1px', userSelect: 'none',
+                              cursor: canReorder ? 'grab' : 'default', opacity: canReorder ? 1 : 0.3,
+                            }}>⠿</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            {arrowBtn('▲', !canReorder || pos === 0, () => moveRank(i.id, -1), 'Flyt op')}
+                            {arrowBtn('▼', !canReorder || pos === shown.length - 1, () => moveRank(i.id, 1), 'Flyt ned')}
+                          </div>
                         </div>
                       </td>
                       <td style={rowTd}>
