@@ -1510,24 +1510,37 @@ function BoardView() {
                         flex: 1, minWidth: 0, fontSize: 12, fontWeight: 500, color: UI.ink,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       }}>{r.init.name}</div>
-                      {initDepts.map((dep) => (
-                        <span key={dep.id} style={{
+                      {/* Only the first department and platform get a chip, capped in
+                          width, so the name always keeps room; the rest become "+N". */}
+                      {initDepts.slice(0, 1).map((dep) => (
+                        <span key={dep.id} title={dep.name} style={{
                           fontFamily: UI.sans, fontSize: 8.5, fontWeight: 600, flexShrink: 0,
-                          color: UI.inkMuted, whiteSpace: 'nowrap',
+                          color: UI.inkMuted, whiteSpace: 'nowrap', maxWidth: 90,
+                          overflow: 'hidden', textOverflow: 'ellipsis',
                           background: UI.panelSoft,
                           border: `1px solid ${UI.border}`,
                           padding: '1px 5px', borderRadius: 3,
                         }}>{dep.name}</span>
                       ))}
-                      {initPlatforms.map((p) => (
-                        <span key={p.id} style={{
+                      {initPlatforms.slice(0, 1).map((p) => (
+                        <span key={p.id} title={p.name} style={{
                           fontFamily: UI.mono, fontSize: 8.5, fontWeight: 700, flexShrink: 0,
-                          color: r.bu.accent, letterSpacing: 0.3, whiteSpace: 'nowrap',
+                          color: r.bu.accent, letterSpacing: 0.3, whiteSpace: 'nowrap', maxWidth: 90,
+                          overflow: 'hidden', textOverflow: 'ellipsis',
                           background: `color-mix(in oklch, ${r.bu.accent} 8%, transparent)`,
                           border: `1px solid color-mix(in oklch, ${r.bu.accent} 22%, transparent)`,
                           padding: '1px 5px', borderRadius: 3,
                         }}>{p.name}</span>
                       ))}
+                      {(() => {
+                        const rest = [...initDepts.slice(1), ...initPlatforms.slice(1)];
+                        return rest.length > 0 && (
+                          <span title={rest.map((x) => x.name).join(', ')} style={{
+                            fontFamily: UI.mono, fontSize: 8.5, fontWeight: 700, flexShrink: 0,
+                            color: UI.inkMuted, whiteSpace: 'nowrap',
+                          }}>+{rest.length}</span>
+                        );
+                      })()}
                       {bc > 0 && (
                         <span style={{ fontFamily: UI.mono, fontSize: 9, color: BLOCKER_RED, fontWeight: 700, flexShrink: 0 }}>⚠{bc}</span>
                       )}

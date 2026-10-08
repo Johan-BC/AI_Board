@@ -218,8 +218,7 @@
       "id": "i_t00",
       "buId": "bu_cx",
       "platformIds": [
-        "p_figma",
-        "p_dwh"
+        "p_figma"
       ],
       "departmentIds": [
         "dep_voice"
@@ -296,8 +295,7 @@
         "p_sf"
       ],
       "departmentIds": [
-        "dep_qa",
-        "dep_kb"
+        "dep_qa"
       ],
       "name": "Chatbot 2.0",
       "status": "pilot",
@@ -331,8 +329,7 @@
       "id": "i_t03",
       "buId": "bu_cx",
       "platformIds": [
-        "p_cstudio",
-        "p_figma"
+        "p_cstudio"
       ],
       "departmentIds": [
         "dep_voice"
@@ -436,8 +433,7 @@
       "id": "i_t06",
       "buId": "bu_cx",
       "platformIds": [
-        "p_dwh",
-        "p_m365"
+        "p_dwh"
       ],
       "departmentIds": [
         "dep_voice"
@@ -570,8 +566,7 @@
       "id": "i_t09",
       "buId": "bu_mkt",
       "platformIds": [
-        "p_cstudio",
-        "p_sf"
+        "p_cstudio"
       ],
       "departmentIds": [
         "dep_campaign"
@@ -643,8 +638,7 @@
       "buId": "bu_mkt",
       "platformIds": [],
       "departmentIds": [
-        "dep_insight",
-        "dep_content"
+        "dep_insight"
       ],
       "name": "Social listening",
       "status": "idea",
@@ -670,8 +664,7 @@
       "buId": "bu_mkt",
       "platformIds": [],
       "departmentIds": [
-        "dep_insight",
-        "dep_campaign"
+        "dep_insight"
       ],
       "name": "Billedgenerering",
       "status": "idea",
@@ -838,8 +831,7 @@
       "id": "i_t17",
       "buId": "bu_prd",
       "platformIds": [
-        "p_m365",
-        "p_cstudio"
+        "p_m365"
       ],
       "departmentIds": [
         "dep_data"
@@ -892,8 +884,7 @@
       "id": "i_t18",
       "buId": "bu_prd",
       "platformIds": [
-        "p_dwh",
-        "p_figma"
+        "p_dwh"
       ],
       "departmentIds": [
         "dep_app"
@@ -1041,12 +1032,10 @@
       "id": "i_t21",
       "buId": "bu_prd",
       "platformIds": [
-        "p_dwh",
-        "p_cstudio"
+        "p_dwh"
       ],
       "departmentIds": [
-        "dep_data",
-        "dep_ux"
+        "dep_data"
       ],
       "name": "Brugerinterview-analyse",
       "status": "idea",
@@ -1075,12 +1064,10 @@
       "id": "i_t22",
       "buId": "bu_sal",
       "platformIds": [
-        "p_dwh",
-        "p_figma"
+        "p_dwh"
       ],
       "departmentIds": [
-        "dep_b2b",
-        "dep_b2c"
+        "dep_b2b"
       ],
       "name": "Salgsassistent",
       "status": "prod",
@@ -1158,12 +1145,10 @@
       "id": "i_t24",
       "buId": "bu_sal",
       "platformIds": [
-        "p_dwh",
-        "p_cstudio"
+        "p_dwh"
       ],
       "departmentIds": [
-        "dep_b2c",
-        "dep_b2b"
+        "dep_b2c"
       ],
       "name": "Lead-scoring",
       "status": "prod",
@@ -1194,8 +1179,7 @@
       "buId": "bu_sal",
       "platformIds": [],
       "departmentIds": [
-        "dep_b2c",
-        "dep_b2b"
+        "dep_b2c"
       ],
       "name": "Opkaldsanalyse salg",
       "status": "pilot",
@@ -1298,8 +1282,7 @@
       "id": "i_t28",
       "buId": "bu_prd",
       "platformIds": [
-        "p_figma",
-        "p_m365"
+        "p_figma"
       ],
       "departmentIds": [
         "dep_app"
