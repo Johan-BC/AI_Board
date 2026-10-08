@@ -68,7 +68,8 @@ begge felter under *Adgang*, hvis du vil se links og seneste ændringer.
 
 1. Åbn en terminal i `AI_Board`-mappen og start serveren: `python -m http.server 8080`.
 2. Start Claude Code i samme mappe (en anden terminal eller desktop-appen) og beskriv ændringen.
-3. Genindlæs `http://localhost:8080/` — scripts hentes altid friske, så et almindeligt reload er nok.
+3. Genindlæs `http://localhost:8080/`. Ser siden ikke opdateret ud, så lav en hård genindlæsning
+   (**Ctrl+Shift+R** eller **Ctrl+F5**) — browseren kan have gemt en gammel kopi.
 4. Når det virker: bed Claude committe og pushe, eller gør det selv:
    ```
    git add -A
@@ -113,6 +114,9 @@ indlæsning. Ret aldrig de rigtige data i hånden for at følge med koden.
 ---
 
 ## Godt at vide
+- **"Du skal bruge dit link" selvom du har brugt `#edit=`-linket** → lav en hård genindlæsning
+  (**Ctrl+Shift+R** / **Ctrl+F5**) og åbn linket igen. Typisk efter `git pull`, hvor browseren
+  stadig viser den gamle side.
 - **Token udløbet lokalt** → boardet siger "Dit link virker ikke længere". Lav et nyt test-token
   og åbn `http://localhost:8080/#edit=NYT_TOKEN`.
 - **`localhost` og `nuuday.github.io` husker hver deres token** — de er forskellige adresser i browseren.
