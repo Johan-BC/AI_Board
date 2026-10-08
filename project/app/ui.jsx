@@ -22,10 +22,12 @@ function UiTopBar({ title, subtitle, right, kicker }) {
     <div style={{
       padding: '18px 24px 14px',
       borderBottom: `1px solid ${UI.border}`,
-      display: 'flex', alignItems: 'flex-end', gap: 18,
+      display: 'flex', alignItems: 'flex-end', gap: 18, flexWrap: 'wrap',
       background: UI.panel, flex: '0 0 auto',
     }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
+      {/* Title keeps at least 280px; when the controls don't fit beside it
+          they wrap onto their own line instead of squeezing the title. */}
+      <div style={{ flex: '1 1 280px', minWidth: 0 }}>
         {kicker && (
           <div style={{
             fontFamily: UI.mono, fontSize: 10, letterSpacing: 1.2, textTransform: 'uppercase',
@@ -37,7 +39,7 @@ function UiTopBar({ title, subtitle, right, kicker }) {
           <div style={{ fontSize: 12.5, color: UI.inkMuted, marginTop: 3 }}>{subtitle}</div>
         )}
       </div>
-      {right && <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8 }}>{right}</div>}
+      {right && <div style={{ flex: '0 1 auto', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', rowGap: 6 }}>{right}</div>}
     </div>
   );
 }
