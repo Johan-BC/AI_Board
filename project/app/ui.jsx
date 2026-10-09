@@ -705,15 +705,41 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
           )}
         </UiFieldRow>
 
-        <UiFieldRow label="Milepæle" hint={`${(d.milestones || []).length} defineret`}>
+        <UiFieldRow label="Milepæle" hint={(() => {
+          const ms = d.milestones || [];
+          const nDone = ms.filter((m) => m.done).length;
+          return `${ms.length} defineret${nDone ? ` · ${nDone} nået` : ''}`;
+        })()}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 4 }}>
-            {(d.milestones || []).map((m, idx) => (
+            {(d.milestones || []).map((m, idx) => {
+              // Same states as the Gantt diamonds (milestoneState in board.jsx)
+              const st = milestoneState(m, new Date());
+              return (
               <div key={idx} style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                {/* Reached: `done` is only written when true, as on the Gantt */}
+                <input type="checkbox" checked={!!m.done}
+                  title={m.done ? 'Nået — fjern markeringen' : st === 'overdue' ? 'Overskredet — markér som nået' : 'Markér som nået'}
+                  aria-label={`Milepæl ${m.label || idx + 1} nået`}
+                  onChange={(e) => setD((prev) => ({
+                    ...prev,
+                    milestones: (prev.milestones || []).map((x, k) => {
+                      if (k !== idx) return x;
+                      if (e.target.checked) return { ...x, done: true };
+                      const { done, ...rest } = x;
+                      return rest;
+                    }),
+                  }))}
+                  style={{ width: 15, height: 15, margin: 0, flex: '0 0 auto', cursor: 'pointer', accentColor: UI.ink }} />
                 <input type="date" value={m.date || ''} onChange={(e) => {
                   const next = [...d.milestones];
                   next[idx] = { ...m, date: e.target.value };
                   patch('milestones', next);
-                }} style={{ ...uiInputStyle, width: 136, flex: '0 0 auto', fontSize: 12 }} />
+                }} title={st === 'overdue' ? 'Datoen er passeret, men milepælen er ikke markeret som nået' : undefined}
+                  style={{
+                    ...uiInputStyle, width: 136, flex: '0 0 auto', fontSize: 12,
+                    ...(st === 'overdue' ? { border: `1px solid ${OVERDUE_AMBER}`, color: OVERDUE_AMBER } : null),
+                    ...(st === 'done' ? { color: UI.inkMuted } : null),
+                  }} />
                 <input value={m.label || ''} onChange={(e) => {
                   const next = [...d.milestones];
                   next[idx] = { ...m, label: e.target.value };
@@ -723,7 +749,8 @@ function UiInitiativeDrawer({ store, draft, onClose, onSave, onDelete }) {
                   style={{ border: 'none', background: 'transparent', color: UI.inkFaint, cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: '2px 4px', borderRadius: 4, flexShrink: 0 }}
                   title="Fjern milepæl">×</button>
               </div>
-            ))}
+              );
+            })}
             <button onClick={() => patch('milestones', [...(d.milestones || []), { date: d.start || '', label: '' }])}
               style={{
                 alignSelf: 'flex-start', marginTop: 2,

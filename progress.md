@@ -230,10 +230,14 @@ Setting it: leave End empty in the drawer, or write `BAU` (also `løbende` / `on
 - Technology, blocker and outcome filter strips with counts and synergy dots
 - Synergy band + dashed SVG connectors when a selection spans 2+ BUs
 - Blocker mode dimming non-blocked initiatives
+- **Print** (⎙ Print or Ctrl+P on the Gantt) — A4/A3 landscape; period = visible window, 12 months
+  from the current quarter, or the whole timeline. Fits the page width (rows never split across
+  pages, the calendar repeats on each page) or, optionally, one page. Filter strip, buttons and
+  drawers are left out; a title block lists the active filters/search.
 
 ### Editing
 - **Initiative drawer** — Name → BU → Afdelinger → Platforme → Status → Owner →
-  Start/End → Description → Technologies → Blockers → Outcomes → Milepæle → Vurdering (folded
+  Start/End → Description → Technologies → Blockers → Outcomes → Milepæle (with a "nået" checkbox per milestone) → Vurdering (folded
   by default). The Tags field was removed from the UI; the `tags` key remains in the data.
   BU, Afdelinger and Platforme show only the selected value(s) as chips; "Skift ▾" / "+ Tilføj ▾"
   folds out the full option list (single select for BU, multi for the other two).

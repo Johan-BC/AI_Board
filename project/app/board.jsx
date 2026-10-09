@@ -62,6 +62,26 @@ const MODE_KEY      = 'aiboard:access-mode';     // 'view' | 'edit'
 const NAME_KEY      = 'aiboard:editor-name';     // shown in commit messages
 const COLLAPSE_KEY  = 'aiboard:collapsed-bus';
 const LEGEND_KEY    = 'aiboard:legend';          // '0' = legend footer hidden
+const PRINT_KEY     = 'aiboard:print';           // last print choices {paper, period, onePage}
+
+// Paper for the print view (landscape, mm) and its margin. CSS px = 96 dpi.
+const PRINT_PAPER    = { A4: { w: 297, h: 210 }, A3: { w: 420, h: 297 } };
+const PRINT_MARGIN   = 8;
+const PRINT_PERIODS  = [['visible', 'Synligt udsnit'], ['12m', '12 mdr. fra kvartalet'], ['all', 'Hele tidslinjen']];
+const mmToPx = (mm) => mm * 96 / 25.4;
+const PRINT_HEAD_H   = 64;  // fixed height of the printed title block
+const PRINT_LEGEND_H = 56;  // roughly, for "fit to one page"
+
+// Zoom of the printed board and the page height in board px. Fit to the page
+// width; "one page" also fits the height (contentH = full board height).
+function printGeometry(cfg, labelW, contentH) {
+  const paper = PRINT_PAPER[cfg.paper] || PRINT_PAPER.A4;
+  const pageW = mmToPx(paper.w - 2 * PRINT_MARGIN), pageH = mmToPx(paper.h - 2 * PRINT_MARGIN);
+  const contentW = labelW + (cfg.x1 - cfg.x0);
+  const fit = cfg.onePage && contentH ? Math.min(pageW / contentW, pageH / contentH) : pageW / contentW;
+  const zoom = Math.max(0.2, Math.min(1.5, fit)) * 0.98;
+  return { zoom, contentW, pageH: pageH / zoom };
+}
 const SYNC_CFG      = resolveSyncConfig();
 const SAVE_DEBOUNCE = 3000;
 
@@ -699,7 +719,7 @@ function GanttLegend({ statuses, onClose }) {
   );
   return (
     <div role="note" aria-label="Forklaring" style={{
-      flex: '0 0 auto', borderTop: `1px solid ${UI.border}`, background: UI.panelSoft,
+      flex: '0 0 auto', borderTop: `1px solid ${UI.border}`, background: UI.panelSoft, breakInside: 'avoid',
       padding: '6px 12px 6px 20px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
       fontFamily: UI.sans, fontSize: 11, color: UI.inkMuted, rowGap: 5,
     }}>
@@ -730,14 +750,61 @@ function GanttLegend({ statuses, onClose }) {
         <span style={{ width: 6, height: 6, borderRadius: 99, background: 'oklch(0.52 0.13 150)' }} />
       </span>, 'Synergi: 2 / 3+ enheder', 'Prikken på et filter viser, at det går igen i flere forretningsenheder')}
       <div style={{ flex: 1 }} />
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: UI.inkFaint, whiteSpace: 'nowrap' }}>
+      <span className="no-print" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: UI.inkFaint, whiteSpace: 'nowrap' }}>
         {kbd('T')} i dag {kbd('←')}{kbd('→')} måned {kbd('+')}{kbd('−')} zoom {kbd('/')} søg {kbd('?')} forklaring
       </span>
-      <button onClick={onClose} title="Skjul forklaringen (?)" style={{
+      <button className="no-print" onClick={onClose} title="Skjul forklaringen (?)" style={{
         border: 'none', background: 'transparent', color: UI.inkFaint, cursor: 'pointer',
         fontSize: 15, lineHeight: 1, padding: '0 2px',
       }}>×</button>
     </div>
+  );
+}
+
+// ── Print menu (paper, period, fit) under the "⎙ Print" button ───────────────
+function PrintMenu({ prefs, onPrint, onClose }) {
+  const [p, setP] = React.useState(prefs);
+  const chip = (on) => ({
+    padding: '4px 9px', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: UI.sans,
+    border: `1px solid ${on ? UI.ink : UI.border}`, background: on ? UI.ink : UI.panel, color: on ? '#fff' : UI.ink,
+  });
+  const label = (t) => <div style={{ fontFamily: UI.mono, fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: UI.inkFaint, margin: '0 0 5px' }}>{t}</div>;
+  return (
+    <>
+      {/* Click outside closes */}
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+      <div role="dialog" aria-label="Print" style={{
+        position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 41, width: 260,
+        background: UI.panel, border: `1px solid ${UI.border}`, borderRadius: 8,
+        boxShadow: '0 10px 30px rgba(20,16,12,.14)', padding: 12,
+        display: 'flex', flexDirection: 'column', gap: 11, fontFamily: UI.sans,
+      }}>
+        <div>
+          {label('Papir (liggende)')}
+          <div style={{ display: 'flex', gap: 4 }}>
+            {Object.keys(PRINT_PAPER).map((k) => (
+              <button key={k} onClick={() => setP({ ...p, paper: k })} style={chip(p.paper === k)}>{k}</button>
+            ))}
+          </div>
+        </div>
+        <div>
+          {label('Periode')}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+            {PRINT_PERIODS.map(([k, t]) => (
+              <button key={k} onClick={() => setP({ ...p, period: k })} style={chip(p.period === k)}>{t}</button>
+            ))}
+          </div>
+        </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: UI.ink, cursor: 'pointer' }}>
+          <input type="checkbox" checked={!!p.onePage} onChange={(e) => setP({ ...p, onePage: e.target.checked })} style={{ margin: 0, accentColor: UI.ink }} />
+          Tilpas til én side
+        </label>
+        <div style={{ fontSize: 10.5, color: UI.inkFaint, lineHeight: 1.4 }}>
+          Udskriften viser de aktuelle filtre og søgning. Filterstrimmel og knapper kommer ikke med.
+        </div>
+        <UiButton variant="primary" onClick={() => onPrint(p)} style={{ alignSelf: 'flex-end' }}>⎙ Print</UiButton>
+      </div>
+    </>
   );
 }
 
@@ -769,6 +836,13 @@ function BoardView() {
   // The legend footer is a view preference, like collapsed lanes.
   const [legendOpen, setLegendOpen]               = React.useState(() => { try { return localStorage.getItem(LEGEND_KEY) !== '0'; } catch (_) { return true; } });
   const [hoverTip, setHoverTip]                   = React.useState(null); // {init, bu, x, y}
+  // Print view (see "Print" further down)
+  const [printCfg, setPrintCfg]                   = React.useState(null); // {paper, period, onePage, x0, x1, auto}
+  const [printMenu, setPrintMenu]                 = React.useState(false);
+  const [printPrefs, setPrintPrefs]               = React.useState(() => {
+    const def = { paper: 'A4', period: 'visible', onePage: false };
+    try { return { ...def, ...JSON.parse(localStorage.getItem(PRINT_KEY) || '{}') }; } catch (_) { return def; }
+  });
   const draggingRef                               = React.useRef(false);
   const [labelW, setLabelW]                       = React.useState(280);
   const labelWRef                                 = React.useRef(280);
@@ -1071,7 +1145,10 @@ function BoardView() {
     // BAU (no end date) initiatives only contribute their start to range, not end.
     const starts = inits.map(i => parseISO(i.start)).filter(d => !isNaN(d));
     const ends   = inits.filter(i => i.end).map(i => parseISO(i.end)).filter(d => !isNaN(d));
-    const dates  = [...starts, ...ends];
+    // Milestones count too — one far beyond the end date would otherwise be
+    // drawn outside the timeline (or at a negative x before its start).
+    const msDates = inits.flatMap(i => (i.milestones || []).filter(m => isValidISO(m.date)).map(m => parseISO(m.date)));
+    const dates  = [...starts, ...ends, ...msDates];
     if (!dates.length) return fallback;
     let lo = dates.reduce((a, b) => a < b ? a : b);
     let hi = dates.reduce((a, b) => a > b ? a : b);
@@ -1100,10 +1177,34 @@ function BoardView() {
   });
 
   const BU_H = 40, DEPT_H = 34, PLAT_H = 28, ROW_H = 44, LANE_GAP = 8;
+  // Calendar header: quarter row + month row + a row for the "I dag" marker
+  const CAL_Q_H = 22, CAL_M_H = 26, CAL_T_H = 20;
+  const CAL_H = CAL_Q_H + CAL_M_H + CAL_T_H;
+
+  // Printing over several pages: rows are pushed past page breaks instead of
+  // being cut in half, and each new page starts with a copy of the calendar.
+  // pageH = page height in board px (after zoom), offset = board y of row 0.
+  const printPaging = (() => {
+    if (!printCfg || view !== 'gantt' || printCfg.onePage) return null;
+    const g = printGeometry(printCfg, labelW, 0);
+    return { pageH: g.pageH * 0.985, offset: PRINT_HEAD_H + CAL_H };
+  })();
+  const pagingKey = printPaging ? `${printPaging.pageH}:${printPaging.offset}` : '';
 
   const layout = React.useMemo(() => {
-    if (!store) return { rows: [], totalH: 0 };
-    const rows = []; let y = 0;
+    if (!store) return { rows: [], totalH: 0, breaks: [] };
+    const rows = [], breaks = []; let y = 0;
+    // Before placing a block of height h: move to the next page if it would
+    // straddle a page break.
+    const fit = (h) => {
+      if (!printPaging) return;
+      const { pageH, offset } = printPaging;
+      const pos = y + offset, page = Math.floor(pos / pageH);
+      if (pos + h <= (page + 1) * pageH || h > pageH - CAL_H) return;
+      const top = (page + 1) * pageH - offset; // body y of the next page's top
+      breaks.push(top);
+      y = top + CAL_H;
+    };
     const visibleBUs = store.businessUnits.filter((b) => !buFilter || b.id === buFilter);
     const allPlatforms = store.platforms || [];
     const allDepts = store.departments || [];
@@ -1114,6 +1215,7 @@ function BoardView() {
       // open, so a hit is never hidden inside a collapsed lane.
       if (searching && !items.length) continue;
       const collapsed = !searching && collapsedBUs.has(bu.id);
+      fit(collapsed ? BU_H : BU_H + ROW_H); // a lane header stays with its first row
       rows.push({ kind: 'bu', bu, y, h: BU_H, count: items.length, collapsed, items });
       y += BU_H;
 
@@ -1129,6 +1231,7 @@ function BoardView() {
 
       // 1. Ungrouped: no dept and no platform, or ambiguous (multiple depts / multiple platforms without dept)
       for (const init of items.filter((i) => !hasSingleDept(i) && !hasSinglePlatformOnly(i))) {
+        fit(ROW_H);
         rows.push({ kind: 'init', init, bu, department: null, platform: null, y, h: ROW_H });
         y += ROW_H;
       }
@@ -1139,9 +1242,11 @@ function BoardView() {
       );
       for (const dept of deptsHere) {
         const deptItems = items.filter((i) => hasSingleDept(i) && i.departmentIds[0] === dept.id);
+        fit(DEPT_H + ROW_H);
         rows.push({ kind: 'department', department: dept, bu, y, h: DEPT_H });
         y += DEPT_H; // (was PLAT_H — the header then overlapped its first row by 6 px)
         for (const init of deptItems) {
+          fit(ROW_H);
           rows.push({ kind: 'init', init, bu, department: dept, platform: null, y, h: ROW_H });
           y += ROW_H;
         }
@@ -1153,9 +1258,11 @@ function BoardView() {
       );
       for (const platform of platformsHere) {
         const platItems = items.filter((i) => hasSinglePlatformOnly(i) && i.platformIds[0] === platform.id);
+        fit(PLAT_H + ROW_H);
         rows.push({ kind: 'platform', platform, bu, y, h: PLAT_H });
         y += PLAT_H;
         for (const init of platItems) {
+          fit(ROW_H);
           rows.push({ kind: 'init', init, bu, department: null, platform, y, h: ROW_H });
           y += ROW_H;
         }
@@ -1163,8 +1270,8 @@ function BoardView() {
 
       y += LANE_GAP;
     }
-    return { rows, totalH: y };
-  }, [store, filteredInits, buFilter, collapsedBUs, searching]);
+    return { rows, totalH: y, breaks };
+  }, [store, filteredInits, buFilter, collapsedBUs, searching, pagingKey]);
 
   const buBands = React.useMemo(() => {
     const buRows = layout.rows.filter((r) => r.kind === 'bu');
@@ -1271,6 +1378,35 @@ function BoardView() {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
+
+  // ── Print ─────────────────────────────────────────────────────────────────
+  // While `printCfg` is set the Gantt is laid out for paper: no scrolling, the
+  // chosen period clipped out of the timeline, every row in full height, and
+  // the whole board zoomed to the page. "⎙ Print" sets it and opens the print
+  // dialog; Ctrl+P sets it with the last choices (beforeprint). afterprint
+  // switches back to the normal board. (State: see printCfg at the top.)
+  const beforePrintRef = React.useRef(null);
+  React.useEffect(() => {
+    const before = () => beforePrintRef.current && beforePrintRef.current();
+    const after  = () => setPrintCfg(null);
+    window.addEventListener('beforeprint', before);
+    window.addEventListener('afterprint', after);
+    return () => { window.removeEventListener('beforeprint', before); window.removeEventListener('afterprint', after); };
+  }, []);
+  // The print layout drops the scroller's overflow, which loses its scroll
+  // position — put the board back where it was.
+  const printScrollRef = React.useRef(null);
+  React.useLayoutEffect(() => {
+    const el = scrollerRef.current, pos = printScrollRef.current;
+    if (printCfg || !el || !pos) return;
+    printScrollRef.current = null;
+    el.scrollLeft = pos.left; el.scrollTop = pos.top;
+  }, [printCfg]);
+  React.useEffect(() => {
+    if (!printCfg || !printCfg.auto) return;
+    const t = setTimeout(() => window.print(), 80); // let the print layout paint first
+    return () => clearTimeout(t);
+  }, [printCfg]);
 
   // A scroll moves bars away under a still pointer without a mouseleave
   React.useEffect(() => {
@@ -1464,10 +1600,46 @@ function BoardView() {
     scrollerRef.current.scrollBy({ left: delta * monthW, behavior: 'smooth' });
   };
 
+  // Timeline px window [x0, x1] for a print period
+  const printWindow = (period) => {
+    const el = scrollerRef.current;
+    let x0 = 0, x1 = timelineW;
+    if (period === 'visible' && el) {
+      x0 = el.scrollLeft; x1 = x0 + visibleTimelineW();
+    } else if (period === '12m') {
+      const qs = new Date(today.getFullYear(), Math.floor(today.getMonth() / 3) * 3, 1);
+      x0 = dateToX(qs); x1 = dateToX(new Date(qs.getFullYear(), qs.getMonth() + 12, 1));
+    }
+    x0 = Math.max(0, Math.round(x0)); x1 = Math.min(timelineW, Math.round(x1));
+    return x1 - x0 < 40 ? [0, timelineW] : [x0, x1];
+  };
+  const makePrintCfg = (prefs, auto) => {
+    const [x0, x1] = printWindow(prefs.period);
+    const el = scrollerRef.current;
+    if (el) printScrollRef.current = { left: el.scrollLeft, top: el.scrollTop };
+    return { ...prefs, x0, x1, auto };
+  };
+  const startPrint = (prefs) => {
+    try { localStorage.setItem(PRINT_KEY, JSON.stringify(prefs)); } catch (_) {}
+    setPrintPrefs(prefs);
+    setPrintMenu(false);
+    setHoverTip(null); setMilestoneTooltip(null);
+    setPrintCfg(makePrintCfg(prefs, true));
+  };
+  // Ctrl+P on the Gantt: lay out for paper before the browser takes its snapshot
+  beforePrintRef.current = () => {
+    if (view !== 'gantt' || printCfg) return;
+    ReactDOM.flushSync(() => {
+      setHoverTip(null); setMilestoneTooltip(null); setPrintMenu(false);
+      setPrintCfg(makePrintCfg(printPrefs, false));
+    });
+  };
+
   const ZOOMS = [0.75, 1, 1.5];
   const anyModalOpen = !!(drawer || catalogue || showPatSetup || (connected && (askName || !editorName)));
   keyHandlerRef.current = (e) => {
-    if (view !== 'gantt' || anyModalOpen || !scrollerRef.current) return;
+    if (printMenu && e.key === 'Escape') { setPrintMenu(false); e.preventDefault(); return; }
+    if (view !== 'gantt' || anyModalOpen || printCfg || !scrollerRef.current) return;
     if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
     const t = e.target;
     if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
@@ -1677,9 +1849,6 @@ function BoardView() {
     return null;
   };
 
-  // Calendar header: quarter row + month row + a row for the "I dag" marker
-  const CAL_Q_H = 22, CAL_M_H = 26, CAL_T_H = 20;
-  const CAL_H = CAL_Q_H + CAL_M_H + CAL_T_H;
   const todayX  = dateToX(today);
   const todayIn = todayX >= 0 && todayX <= timelineW;
   const boardSum = laneSummary(filteredInits, store.statuses, today);
@@ -1703,10 +1872,103 @@ function BoardView() {
     });
   }
 
+  // ── Print layout (see printCfg) ────────────────────────────────────────────
+  const printing = !!(printCfg && view === 'gantt');
+  const printX0  = printing ? printCfg.x0 : 0;
+  const printW   = printing ? printCfg.x1 - printCfg.x0 : timelineW;
+  let printCss = '', printHead = null;
+  if (printing) {
+    const { zoom: zoomP, contentW } = printGeometry(printCfg, labelW, PRINT_HEAD_H + CAL_H + layout.totalH + PRINT_LEGEND_H);
+    printCss = `
+      @page { size: ${printCfg.paper} landscape; margin: ${PRINT_MARGIN}mm; }
+      @media screen { .ai-board .print-only { display: none !important; } }
+      @media print {
+        html, body, #root { width: auto !important; height: auto !important; overflow: visible !important; background: #fff !important; }
+        .ai-board { height: auto !important; width: ${Math.ceil(contentW)}px !important; zoom: ${zoomP.toFixed(3)}; }
+        .ai-board .no-print { display: none !important; }
+        .ai-board, .ai-board * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      }`;
+    const xDate = (x) => addDays(range.start, Math.round(x / dayPx));
+    const names = (set, list) => [...set].map((id) => (list || []).find((x) => x.id === id)?.name).filter(Boolean).join(', ');
+    const filters = [
+      statusFilter && `Status: ${resolveStatus(statusFilter, store.statuses).label}`,
+      buFilter && `Enhed: ${buById[buFilter]?.name || buFilter}`,
+      searching && `Søgning: »${query.trim()}«`,
+      selectedTechs.size > 0 && `Teknologi: ${names(selectedTechs, store.technologies)}${selectedTechs.size > 1 ? (matchMode === 'all' ? ' (alle)' : ' (en af)') : ''}`,
+      selectedBlockers.size > 0 && `Blocker: ${names(selectedBlockers, store.blockers)}`,
+      selectedOutcomes.size > 0 && `Outcome: ${names(selectedOutcomes, store.outcomes)}`,
+      blockerMode && 'Blocker-tilstand',
+    ].filter(Boolean);
+    const folded = layout.rows.filter((r) => r.kind === 'bu' && r.collapsed).length;
+    printHead = (
+      <div className="print-only" style={{
+        flex: '0 0 auto', height: PRINT_HEAD_H, overflow: 'hidden', padding: '8px 20px', borderBottom: `1px solid ${UI.border}`, background: UI.panel,
+        display: 'flex', alignItems: 'flex-end', gap: 24, fontFamily: UI.sans,
+      }}>
+        <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+          <div style={{ fontFamily: UI.mono, fontSize: 9.5, letterSpacing: 1.2, textTransform: 'uppercase', color: UI.inkFaint }}>AI initiativ overblik</div>
+          <div style={{ fontSize: 19, fontWeight: 600, letterSpacing: -0.4, color: UI.ink }}>
+            AI Board <span style={{ fontSize: 13, fontWeight: 500, color: UI.inkMuted, marginLeft: 8 }}>{fmtDate(xDate(printCfg.x0))} – {fmtDate(addDays(xDate(printCfg.x1), -1))}</span>
+          </div>
+          <div style={{ fontSize: 11, color: UI.inkMuted, marginTop: 2 }}>
+            {filters.length ? `Filtre: ${filters.join(' · ')}` : 'Alle initiativer — ingen filtre'}
+            {folded > 0 && ` · ${folded} enhed${folded === 1 ? '' : 'er'} foldet sammen`}
+          </div>
+        </div>
+        <div style={{ flex: '0 0 auto', textAlign: 'right', fontFamily: UI.mono, fontSize: 10, color: UI.inkMuted, lineHeight: 1.5 }}>
+          <div>{boardSum.total} initiativer</div>
+          <div>Udskrevet {fmtDate(today)}</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Calendar contents — drawn in the sticky header and, when printing over
+  // several pages, again at the top of every page (layout.breaks).
+  // Print: labels of a quarter/month cut by the window's left edge move into view.
+  const clipPad = (x1, x2, pad) => pad + (printing ? Math.max(0, Math.min(printX0 - x1, x2 - x1 - 60)) : 0);
+  const calHeaderContent = (<>
+      {quarters.map((q) => (
+        <button key={q.key} onClick={() => scrollTo(q.start)} title={`Gå til ${q.label} ${q.year}`} style={{
+          position: 'absolute', top: 0, left: q.x1, width: q.x2 - q.x1, height: CAL_Q_H,
+          padding: `0 10px 0 ${clipPad(q.x1, q.x2, 10)}px`, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden', whiteSpace: 'nowrap',
+          fontFamily: UI.mono, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase',
+          color: q.current ? UI.accent : UI.inkMuted, fontWeight: q.current ? 700 : 400,
+          background: q.current ? `color-mix(in oklch, ${UI.accent} 9%, transparent)` : 'transparent',
+          border: 'none', borderLeft: q.x1 > 0 ? `1px solid ${UI.borderStrong}` : 'none',
+          cursor: 'pointer',
+        }}>{q.label} <span style={{ color: q.current ? UI.accent : UI.inkFaint, opacity: q.current ? 0.75 : 1 }}>{q.year}</span>
+          {q.current && <span style={{ fontSize: 8.5, letterSpacing: 0.6 }}>· nu</span>}</button>
+      ))}
+      {months.map((m) => (
+        <div key={m.key} style={{
+          position: 'absolute', top: CAL_Q_H, left: m.x1, width: m.x2 - m.x1, height: CAL_M_H,
+          padding: `0 8px 0 ${clipPad(m.x1, m.x2, 8)}px`, display: 'flex', alignItems: 'center', overflow: 'hidden', whiteSpace: 'nowrap',
+          borderLeft: m.x1 > 0 ? `1px ${m.qStart ? 'solid' : 'dashed'} ${m.qStart ? UI.borderStrong : UI.border}` : 'none',
+          fontFamily: UI.mono, fontSize: 11,
+          color: m.current ? UI.accent : UI.inkMuted,
+          fontWeight: m.current ? 700 : 400,
+        }}>{fmtMon(m.d)}{m.d.getMonth() === 0 && <span style={{ color: UI.inkFaint, fontSize: 9, marginLeft: 4 }}>{m.d.getFullYear()}</span>}</div>
+      ))}
+      {todayIn && (<>
+        <div style={{ position: 'absolute', left: todayX - 1, top: CAL_Q_H + CAL_M_H - 4, bottom: -1, width: 2, background: UI.accent }} />
+        <div title={`I dag: ${fmtDate(today)}`} style={{
+          position: 'absolute', top: CAL_Q_H + CAL_M_H + 1, transform: 'translateX(-50%)',
+          // Print: never cut by the left edge of the printed window
+          left: printing ? Math.max(todayX, printX0 + 48) : todayX,
+          padding: '2px 7px', background: UI.accent, color: '#fff', borderRadius: 99, whiteSpace: 'nowrap',
+          fontFamily: UI.mono, fontSize: 9, fontWeight: 700, letterSpacing: 0.5, lineHeight: 1.3,
+        }}>I DAG · {fmtDay(today).toUpperCase()}</div>
+      </>)}
+  </>);
+
   return (
-    <div className="ai-board" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: UI.bg, position: 'relative' }}>
+    <div className={printing ? 'ai-board printing' : 'ai-board'} style={{ width: '100%', height: printing ? 'auto' : '100%', minHeight: '100%', display: 'flex', flexDirection: 'column', background: UI.bg, position: 'relative' }}>
+      {printing && <style>{printCss}</style>}
+      {printHead}
 
       {/* ── Top bar ───────────────────────────────────────────────────────── */}
+      <div className="no-print" style={{ display: 'contents' }}>
       <UiTopBar
         kicker="AI INITIATIV OVERBLIK"
         title="AI Board"
@@ -1782,12 +2044,28 @@ function BoardView() {
             background: view === 'tech' ? UI.ink : 'transparent',
             color: view === 'tech' ? '#fff' : UI.inkMuted,
           }}>◇ Teknologi</button>
+          <div style={{ position: 'relative', display: 'inline-flex' }}>
+            <button onClick={() => setPrintMenu((o) => !o)} disabled={view !== 'gantt'}
+              title="Print Gantt-boardet på A4 eller A3 (liggende)" aria-expanded={printMenu}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '4px 10px', borderRadius: 5, cursor: view === 'gantt' ? 'pointer' : 'default',
+                border: `1px solid ${UI.border}`, fontFamily: UI.mono, fontSize: 10, fontWeight: 600,
+                background: printMenu ? UI.panelSoft : 'transparent', color: UI.inkMuted,
+                opacity: view === 'gantt' ? 1 : 0.45,
+              }}>⎙ Print</button>
+            {printMenu && view === 'gantt' && (
+              <PrintMenu prefs={printPrefs} onPrint={startPrint} onClose={() => setPrintMenu(false)} />
+            )}
+          </div>
           <SyncIndicator />
         </>}
       />
+      </div>
 
       {/* ── Filter strip (Tech + Blockers + Outcomes) — Gantt only ──────── */}
       {view === 'gantt' && (
+        <div className="no-print" style={{ display: 'contents' }}>
         <FilterStrip
           store={{ ...store, initiatives: ganttInits }}
           selectedTechs={selectedTechs} selectedBlockers={selectedBlockers} selectedOutcomes={selectedOutcomes}
@@ -1801,6 +2079,7 @@ function BoardView() {
           onClearBlockers={() => setSelectedBlockers(new Set())}
           onClearOutcomes={() => setSelectedOutcomes(new Set())}
         />
+        </div>
       )}
 
       {/* ── Portfolio view ────────────────────────────────────────────────── */}
@@ -1828,8 +2107,12 @@ function BoardView() {
       )}
 
       {/* ── Gantt (full width) ────────────────────────────────────────────── */}
-      {view === 'gantt' && <div ref={scrollerRef} className="board-scroller" style={{ flex: 1, overflow: 'auto', position: 'relative', minWidth: 0, minHeight: 0 }}>
-        <div style={{ display: 'flex', minWidth: labelW + timelineW, position: 'relative' }}>
+      {view === 'gantt' && <div ref={scrollerRef} className="board-scroller" style={{
+        flex: 1, overflow: 'auto', position: 'relative', minWidth: 0, minHeight: 0,
+        // Print: no scrolling, every row in full height
+        ...(printing ? { flex: 'none', overflow: 'visible' } : null),
+      }}>
+        <div style={{ display: 'flex', minWidth: labelW + printW, position: 'relative' }}>
 
           {/* ── Label column (sticky left) ─────────────────────────────── */}
           <div style={{
@@ -1837,7 +2120,7 @@ function BoardView() {
             background: UI.panel, borderRight: `1px solid ${UI.border}`,
           }}>
             {/* Resize handle */}
-            <div
+            <div className="no-print"
               onPointerDown={startLabelResize}
               style={{
                 position: 'absolute', right: -4, top: 0, bottom: 0, width: 8,
@@ -1874,7 +2157,7 @@ function BoardView() {
                 {boardSum.msOverdue > 0 && <span title="Overskredne milepæle — datoen er passeret, men milepælen er ikke markeret som nået" style={{ color: OVERDUE_AMBER, fontWeight: 700 }}>◆ {boardSum.msOverdue}</span>}
               </div>
               {/* Search — filters the board by name, owner, department or platform */}
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <div className="no-print" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <span style={{ position: 'absolute', left: 7, fontSize: 11, color: UI.inkFaint, pointerEvents: 'none' }}>⌕</span>
                 <input
                   ref={searchRef}
@@ -1909,6 +2192,14 @@ function BoardView() {
             )}
 
             <div style={{ position: 'relative', height: layout.totalH }}>
+              {(layout.breaks || []).map((by) => (
+                <div key={'cornp:' + by} style={{
+                  position: 'absolute', top: by, left: 0, right: 0, height: CAL_H, zIndex: 5,
+                  background: UI.panelSoft, borderBottom: `1px solid ${UI.border}`,
+                  display: 'flex', alignItems: 'flex-end', padding: '0 14px 9px 20px',
+                  fontFamily: UI.mono, fontSize: 10, color: UI.inkMuted,
+                }}>AI Board · fortsat</div>
+              ))}
               {buBands.map((b) => {
                 const bu = buById[b.buId]; if (!bu) return null;
                 return (
@@ -1971,14 +2262,14 @@ function BoardView() {
                         }}>⌕{hiddenHits}</span>
                       )}
                       <div style={{ flex: 1 }} />
-                      <button onClick={() => setBuFilter(sel ? null : r.bu.id)} style={{
+                      <button className="no-print" onClick={() => setBuFilter(sel ? null : r.bu.id)} style={{
                         padding: '2px 7px', fontSize: 9.5, borderRadius: 99, cursor: 'pointer',
                         background: sel ? r.bu.accent : 'transparent',
                         color: sel ? '#fff' : UI.inkFaint,
                         border: `1px solid ${sel ? r.bu.accent : UI.border}`,
                         fontFamily: UI.mono,
                       }}>{sel ? '✓' : r.bu.short}</button>
-                      <button onClick={() => newInit(r.bu.id)} title="Nyt initiativ" style={{
+                      <button className="no-print" onClick={() => newInit(r.bu.id)} title="Nyt initiativ" style={{
                         width: 18, height: 18, borderRadius: 4, border: `1px solid ${UI.border}`,
                         background: '#fff', color: UI.inkMuted, cursor: 'pointer',
                         fontSize: 13, lineHeight: 1, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2086,45 +2377,25 @@ function BoardView() {
           </div>
 
           {/* ── Timeline area ──────────────────────────────────────────── */}
-          <div style={{ flex: 1, position: 'relative' }}>
+          {/* Print: this column becomes the window [x0, x1] — clipped, with the
+              header and body shifted left by x0. The sticky chips and BAU
+              badges then pin to the window's edges. */}
+          <div style={{ flex: 1, position: 'relative', ...(printing ? { flex: 'none', width: printW, overflow: 'hidden' } : null) }}>
             {/* Calendar header */}
             {/* Months and quarters sit at their real date positions (dateToX),
                 so the grid, the bars and the today line always agree. */}
-            <div style={{ height: CAL_H, position: 'sticky', top: 0, zIndex: 3, background: UI.panelSoft, borderBottom: `1px solid ${UI.border}`, width: timelineW }}>
-              {quarters.map((q) => (
-                <button key={q.key} onClick={() => scrollTo(q.start)} title={`Gå til ${q.label} ${q.year}`} style={{
-                  position: 'absolute', top: 0, left: q.x1, width: q.x2 - q.x1, height: CAL_Q_H,
-                  padding: '0 10px', display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden', whiteSpace: 'nowrap',
-                  fontFamily: UI.mono, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase',
-                  color: q.current ? UI.accent : UI.inkMuted, fontWeight: q.current ? 700 : 400,
-                  background: q.current ? `color-mix(in oklch, ${UI.accent} 9%, transparent)` : 'transparent',
-                  border: 'none', borderLeft: q.x1 > 0 ? `1px solid ${UI.borderStrong}` : 'none',
-                  cursor: 'pointer',
-                }}>{q.label} <span style={{ color: q.current ? UI.accent : UI.inkFaint, opacity: q.current ? 0.75 : 1 }}>{q.year}</span>
-                  {q.current && <span style={{ fontSize: 8.5, letterSpacing: 0.6 }}>· nu</span>}</button>
-              ))}
-              {months.map((m) => (
-                <div key={m.key} style={{
-                  position: 'absolute', top: CAL_Q_H, left: m.x1, width: m.x2 - m.x1, height: CAL_M_H,
-                  padding: '0 8px', display: 'flex', alignItems: 'center', overflow: 'hidden', whiteSpace: 'nowrap',
-                  borderLeft: m.x1 > 0 ? `1px ${m.qStart ? 'solid' : 'dashed'} ${m.qStart ? UI.borderStrong : UI.border}` : 'none',
-                  fontFamily: UI.mono, fontSize: 11,
-                  color: m.current ? UI.accent : UI.inkMuted,
-                  fontWeight: m.current ? 700 : 400,
-                }}>{fmtMon(m.d)}{m.d.getMonth() === 0 && <span style={{ color: UI.inkFaint, fontSize: 9, marginLeft: 4 }}>{m.d.getFullYear()}</span>}</div>
-              ))}
-              {todayIn && (<>
-                <div style={{ position: 'absolute', left: todayX - 1, top: CAL_Q_H + CAL_M_H - 4, bottom: -1, width: 2, background: UI.accent }} />
-                <div title={`I dag: ${fmtDate(today)}`} style={{
-                  position: 'absolute', top: CAL_Q_H + CAL_M_H + 1, left: todayX, transform: 'translateX(-50%)',
-                  padding: '2px 7px', background: UI.accent, color: '#fff', borderRadius: 99, whiteSpace: 'nowrap',
-                  fontFamily: UI.mono, fontSize: 9, fontWeight: 700, letterSpacing: 0.5, lineHeight: 1.3,
-                }}>I DAG · {fmtDay(today).toUpperCase()}</div>
-              </>)}
+            <div style={{ height: CAL_H, position: 'sticky', top: 0, zIndex: 3, background: UI.panelSoft, borderBottom: `1px solid ${UI.border}`, width: timelineW, marginLeft: -printX0 }}>
+              {calHeaderContent}
             </div>
 
             {/* Timeline body */}
-            <div style={{ position: 'relative', height: layout.totalH, width: timelineW }}>
+            <div style={{ position: 'relative', height: layout.totalH, width: timelineW, marginLeft: -printX0 }}>
+              {/* Print over several pages: the calendar again at the top of each page */}
+              {(layout.breaks || []).map((by) => (
+                <div key={'calp:' + by} style={{ position: 'absolute', top: by, left: 0, width: timelineW, height: CAL_H, zIndex: 4, background: UI.panelSoft, borderBottom: `1px solid ${UI.border}` }}>
+                  {calHeaderContent}
+                </div>
+              ))}
               {/* Month lines; quarter starts are drawn stronger */}
               {months.map((m) => m.x1 > 0 && (
                 <div key={'ml:' + m.key} style={{
@@ -2171,7 +2442,7 @@ function BoardView() {
                     // Above the today line (z 2), so the line never cuts through the chips
                     pointerEvents: 'none', display: 'flex', alignItems: 'center', zIndex: 3,
                   }}>
-                    {sum && <LaneSummaryChips sum={sum} sticky={labelW + 10} />}
+                    {sum && <LaneSummaryChips sum={sum} sticky={printing ? 10 : labelW + 10} />}
                   </div>
                 );
               })}
@@ -2291,7 +2562,8 @@ function BoardView() {
                       background: `repeating-linear-gradient(115deg, color-mix(in oklch, ${r.bu.accent} 26%, ${UI.panel}) 0 6px, color-mix(in oklch, ${r.bu.accent} 15%, ${UI.panel}) 6px 12px)`,
                       border: `1px solid color-mix(in oklch, ${r.bu.accent} 42%, transparent)`,
                       display: 'flex', alignItems: 'center',
-                      paddingLeft: 8, paddingRight: bau ? Math.round(fadeW + 8) : 8,
+                      paddingLeft: 8 + (printing ? Math.max(0, Math.min(printX0 - x, barW - 60)) : 0),
+                      paddingRight: bau ? Math.round(fadeW + 8) : 8,
                       overflow: 'hidden', userSelect: 'none',
                     }}>
                     <span style={{
@@ -2349,7 +2621,9 @@ function BoardView() {
                       boxShadow, opacity: dim ? 0.22 : 1,
                       transition: 'opacity .15s, box-shadow .15s',
                       display: 'flex', alignItems: 'center',
-                      paddingLeft: noStart ? 36 : 10, paddingRight: padR,
+                      // Print: a bar that starts before the printed window keeps its name in view
+                      paddingLeft: (noStart ? 36 : 10) + (printing ? Math.max(0, Math.min(printX0 - x, barW - padR - 40)) : 0),
+                      paddingRight: padR,
                       overflow: 'visible', zIndex: isHot ? 3 : 1,
                       userSelect: 'none', touchAction: 'none',
                     }}>
@@ -2502,7 +2776,8 @@ function BoardView() {
       </div>}
 
       {/* Legend footer — or, when hidden, a small button to bring it back */}
-      {view === 'gantt' && (legendOpen
+      {/* (Printed pages always carry the legend.) */}
+      {view === 'gantt' && (legendOpen || printing
         ? <GanttLegend statuses={store.statuses} onClose={() => setLegendOpen(false)} />
         : <button onClick={() => setLegendOpen(true)} title="Vis forklaring på farver og symboler (?)" style={{
             position: 'absolute', right: 16, bottom: 14, zIndex: 6,
@@ -2511,6 +2786,8 @@ function BoardView() {
             fontFamily: UI.mono, fontSize: 10, boxShadow: UI.shadow,
           }}>? Forklaring</button>)}
 
+      {/* Drawers, tooltips and prompts never reach paper */}
+      <div className="no-print" style={{ display: 'contents' }}>
       {/* Initiative drawer */}
       {drawer && (
         <UiInitiativeDrawer store={store} draft={drawer}
@@ -2534,7 +2811,7 @@ function BoardView() {
       {/* Milestone tooltip */}
       {/* Read from the store on every render, so it updates right after a click
           marks the milestone reached. */}
-      {milestoneTooltip && (() => {
+      {milestoneTooltip && !printing && (() => {
         const init = store.initiatives.find((x) => x.id === milestoneTooltip.initId);
         const m = init && (init.milestones || [])[milestoneTooltip.idx];
         if (!m) return null;
@@ -2570,7 +2847,7 @@ function BoardView() {
       })()}
 
       {/* Initiative hover card — yields to the milestone tooltip and to drawers */}
-      {hoverTip && view === 'gantt' && !milestoneTooltip && !anyModalOpen && (
+      {hoverTip && view === 'gantt' && !milestoneTooltip && !anyModalOpen && !printing && (
         <BarHoverCard tip={hoverTip} store={store} today={today} canEdit={connected} />
       )}
 
@@ -2588,6 +2865,7 @@ function BoardView() {
           onSkip={() => setShowPatSetup(false)}
         />
       )}
+      </div>
     </div>
   );
 }
