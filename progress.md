@@ -48,7 +48,7 @@ self-resolves without action once the cache entry expires.
 | [`ui.jsx`](project/app/ui.jsx) | ~1167 | Design tokens (`UI`), primitives, initiative drawer, catalogue drawer, portfolio view |
 | [`import.jsx`](project/app/import.jsx) | ~767 | Excel import with a per-row review/validation UI |
 | [`ideas.jsx`](project/app/ideas.jsx) | ~281 | "Idéer og boblere" view for `idea`-status initiatives, with click-to-multi-select tech/outcome trend filters |
-| [`tech-view.jsx`](project/app/tech-view.jsx) | ~210 | "Teknologi" view — initiatives using one technology (dropdown, default Claude), with assessment columns, score sorting and manual priority (↑↓) |
+| [`tech-view.jsx`](project/app/tech-view.jsx) | ~1100 | "Teknologi" view — initiatives using one or more technologies, value × TTV matrix, assessment columns, comparison, CSV, sparse-rank priority (`techRankUpdates`) |
 | [`board.jsx`](project/app/board.jsx) | ~1793 | `BoardView`, filter strips, layout/synergy logic, drag handling, save/poll loop |
 
 ### Data persistence & multi-editor sync ([`sync.jsx`](project/app/sync.jsx))
@@ -113,9 +113,18 @@ fine-grained PAT. That needs org membership — see the earlier notes on token a
   id, buId, platformIds: [], departmentIds: [],
   name, status, owner, description, tags: [],
   techIds: [], blockerIds: [], outcomeIds: [],
-  start, end, milestones: [{ date, label }]
+  start, end, milestones: [{ date, label, done? }],
+  assessment?,                    // see "Initiative assessment" below
+  rejected?: { at, reason }       // idea rejected in Idéer ("Afvis"); removed by "Genåbn"
 }
 ```
+
+Optional fields are normalised in `parseJSON()` (`data.jsx`), so existing data needs no rewrite:
+- `milestones[].done` — `true` when marked "nået" (click on the Gantt or the drawer checkbox);
+  the key is removed again when unmarked, never stored as `false`
+- `rejected` — a hand-written `true` / reason string is upgraded to `{ at, reason }`, a falsy
+  value is dropped. Rejected ideas keep status `idea` and are left out of trends, pipeline,
+  candidates and the Teknologi view
 
 - **Platforms** are global (no `buId`) — shared across BUs
 - **Departments** are BU-scoped (`buId`) — filtered to the selected BU in the drawer
@@ -158,17 +167,21 @@ memo (`buBands`, `platformSpans`, `connectorBars`, synergy bands, the bar render
 ### Views
 - **Gantt** — swim lanes, draggable bars (move + resize), milestone diamonds, today line,
   BAU bars for initiatives with no end date
-- **Portfolio** — outcome/value pillar view
-- **Teknologi** — all initiatives (any status) that use a chosen technology (dropdown, default
-  Claude). Columns for the five assessment criteria; click 01 Værdi or 05 TTV to sort (desc
-  first, unscored last). Priority is manual: ↑↓ moves an initiative within the technology's
-  list, only active in priority order. Clicking a name opens the drawer. The assessment columns
-  are edited inline: click score dots, click a note to edit (saves on blur, Esc cancels), click
-  the governance mark to toggle it.
-- **Idéer og boblere** — `idea`-status initiatives, kept out of the Gantt. Sidebar lists
-  technology and outcome trends with counts; click one or more to toggle them into a filter
-  (OR within a group — e.g. two technologies — AND across groups — tech + outcome combined),
-  with a "Ryd" control to clear. Replaced an earlier hover-to-highlight-one interaction.
+- **Portfolio** — non-idea initiatives only. KPI cards (click → list), stacked status bars
+  split by BU / technology / blocker, BU × outcome heatmap, "Kræver opmærksomhed" (blocked,
+  past end date, no owner, no outcome), active initiatives per quarter, outcome pillars.
+  "Print / PDF" (or Ctrl+P while Portfolio is open) prints a static A4 management summary
+  (`UiPfPrintReport`, portalled into `body > .pf-print-report`). Works down to 375 px.
+- **Teknologi** — initiatives (any status) using one or more selected technologies (chips,
+  default Claude). Value × TTV matrix (drag a dot to re-score; "Mangler score" tray), overview
+  cards, status filter, "Vis afviste", sortable "Samlet" column, "Sammenlign teknologier",
+  CSV export (semicolon/BOM/decimal comma for Danish Excel). Priority is manual: drag rows (⠿)
+  or ↑↓, only in priority order — see `rank` below. Assessment columns are edited inline.
+- **Idéer og boblere** — `idea`-status initiatives, kept out of the Gantt. Trend sidebar
+  (technology/outcome, OR within a group, AND across), pipeline Idé → POC → Pilot → Prod,
+  search, sort/group, "★ Kandidat" (value + TTV ≥ 7 and value ≥ 3), quick assessment on the
+  card, "+ Ny idé", "Løft til POC →" (sets missing/invalid start to today and a too-early end
+  to start + 120 days), Afvis/Genåbn. In view mode every edit opens the connect prompt first.
 - **Import** — drag-and-drop or file-pick *any* `.xlsx`/`.xls`, parsed client-side via SheetJS
   (loaded from CDN in `index.html`), with per-row validation before committing. There is no
   checked-in spreadsheet — the file always comes from the user.
@@ -230,6 +243,18 @@ Setting it: leave End empty in the drawer, or write `BAU` (also `løbende` / `on
 - Technology, blocker and outcome filter strips with counts and synergy dots
 - Synergy band + dashed SVG connectors when a selection spans 2+ BUs
 - Blocker mode dimming non-blocked initiatives
+- **Ideas never count on the Gantt** — `ganttInits` (non-idea initiatives) feeds the filter
+  strips, counts, synergies, "Vis blokerede", per-BU ⚠ counts and the timeline range
+- Hover card on bars/rows (period, progress, next milestone, blockers, techs, outcomes)
+- "I DAG" marker in the calendar header, current quarter/month highlighted, Danish month names;
+  opens on today
+- Per-BU summary chips (status counts, blocked, past end date, milestones ≤ 30 days) and board
+  totals in the top-left corner
+- Milestones: upcoming ◇, reached ◆, overdue ◆ (amber); editors click to toggle `done`.
+  Bars past their end date without status Prod get an amber right edge
+- Search (`/`, Esc clears) on name, owner, department and platform — filters, not dims
+- Legend at the bottom (`?` toggles, remembered in `localStorage['aiboard:forklaring']`)
+- Keyboard: T = today, ←/→ = month (Shift = quarter), +/− = zoom
 - **Print** (⎙ Print or Ctrl+P on the Gantt) — A4/A3 landscape; period = visible window, 12 months
   from the current quarter, or the whole timeline. Fits the page width (rows never split across
   pages, the calendar repeats on each page) or, optionally, one page. Filter strip, buttons and
@@ -262,6 +287,9 @@ Setting it: leave End empty in the drawer, or write `BAU` (also `løbende` / `on
 - `platformSpans` and `buBands` must include `'department'` in their kind filters
 - **`range` excludes BAU end dates** — the timeline range is computed from real start/end
   values only, so a BAU bar's visual end follows `timelineW`, not a date
+- **Dates are local calendar dates:** format with `dateToISO()` and step with `addDays()`
+  (both in `data.jsx`), parse with `parseISO()`. Never `toISOString().slice(0, 10)` — that is the
+  UTC date, a day early in Denmark around midnight (it used to shift dragged bars a day back)
 - **Date parsing is deliberately strict:** `xlDate` accepts a known set of "no date" words
   (blank, `N/A`, `-`, `BAU`, `løbende`, `ongoing`) and still flags anything else it can't
   parse. Don't widen it to a catch-all — that would swallow genuine typos in imports.
@@ -280,7 +308,8 @@ Setting it: leave End empty in the drawer, or write `BAU` (also `løbende` / `on
 ## Known gaps / next steps
 
 1. **No dark mode** — design tokens support it architecturally, but no toggle is wired up.
-2. **Desktop only** — no responsive layout for narrow viewports.
+2. **Narrow screens** — Portfolio, Idéer and Teknologi work down to 375 px; the Gantt and the
+   top bar are still desktop-first.
 3. **Babel standalone** — fine for prototyping; a build step (Vite/esbuild) would remove the
    runtime compile cost and enable TypeScript.
 4. **Outcome tracking** (planned, not implemented) — per-initiative
