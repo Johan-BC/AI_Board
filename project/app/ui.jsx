@@ -198,7 +198,9 @@ function UiComments({ comments, onChange, compact = false }) {
   const close = () => { setAdding(false); setDraft(''); };
   const submit = () => {
     const text = draft.trim();
-    if (text) onChange([...comments, { id: `c_${Date.now()}`, text, at: dateToISO(new Date()) }]);
+    // onChange returns false when the edit is refused (view-only: the connect
+    // prompt opens) — keep the draft so it isn't lost.
+    if (text && onChange([...comments, { id: `c_${Date.now()}`, text, at: dateToISO(new Date()) }]) === false) return;
     close();
   };
   const fs = compact ? 11 : 12;
