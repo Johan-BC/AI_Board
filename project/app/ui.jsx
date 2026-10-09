@@ -1219,7 +1219,7 @@ function UiPfStackedBars({ rows, statuses, selKey, onPick, showBlocked = true })
         const rowKey = `row:${r.key}`;
         return (
           <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div onClick={() => onPick(rowKey, r.label, r.inits)} title={`Vis alle ${r.inits.length} i ${r.label}`}
+            <div className="pf-bar-label" onClick={() => onPick(rowKey, r.label, r.inits)} title={`Vis alle ${r.inits.length} i ${r.label}`}
               style={{
                 width: 130, flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
                 fontSize: 11.5, color: UI.ink, fontWeight: selKey === rowKey ? 700 : 500, minWidth: 0,
@@ -1254,7 +1254,7 @@ function UiPfStackedBars({ rows, statuses, selKey, onPick, showBlocked = true })
           </div>
         );
       })}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 4, paddingLeft: 138 }}>
+      <div className="pf-bar-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 4, paddingLeft: 138 }}>
         {statuses.map((s) => (
           <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, color: UI.inkMuted }}>
             <span style={{ width: 8, height: 8, borderRadius: 2, background: s.color }} />{s.label}
@@ -1369,6 +1369,12 @@ const _pfQEnd   = (y, q) => dateToISO(new Date(y, q * 3 + 3, 0));
 const _pfQIndex = (iso) => { const [y, m] = iso.split('-').map(Number); return y * 4 + Math.floor((m - 1) / 3); };
 
 function UiPfQuarters({ inits, statuses, todayISO, selKey, onPick }) {
+  // When the row is wider than the card (phone), show today's end of it first.
+  const scrollRef = React.useRef(null);
+  React.useEffect(() => {
+    const el = scrollRef.current;
+    if (el && el.scrollWidth > el.clientWidth) el.scrollLeft = el.scrollWidth;
+  }, []);
   const dated = inits.filter((i) => _pfIsISO(i.start));
   if (!dated.length) return <div style={{ fontSize: 12, color: UI.inkFaint, fontStyle: 'italic' }}>Ingen initiativer med startdato</div>;
   const now = _pfQIndex(todayISO);
@@ -1387,7 +1393,7 @@ function UiPfQuarters({ inits, statuses, todayISO, selKey, onPick }) {
   const H = 130;
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+      <div ref={scrollRef} style={{ display: 'flex', alignItems: 'flex-end', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
         {quarters.map((x) => {
           const isNow = x.k === now;
           return (
@@ -1431,6 +1437,243 @@ function UiPfQuarters({ inits, statuses, todayISO, selKey, onPick }) {
   );
 }
 
+// ── Distribution helpers (shared by the screen view and the print report) ────
+// Stacked bar rows for one dimension: 'bu' | 'tech' | 'blocker'.
+function _pfBarRows(store, inits, dim) {
+  if (dim === 'bu') {
+    const buById = _byId(store.businessUnits || []);
+    const rows = (store.businessUnits || []).map((bu) => ({
+      key: bu.id, label: bu.name, dot: bu.accent, inits: inits.filter((i) => i.buId === bu.id),
+    }));
+    const orphans = inits.filter((i) => !buById[i.buId]);
+    if (orphans.length) rows.push({ key: '_none', label: 'Uden forretningsenhed', inits: orphans });
+    return rows.filter((r) => r.inits.length);
+  }
+  const catalogue = dim === 'tech' ? (store.technologies || []) : (store.blockers || []);
+  const field     = dim === 'tech' ? 'techIds' : 'blockerIds';
+  const rows = catalogue
+    .map((c) => ({ key: c.id, label: c.name, dot: `oklch(0.58 0.13 ${c.colorHue ?? 250})`, inits: inits.filter((i) => (i[field] || []).includes(c.id)) }))
+    .filter((r) => r.inits.length)
+    .sort((a, b) => b.inits.length - a.inits.length);
+  if (dim === 'tech') {
+    const none = inits.filter((i) => !(i.techIds || []).length);
+    if (none.length) rows.push({ key: '_none', label: 'Ingen teknologi', inits: none });
+  }
+  return rows;
+}
+
+// First colorHue per outcome pillar (category).
+function _pfPillarHue(outcomes) {
+  const hue = {};
+  for (const o of outcomes) if (hue[o.category] == null) hue[o.category] = o.colorHue;
+  return hue;
+}
+
+// Heatmap: forretningsenhed × outcome-søjle. Static (no clicks) without onPick.
+function UiPfHeatmap({ store, inits, selKey, onPick }) {
+  const outcomes    = store.outcomes || [];
+  const pillars     = [...new Set(outcomes.map((o) => o.category))];
+  const outcomeById = _byId(outcomes);
+  const pillarHue   = _pfPillarHue(outcomes);
+  const heatBUs  = (store.businessUnits || []).filter((bu) => inits.some((i) => i.buId === bu.id));
+  const pillarOf = (i) => new Set((i.outcomeIds || []).map((oid) => outcomeById[oid]?.category).filter(Boolean));
+  const cellInits = (buId, pillar) => inits.filter((i) => i.buId === buId && pillarOf(i).has(pillar));
+  const heatMax  = Math.max(1, ...heatBUs.flatMap((bu) => pillars.map((p) => cellInits(bu.id, p).length)));
+
+  if (pillars.length === 0 || heatBUs.length === 0) {
+    return <div style={{ fontSize: 12, color: UI.inkFaint, fontStyle: 'italic' }}>Ingen data</div>;
+  }
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table className="pf-heat" style={{ borderCollapse: 'separate', borderSpacing: 3, width: '100%', fontSize: 11 }}>
+        <thead>
+          <tr>
+            <th />
+            {pillars.map((p) => (
+              <th key={p} style={{ fontWeight: 600, color: `oklch(0.46 0.13 ${pillarHue[p] ?? 200})`, fontSize: 10.5, padding: '0 4px 4px', textAlign: 'center', lineHeight: 1.25 }}>{p}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {heatBUs.map((bu) => (
+            <tr key={bu.id}>
+              <td style={{ whiteSpace: 'nowrap', paddingRight: 6, color: UI.ink }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><UiBuDot bu={bu} size={7} />{bu.name}</span>
+              </td>
+              {pillars.map((p) => {
+                const list = cellInits(bu.id, p);
+                const n = list.length;
+                const t = n / heatMax;
+                const hue = pillarHue[p] ?? 200;
+                const k = `heat:${bu.id}:${p}`;
+                const clickable = !!(n && onPick);
+                return (
+                  <td key={p}
+                    onClick={() => clickable && onPick(k, `${bu.name} · ${p}`, list)}
+                    title={`${bu.name} · ${p}: ${n} initiativ${n === 1 ? '' : 'er'}`}
+                    style={{
+                      height: 30, minWidth: 44, textAlign: 'center', borderRadius: 5,
+                      fontFamily: UI.mono, fontWeight: 600,
+                      cursor: clickable ? 'pointer' : 'default',
+                      background: n ? `oklch(${(0.95 - 0.4 * t).toFixed(3)} ${(0.03 + 0.11 * t).toFixed(3)} ${hue})` : UI.panelSoft,
+                      color: n ? (t > 0.5 ? '#fff' : `oklch(0.4 0.12 ${hue})`) : UI.inkFaint,
+                      outline: selKey === k ? `2px solid ${UI.ink}` : 'none', outlineOffset: -1,
+                    }}>{n || '·'}</td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{ fontSize: 10.5, color: UI.inkFaint, marginTop: 6 }}>
+        Antal initiativer med mindst ét outcome i søjlen.{onPick ? ' Klik på en celle for at se dem.' : ''}
+      </div>
+    </div>
+  );
+}
+
+// ── Print / PDF: management summary ──────────────────────────────────────────
+// Rendered into a hidden <div class="pf-print-report"> directly under <body>
+// while the Portfolio view is open. @media print hides everything else, so
+// both the "Print / PDF" button and Ctrl+P give this static A4 summary.
+const _pfFmtDate = (iso) => _pfIsISO(iso) ? iso.split('-').reverse().join('.') : '';
+const PF_PRINT_ATTENTION_MAX = 30;   // keeps the report at about two pages
+
+function UiPfPrintReport({ store, inits, statuses, todayISO }) {
+  const buById      = _byId(store.businessUnits || []);
+  const blockerById = _byId(store.blockers || []);
+  const n = inits.length;
+  const pct = (k) => n ? `${Math.round((k / n) * 100)} % af porteføljen` : '–';
+  const issue = Object.fromEntries(PF_ISSUES.map((p) => [p.id, p]));
+  const count = (id) => inits.filter((i) => issue[id].test(i, todayISO)).length;
+  const prod = inits.filter((i) => i.status === 'prod').length;
+
+  const attention = inits
+    .map((i) => ({ i, issues: PF_ISSUES.filter((p) => p.test(i, todayISO)) }))
+    .filter((r) => r.issues.length)
+    .sort((a, b) => b.issues.length - a.issues.length || String(a.i.name || '').localeCompare(String(b.i.name || ''), 'da'));
+  const shownAttention = attention.slice(0, PF_PRINT_ATTENTION_MAX);
+
+  const kpis = [
+    { label: 'Initiativer',   value: n, sub: statuses.map((s) => `${inits.filter((i) => i.status === s.id).length} ${s.label}`).join(' · ') },
+    { label: 'I produktion',  value: prod, sub: pct(prod), tone: resolveStatus('prod', store.statuses).color },
+    ...PF_ISSUES.map((p) => ({ label: p.label, value: count(p.id), sub: pct(count(p.id)), tone: p.color })),
+  ];
+  const h2  = { fontSize: 12, fontWeight: 700, color: UI.ink, margin: '0 0 8px' };
+  const box = { border: `1px solid ${UI.border}`, borderRadius: 8, padding: '10px 12px', background: '#fff' };
+  const noop = () => {};
+  const th = { textAlign: 'left', fontWeight: 600, fontSize: 9, color: UI.inkFaint, textTransform: 'uppercase', letterSpacing: 0.6, padding: '4px 6px', borderBottom: `1px solid ${UI.borderStrong}` };
+  const td = { padding: '4px 6px', borderBottom: `1px solid ${UI.border}`, verticalAlign: 'top' };
+
+  return (
+    <div style={{ fontFamily: UI.sans, color: UI.ink, fontSize: 11, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, borderBottom: `2px solid ${UI.ink}`, paddingBottom: 8 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: UI.mono, fontSize: 9, letterSpacing: 1.2, textTransform: 'uppercase', color: UI.inkFaint }}>AI Board · Ledelsesoversigt</div>
+          <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: -0.4 }}>AI-porteføljen</div>
+        </div>
+        <div style={{ textAlign: 'right', fontSize: 10.5, color: UI.inkMuted }}>
+          <div>Udskrevet {_pfFmtDate(todayISO)}</div>
+          <div>{n} initiativer i POC, pilot og produktion. Idéer er ikke medtaget.</div>
+        </div>
+      </div>
+
+      <div className="pf-avoid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+        {kpis.map((k) => (
+          <div key={k.label} style={{ ...box, padding: '8px 10px' }}>
+            <div style={_pfLabel}>{k.label}</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: k.value && k.tone ? k.tone : UI.ink, fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
+            <div style={{ fontSize: 9.5, color: UI.inkMuted }}>{k.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="pf-avoid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, alignItems: 'start' }}>
+        <div style={box}>
+          <div style={h2}>Status pr. forretningsenhed</div>
+          <UiPfStackedBars rows={_pfBarRows(store, inits, 'bu')} statuses={statuses} onPick={noop} />
+        </div>
+        <div style={box}>
+          <div style={h2}>Forretningsenhed × outcome-søjle</div>
+          <UiPfHeatmap store={store} inits={inits} />
+        </div>
+      </div>
+
+      <div className="pf-avoid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, alignItems: 'start' }}>
+        <div style={box}>
+          <div style={h2}>Aktive initiativer pr. kvartal</div>
+          <UiPfQuarters inits={inits} statuses={statuses} todayISO={todayISO} onPick={noop} />
+        </div>
+        <div style={box}>
+          <div style={h2}>Status pr. teknologi</div>
+          <UiPfStackedBars rows={_pfBarRows(store, inits, 'tech').slice(0, 10)} statuses={statuses} onPick={noop} />
+        </div>
+      </div>
+
+      <div style={box}>
+        <div style={{ ...h2, display: 'flex', gap: 8, alignItems: 'baseline' }}>
+          Kræver opmærksomhed
+          <span style={{ fontFamily: UI.mono, fontSize: 10, fontWeight: 500, color: UI.inkMuted }}>{attention.length} af {n}</span>
+        </div>
+        {attention.length === 0 ? (
+          <div style={{ color: 'oklch(0.45 0.12 150)' }}>✓ Alle initiativer har ejer og outcome, ingen er blokerede eller over slutdato.</div>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10.5 }}>
+            <thead>
+              <tr><th style={th}>Initiativ</th><th style={th}>Enhed</th><th style={th}>Status</th><th style={th}>Ejer</th><th style={th}>Hvorfor</th></tr>
+            </thead>
+            <tbody>
+              {shownAttention.map(({ i, issues }) => {
+                const st = resolveStatus(i.status, store.statuses);
+                const bu = buById[i.buId];
+                return (
+                  <tr key={i.id} className="pf-avoid">
+                    <td style={{ ...td, fontWeight: 600 }}>{i.name}</td>
+                    <td style={{ ...td, whiteSpace: 'nowrap' }}>{bu ? (bu.short || bu.name) : '–'}</td>
+                    <td style={{ ...td, whiteSpace: 'nowrap', color: st.color, fontWeight: 600 }}>{st.label}</td>
+                    <td style={td}>{String(i.owner || '').trim() || '–'}</td>
+                    <td style={td}>
+                      {issues.map((p, k) => {
+                        let text = p.label;
+                        if (p.id === 'blocked') {
+                          const names = (i.blockerIds || []).map((b) => blockerById[b]?.name).filter(Boolean);
+                          if (names.length) text = `Blokeret: ${names.join(', ')}`;
+                        }
+                        if (p.id === 'overdue') text = `Slutdato ${_pfFmtDate(i.end)}`;
+                        return <span key={p.id} style={{ color: p.color, fontWeight: 600 }}>{k ? ' · ' : ''}{text}</span>;
+                      })}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+        {attention.length > shownAttention.length && (
+          <div style={{ fontSize: 10, color: UI.inkMuted, marginTop: 6 }}>
+            + {attention.length - shownAttention.length} flere. Hele listen står under Portfolio på boardet.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Mounts UiPfPrintReport in its own <div> under <body> for as long as the
+// Portfolio view is open.
+function UiPfPrintPortal(props) {
+  const [host, setHost] = React.useState(null);
+  React.useEffect(() => {
+    const el = document.createElement('div');
+    el.className = 'pf-print-report';
+    document.body.appendChild(el);
+    document.body.classList.add('pf-has-report');
+    setHost(el);
+    return () => { document.body.classList.remove('pf-has-report'); el.remove(); };
+  }, []);
+  return host ? ReactDOM.createPortal(<UiPfPrintReport {...props} />, host) : null;
+}
+
 // ── Portfolio / Outcome pillar view ──────────────────────────────────────────
 function UiPortfolioView({ store, onOpenInit }) {
   const outcomes   = store.outcomes || [];
@@ -1460,58 +1703,34 @@ function UiPortfolioView({ store, onOpenInit }) {
   const pct = (n) => inits.length ? `${Math.round((n / inits.length) * 100)} %` : '–';
 
   // ── Stacked bar rows for the chosen dimension ──
-  const barRows = (() => {
-    if (dim === 'bu') {
-      const rows = (store.businessUnits || []).map((bu) => ({
-        key: bu.id, label: bu.name, dot: bu.accent, inits: inits.filter((i) => i.buId === bu.id),
-      }));
-      const orphans = inits.filter((i) => !buById[i.buId]);
-      if (orphans.length) rows.push({ key: '_none', label: 'Uden forretningsenhed', inits: orphans });
-      return rows.filter((r) => r.inits.length);
-    }
-    const catalogue = dim === 'tech' ? (store.technologies || []) : (store.blockers || []);
-    const field     = dim === 'tech' ? 'techIds' : 'blockerIds';
-    const rows = catalogue
-      .map((c) => ({ key: c.id, label: c.name, dot: `oklch(0.58 0.13 ${c.colorHue ?? 250})`, inits: inits.filter((i) => (i[field] || []).includes(c.id)) }))
-      .filter((r) => r.inits.length)
-      .sort((a, b) => b.inits.length - a.inits.length);
-    if (dim === 'tech') {
-      const none = inits.filter((i) => !(i.techIds || []).length);
-      if (none.length) rows.push({ key: '_none', label: 'Ingen teknologi', inits: none });
-    }
-    return rows;
-  })();
-
-  // ── Heatmap: forretningsenhed × outcome-søjle ──
-  const heatBUs = (store.businessUnits || []).filter((bu) => inits.some((i) => i.buId === bu.id));
-  const pillarOf = (i) => new Set((i.outcomeIds || []).map((oid) => outcomeById[oid]?.category).filter(Boolean));
-  const cellInits = (buId, pillar) => inits.filter((i) => i.buId === buId && pillarOf(i).has(pillar));
-  const heatMax = Math.max(1, ...heatBUs.flatMap((bu) => pillars.map((p) => cellInits(bu.id, p).length)));
+  const barRows = _pfBarRows(store, inits, dim);
 
   // First colorHue per pillar
-  const pillarHue = {};
-  for (const o of outcomes) {
-    if (pillarHue[o.category] == null) pillarHue[o.category] = o.colorHue;
-  }
+  const pillarHue = _pfPillarHue(outcomes);
 
   // Initiatives without any outcomeIds
   const uninit = store.initiatives.filter((i) => !(i.outcomeIds || []).length);
   const withOutcomes = store.initiatives.filter((i) => (i.outcomeIds || []).length > 0);
 
   return (
-    <div style={{ flex: 1, overflow: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20, fontFamily: UI.sans }}>
+    <div className="pf-root" style={{ flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20, fontFamily: UI.sans }}>
+      <UiPfPrintPortal store={store} inits={inits} statuses={statuses} todayISO={todayISO} />
       {/* Header */}
-      <div>
-        <div style={{ fontFamily: UI.mono, fontSize: 10, letterSpacing: 1.2, textTransform: 'uppercase', color: UI.inkFaint, marginBottom: 5 }}>Portfolio Value</div>
-        <div style={{ fontSize: 17, fontWeight: 600, color: UI.ink, letterSpacing: -0.3 }}>Hvilken værdi skaber AI-porteføljen?</div>
-        <div style={{ fontSize: 12, color: UI.inkMuted, marginTop: 4 }}>
-          {withOutcomes.length} af {store.initiatives.length} initiativer har registreret outcomes
-          {uninit.length > 0 && <span style={{ color: 'oklch(0.62 0.14 70)', marginLeft: 6 }}>· {uninit.length} mangler</span>}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+          <div style={{ fontFamily: UI.mono, fontSize: 10, letterSpacing: 1.2, textTransform: 'uppercase', color: UI.inkFaint, marginBottom: 5 }}>Portfolio Value</div>
+          <div style={{ fontSize: 17, fontWeight: 600, color: UI.ink, letterSpacing: -0.3 }}>Hvilken værdi skaber AI-porteføljen?</div>
+          <div style={{ fontSize: 12, color: UI.inkMuted, marginTop: 4 }}>
+            {withOutcomes.length} af {store.initiatives.length} initiativer har registreret outcomes
+            {uninit.length > 0 && <span style={{ color: 'oklch(0.62 0.14 70)', marginLeft: 6 }}>· {uninit.length} mangler</span>}
+          </div>
         </div>
+        <UiButton size="sm" onClick={() => window.print()} title="Udskriv en ledelsesoversigt på 1-2 A4-sider, eller gem den som PDF"
+          icon={<span style={{ fontSize: 12, lineHeight: 0 }}>⎙</span>}>Print / PDF</UiButton>
       </div>
 
       {/* ── Key figures ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))', gap: 12 }}>
         <UiPfKpi label="Initiativer" value={inits.length}
           sub={statuses.map((s) => `${inits.filter((i) => i.status === s.id).length} ${s.label}`).join(' · ')}
           active={sel?.key === 'kpi:all'} onClick={() => pick('kpi:all', 'Alle initiativer', inits)} />
@@ -1530,7 +1749,7 @@ function UiPortfolioView({ store, onOpenInit }) {
       <UiPfAttention inits={inits} store={store} todayISO={todayISO} onOpenInit={onOpenInit} />
 
       {/* ── Distribution charts ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 14, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(380px, 100%), 1fr))', gap: 14, alignItems: 'start' }}>
         <div style={_pfCard}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: UI.ink, flex: '1 1 auto' }}>Status fordelt på</div>
@@ -1548,53 +1767,7 @@ function UiPortfolioView({ store, onOpenInit }) {
 
         <div style={_pfCard}>
           <div style={{ fontSize: 13, fontWeight: 600, color: UI.ink, marginBottom: 12 }}>Forretningsenhed × outcome-søjle</div>
-          {pillars.length === 0 || heatBUs.length === 0 ? (
-            <div style={{ fontSize: 12, color: UI.inkFaint, fontStyle: 'italic' }}>Ingen data</div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ borderCollapse: 'separate', borderSpacing: 3, width: '100%', fontSize: 11 }}>
-                <thead>
-                  <tr>
-                    <th />
-                    {pillars.map((p) => (
-                      <th key={p} style={{ fontWeight: 600, color: `oklch(0.46 0.13 ${pillarHue[p] ?? 200})`, fontSize: 10.5, padding: '0 4px 4px', textAlign: 'center', lineHeight: 1.25 }}>{p}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {heatBUs.map((bu) => (
-                    <tr key={bu.id}>
-                      <td style={{ whiteSpace: 'nowrap', paddingRight: 6, color: UI.ink }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><UiBuDot bu={bu} size={7} />{bu.name}</span>
-                      </td>
-                      {pillars.map((p) => {
-                        const list = cellInits(bu.id, p);
-                        const n = list.length;
-                        const t = n / heatMax;
-                        const hue = pillarHue[p] ?? 200;
-                        const k = `heat:${bu.id}:${p}`;
-                        const active = sel?.key === k;
-                        return (
-                          <td key={p}
-                            onClick={() => n && pick(k, `${bu.name} · ${p}`, list)}
-                            title={`${bu.name} · ${p}: ${n} initiativ${n === 1 ? '' : 'er'}`}
-                            style={{
-                              height: 30, minWidth: 44, textAlign: 'center', borderRadius: 5,
-                              fontFamily: UI.mono, fontWeight: 600,
-                              cursor: n ? 'pointer' : 'default',
-                              background: n ? `oklch(${(0.95 - 0.4 * t).toFixed(3)} ${(0.03 + 0.11 * t).toFixed(3)} ${hue})` : UI.panelSoft,
-                              color: n ? (t > 0.5 ? '#fff' : `oklch(0.4 0.12 ${hue})`) : UI.inkFaint,
-                              outline: active ? `2px solid ${UI.ink}` : 'none', outlineOffset: -1,
-                            }}>{n || '·'}</td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div style={{ fontSize: 10.5, color: UI.inkFaint, marginTop: 6 }}>Antal initiativer med mindst ét outcome i søjlen. Klik på en celle for at se dem.</div>
-            </div>
-          )}
+          <UiPfHeatmap store={store} inits={inits} selKey={sel?.key} onPick={pick} />
         </div>
       </div>
 
@@ -1648,7 +1821,7 @@ function UiPortfolioView({ store, onOpenInit }) {
         <div style={{
           display: 'grid',
           // At most 4 columns, but wrap rather than overflow on narrow screens.
-          gridTemplateColumns: `repeat(auto-fit, minmax(max(200px, calc((100% - ${(Math.min(pillars.length, 4) - 1) * 14}px) / ${Math.min(pillars.length, 4)})), 1fr))`,
+          gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, max(200px, calc((100% - ${(Math.min(pillars.length, 4) - 1) * 14}px) / ${Math.min(pillars.length, 4)}))), 1fr))`,
           gap: 14, alignItems: 'start',
         }}>
           {pillars.map((pillar) => {
@@ -1796,6 +1969,27 @@ if (typeof document !== 'undefined' && !document.getElementById('ui-base-styles'
     .board-scroller::-webkit-scrollbar-thumb { background: oklch(0.85 0.005 80); border-radius: 5px; }
     .board-scroller::-webkit-scrollbar-track { background: transparent; }
     .board-scroller::-webkit-scrollbar-thumb:hover { background: oklch(0.7 0.008 80); }
+
+    /* Portfolio on narrow screens */
+    @media (max-width: 600px) {
+      .pf-root { padding: 14px 12px !important; gap: 14px !important; }
+      .pf-root .pf-bar-label { width: 92px !important; }
+      .pf-root .pf-bar-legend { padding-left: 0 !important; }
+      .pf-root .pf-heat td:first-child { white-space: normal !important; }
+      .pf-root .pf-heat td { min-width: 30px !important; }
+    }
+
+    /* Portfolio print / PDF: only the management summary (UiPfPrintReport) */
+    .pf-print-report { display: none; }
+    @media print {
+      @page { size: A4 portrait; margin: 12mm; }
+      html, body { width: auto !important; height: auto !important; overflow: visible !important; background: #fff !important; }
+      body.pf-has-report > *:not(.pf-print-report) { display: none !important; }
+      body.pf-has-report > .pf-print-report { display: block; }
+      .pf-print-report, .pf-print-report * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .pf-print-report .pf-avoid { break-inside: avoid; page-break-inside: avoid; }
+      .pf-print-report thead { display: table-header-group; }
+    }
   `;
   document.head.appendChild(s);
 }
