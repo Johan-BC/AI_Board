@@ -81,7 +81,7 @@ function UiIdeaPipeline({ store, candidateCount }) {
         const here = s.id === 'idea';
         return (
           <React.Fragment key={s.id}>
-            {k > 0 && <div style={{ alignSelf: 'center', color: UI.inkFaint, fontSize: 14 }}>→</div>}
+            {k > 0 && <div className="idea-pipe-arrow" style={{ alignSelf: 'center', color: UI.inkFaint, fontSize: 14 }}>→</div>}
             <div title={here ? 'Vises her' : `${n} initiativer i ${s.label} (på Gantt-boardet)`} style={{
               flex: '1 1 110px', minWidth: 100, padding: '9px 12px', borderRadius: 8,
               background: here ? UI.panel : UI.panelSoft,
@@ -109,7 +109,7 @@ function UiIdeaPipeline({ store, candidateCount }) {
 
 // Inline "+ Ny idé" form: name, business unit and an optional purpose. The rest
 // is filled in from the drawer later. The chosen BU is remembered per browser.
-function UiIdeaQuickCreate({ store, onCreate }) {
+function UiIdeaQuickCreate({ store, onCreate, onStart }) {
   const bus = store.businessUnits || [];
   const [open, setOpen]       = React.useState(false);
   const [name, setName]       = React.useState('');
@@ -132,7 +132,7 @@ function UiIdeaQuickCreate({ store, onCreate }) {
 
   if (!open) {
     return (
-      <UiButton variant="primary" size="sm" onClick={() => setOpen(true)} title="Opret en idé direkte her"
+      <UiButton variant="primary" size="sm" onClick={() => { if (!onStart || onStart()) setOpen(true); }} title="Opret en idé direkte her"
         icon={<span style={{ fontSize: 13, lineHeight: 0 }}>+</span>}>Ny idé</UiButton>
     );
   }
@@ -162,8 +162,11 @@ function UiIdeaQuickCreate({ store, onCreate }) {
   );
 }
 
-function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit, onCreateInit }) {
+// canEdit === false (view only): the edit buttons stay visible, but ask the
+// user to connect (onRequestEdit) before any confirm/prompt dialog is shown.
+function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit, onCreateInit, canEdit, onRequestEdit }) {
   const [selectedTechIds, setSelectedTechIds]       = React.useState([]);
+  const [trendsOpen, setTrendsOpen]                 = React.useState(false);   // narrow screens only
   const [selectedOutcomeIds, setSelectedOutcomeIds] = React.useState([]);
   const [query, setQuery]               = React.useState('');
   const [showRejected, setShowRejected] = React.useState(false);
@@ -198,25 +201,37 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit, onCreate
   const statusList = (store.statuses && store.statuses.length) ? store.statuses : STATUSES;
   const nextStatus = statusList[statusList.findIndex((s) => s.id === 'idea') + 1] || resolveStatus('poc', store.statuses);
 
+  const mayEdit = () => {
+    if (canEdit !== false) return true;
+    onRequestEdit && onRequestEdit();
+    return false;
+  };
+
   const promote = (i) => {
-    if (!onUpdateInit) return;
-    if (!window.confirm(`Løft "${i.name}" til ${nextStatus.label}?\n\nDen forsvinder fra Idéer og kommer på Gantt-boardet.`)) return;
+    if (!onUpdateInit || !mayEdit()) return;
+    const isISO = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || '');
+    const fmt = (d) => d.split('-').reverse().join('.');
     const patch = { status: nextStatus.id };
-    const start = i.start || dateToISO(new Date());
-    if (!i.start) patch.start = start;                   // the Gantt needs a start date
+    const start = isISO(i.start) ? i.start : dateToISO(new Date());
+    if (start !== i.start) patch.start = start;          // the Gantt needs a start date
     // An end date before the start would draw a negative bar; give it the same
     // 120-day default as a new initiative. No end date (BAU) is left alone.
-    if (i.end && i.end < start) patch.end = dateToISO(addDays(parseISO(start), 120));
+    if (isISO(i.end) && i.end < start) patch.end = dateToISO(addDays(parseISO(start), 120));
+    const notes = [
+      patch.start && `Startdato sættes til i dag (${fmt(patch.start)}).`,
+      patch.end && `Slutdatoen ${fmt(i.end)} ligger før start og flyttes til ${fmt(patch.end)}.`,
+    ].filter(Boolean);
+    if (!window.confirm(`Løft "${i.name}" til ${nextStatus.label}?\n\nDen forsvinder fra Idéer og kommer på Gantt-boardet.${notes.length ? '\n\n' + notes.join('\n') : ''}`)) return;
     onUpdateInit(i.id, patch);
   };
 
   const reject = (i) => {
-    if (!onUpdateInit) return;
+    if (!onUpdateInit || !mayEdit()) return;
     const reason = window.prompt(`Afvis "${i.name}"?\n\nSkriv evt. en begrundelse. Idéen kan genåbnes senere.`, '');
     if (reason === null) return;
     onUpdateInit(i.id, { rejected: { at: dateToISO(new Date()), reason: reason.trim() } });
   };
-  const reopen = (i) => onUpdateInit && onUpdateInit(i.id, { rejected: undefined });
+  const reopen = (i) => onUpdateInit && mayEdit() && onUpdateInit(i.id, { rejected: undefined });
 
   // ── Quick create ─────────────────────────────────────────────────────────────
   const create = (draft) => {
@@ -285,7 +300,7 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit, onCreate
         <div style={{ fontSize: 40 }}>💡</div>
         <div style={{ fontSize: 16, fontWeight: 700, color: UI.ink }}>Ingen idéer endnu</div>
         <div style={{ fontSize: 13 }}>Opret den første her, eller et initiativ med status "Idea"</div>
-        {onCreateInit && <div style={{ marginTop: 6, width: 'min(720px, 100%)', display: 'flex', justifyContent: 'center' }}><UiIdeaQuickCreate store={store} onCreate={create} /></div>}
+        {onCreateInit && <div style={{ marginTop: 6, width: 'min(720px, 100%)', display: 'flex', justifyContent: 'center' }}><UiIdeaQuickCreate store={store} onCreate={create} onStart={mayEdit} /></div>}
       </div>
     );
   }
@@ -304,7 +319,7 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit, onCreate
     const assess = onUpdateAssess ? (key, sub) => onUpdateAssess(i.id, key, sub) : null;
 
     return (
-      <div key={i.id}
+      <div key={i.id} className="idea-card"
         onClick={() => onOpenInit && onOpenInit(i)}
         onMouseEnter={e => {
           e.currentTarget.style.boxShadow = '0 6px 20px rgba(20,16,12,.13)';
@@ -315,7 +330,7 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit, onCreate
           e.currentTarget.style.transform = '';
         }}
         style={{
-          width: 272, display: 'flex', flexDirection: 'column', gap: 10,
+          width: 272, maxWidth: '100%', display: 'flex', flexDirection: 'column', gap: 10,
           background: UI.panel, borderRadius: 14, padding: '16px 18px',
           cursor: 'pointer', userSelect: 'none',
           border: highlighted ? `1.5px solid ${UI.accent}` : isCandidate ? `1.5px solid oklch(0.80 0.08 250)` : `1px solid ${UI.border}`,
@@ -436,22 +451,32 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit, onCreate
   };
 
   return (
-    <div style={{ display: 'flex', flex: 1, overflow: 'hidden', fontFamily: UI.sans }}>
+    <div className="idea-root" style={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden', fontFamily: UI.sans }}>
 
       {/* ── Trend sidebar ─────────────────────────────────────────────────────── */}
-      <div style={{ width: 230, flexShrink: 0, borderRight: `1px solid ${UI.border}`, overflowY: 'auto', background: UI.panelSoft, padding: '16px 14px' }}>
+      <div className="idea-side" style={{ width: 230, flexShrink: 0, borderRight: `1px solid ${UI.border}`, overflowY: 'auto', background: UI.panelSoft, padding: '16px 14px' }}>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div className="idea-side-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: UI.inkFaint, letterSpacing: 1, textTransform: 'uppercase', fontFamily: UI.mono }}>
             {ideas.length} idéer
           </div>
+          <div style={{ flex: 1 }} />
           {hasFilter && (
             <div onClick={clearFilters}
               style={{ fontSize: 10, fontWeight: 700, color: UI.accent, cursor: 'pointer', letterSpacing: 0.4, textTransform: 'uppercase', fontFamily: UI.mono }}>
               Ryd
             </div>
           )}
+          {/* Shown on narrow screens only, where the trends fold away above the cards */}
+          {(techTrends.length > 0 || outcomeTrends.length > 0) && (
+            <button type="button" className="idea-side-toggle" onClick={() => setTrendsOpen((v) => !v)} aria-expanded={trendsOpen}
+              style={{ display: 'none', fontFamily: UI.sans, fontSize: 11, fontWeight: 600, color: UI.ink, background: UI.panel, border: `1px solid ${UI.border}`, borderRadius: 6, padding: '4px 9px', cursor: 'pointer' }}>
+              {trendsOpen ? 'Skjul trends ▴' : `Trends${hasFilter ? ` (${selectedTechIds.length + selectedOutcomeIds.length})` : ''} ▾`}
+            </button>
+          )}
         </div>
+
+        <div className="idea-side-body" data-open={trendsOpen ? 'true' : 'false'}>
 
         {techTrends.length > 0 && (<>
           <div style={{ fontSize: 10, fontWeight: 700, color: UI.inkFaint, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 10, fontFamily: UI.mono }}>
@@ -534,6 +559,8 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit, onCreate
           })}
         </>)}
 
+        </div>
+
         {isNarrowed && (
           <div style={{ marginTop: 14, fontSize: 11, color: UI.inkFaint, fontStyle: 'italic' }}>
             Viser {visibleIdeas.length} af {ideas.length}
@@ -542,7 +569,7 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit, onCreate
       </div>
 
       {/* ── Main area: pipeline, controls, grouped cards ─────────────────────── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div className="idea-main" style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
 
         <UiIdeaPipeline store={store} candidateCount={candidateCount} />
 
@@ -556,20 +583,20 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit, onCreate
               style={{ ...uiInputStyle, fontSize: 12.5, padding: '6px 9px 6px 26px' }} />
           </div>
           {q && <span style={{ fontSize: 11.5, color: UI.inkMuted }}>{visibleIdeas.length} af {ideas.length} idéer</span>}
-          {onCreateInit && <UiIdeaQuickCreate store={store} onCreate={create} />}
+          {onCreateInit && <UiIdeaQuickCreate store={store} onCreate={create} onStart={mayEdit} />}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: UI.inkFaint, letterSpacing: 0.8, textTransform: 'uppercase', fontFamily: UI.mono }}>Sortér</span>
-            <div style={{ width: 380, maxWidth: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '0 1 auto', minWidth: 0, maxWidth: '100%' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: UI.inkFaint, letterSpacing: 0.8, textTransform: 'uppercase', fontFamily: UI.mono, width: 50, flex: '0 0 auto' }}>Sortér</span>
+            <div style={{ width: 380, minWidth: 0, flex: '0 1 auto' }}>
               <UiSegmented value={sortBy} onChange={setSortBy}
                 options={Object.entries(IDEA_SORTS).map(([value, s]) => ({ value, label: s.label }))} />
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: UI.inkFaint, letterSpacing: 0.8, textTransform: 'uppercase', fontFamily: UI.mono }}>Gruppér</span>
-            <div style={{ width: 300, maxWidth: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '0 1 auto', minWidth: 0, maxWidth: '100%' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: UI.inkFaint, letterSpacing: 0.8, textTransform: 'uppercase', fontFamily: UI.mono, width: 50, flex: '0 0 auto' }}>Gruppér</span>
+            <div style={{ width: 300, minWidth: 0, flex: '0 1 auto' }}>
               <UiSegmented value={groupBy} onChange={setGroupBy} options={[
                 { value: 'tier', label: 'Vurdering' }, { value: 'bu', label: 'Forretningsenhed' }, { value: 'none', label: 'Ingen' },
               ]} />
@@ -644,6 +671,27 @@ function UiIdeasView({ store, onOpenInit, onUpdateAssess, onUpdateInit, onCreate
       </div>
     </div>
   );
+}
+
+// Narrow screens: the trend sidebar folds away above the cards, and the whole
+// view scrolls as one column.
+if (typeof document !== 'undefined' && !document.getElementById('idea-styles')) {
+  const st = document.createElement('style');
+  st.id = 'idea-styles';
+  st.textContent = `
+    @media (max-width: 720px) {
+      .idea-root { flex-direction: column !important; overflow-x: hidden !important; overflow-y: auto !important; }
+      .idea-root > .idea-side { width: auto !important; border-right: none !important; border-bottom: 1px solid ${UI.border}; overflow: visible !important; padding: 10px 12px !important; }
+      .idea-root .idea-side-head { margin-bottom: 0 !important; }
+      .idea-root .idea-side-toggle { display: inline-block !important; }
+      .idea-root .idea-side-body[data-open="true"] { margin-top: 12px; }
+      .idea-root .idea-side-body[data-open="false"] { display: none; }
+      .idea-root > .idea-main { flex: 0 0 auto !important; overflow: visible !important; padding: 14px 12px 24px !important; }
+      .idea-root .idea-card { width: 100% !important; }
+      .idea-root .idea-pipe-arrow { display: none; }
+    }
+  `;
+  document.head.appendChild(st);
 }
 
 Object.assign(window, { UiIdeasView });
